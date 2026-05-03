@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import UltimaAtualizacao from "@/components/UltimaAtualizacao";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,10 +21,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="text-blue-300">🏠</span>
               <span>Imóveis Caixa</span>
             </a>
-            <nav className="text-sm text-blue-200 hidden sm:flex gap-4">
-              <a href="/" className="hover:text-white transition-colors">Buscar</a>
-              <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
-            </nav>
+            <div className="flex items-center gap-6">
+              <UltimaAtualizacao />
+              <nav className="text-sm text-blue-200 hidden sm:flex gap-4">
+                <a href="/" className="hover:text-white transition-colors">Buscar</a>
+                <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
+              </nav>
+            </div>
           </div>
         </header>
         <main className="max-w-7xl mx-auto px-4 py-6">

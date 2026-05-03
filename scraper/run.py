@@ -16,28 +16,30 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
-from mongo import ensure_indexes, upsert_imoveis, marcar_inativos, total_por_estado
+from mongo import ensure_indexes, upsert_imoveis, marcar_inativos, total_por_estado, registrar_sync, get_db
 from scraper import CaixaScraper, ALL_ESTADOS
+from geocoder import geocode_batch
 
 load_dotenv()
 
 
 def parse_args():
-    args   = sys.argv[1:]
+    args      = sys.argv[1:]
     estados   = ALL_ESTADOS
-    headless  = "--headless" in args
-    debug     = "--debug"    in args
-    sem_det   = "--sem-detalhes" in args
+    headless  = "--headless"      in args
+    debug     = "--debug"         in args
+    sem_det   = "--sem-detalhes"  in args
+    sem_geo   = "--sem-geocode"   in args
 
     if "--estados" in args:
         idx = args.index("--estados")
         estados = [e.upper() for e in args[idx + 1:] if not e.startswith("--")]
 
-    return estados, headless, debug, sem_det
+    return estados, headless, debug, sem_det, sem_geo
 
 
 def main():
-    estados, headless, debug, sem_detalhes = parse_args()
+    estados, headless, debug, sem_detalhes, sem_geocode = parse_args()
 
     inicio = datetime.now(timezone.utc)
     print()
@@ -89,6 +91,15 @@ def main():
         print("\n  Interrompido pelo usuário.")
     finally:
         scraper.close()
+
+    # ── Geocodificação dos imóveis sem coordenadas ────────────────────────────
+    if not sem_geocode and totais["imoveis"] > 0:
+        print("\n  Geocodificando imóveis novos...")
+        col = get_db()[__import__("os").environ.get("MONGODB_COLLECTION", "imoveis")]
+        geocode_batch(col, limit=500, debug=debug)
+
+    # ── Registra timestamp do sync ────────────────────────────────────────────
+    registrar_sync(totais["imoveis"])
 
     # ── Resumo final ─────────────────────────────────────────────────────────
     fim     = datetime.now(timezone.utc)

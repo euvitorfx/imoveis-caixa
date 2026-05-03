@@ -87,6 +87,20 @@ def marcar_inativos(estado: str, hdnimoveis_ativos: list[str]):
     return result.modified_count
 
 
+def registrar_sync(total_imoveis: int):
+    """Grava timestamp e total do último scrape completo na coleção _meta."""
+    db  = get_db()
+    db["_meta"].update_one(
+        {"key": "lastSync"},
+        {"$set": {
+            "key":          "lastSync",
+            "ts":           datetime.now(timezone.utc),
+            "totalImoveis": total_imoveis,
+        }},
+        upsert=True,
+    )
+
+
 def total_por_estado() -> dict:
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
     pipeline = [
