@@ -33,21 +33,21 @@ export default function ContadorVisitas() {
 
   return (
     <div className="mt-4">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+      <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-2">
         Total de visitas no site
       </p>
-      <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-400">
+      <div className="flex flex-wrap justify-center gap-6 text-xs text-blue-100">
         <span>
           👁 Hoje:{" "}
-          <strong className="text-gray-500">{fmtN(stats.diario)}</strong>
+          <strong className="text-white">{fmtN(stats.diario)}</strong>
         </span>
         <span>
           📅 Este mês:{" "}
-          <strong className="text-gray-500">{fmtN(stats.mensal)}</strong>
+          <strong className="text-white">{fmtN(stats.mensal)}</strong>
         </span>
         <span>
           🌐 Total:{" "}
-          <strong className="text-gray-500">{fmtN(stats.total)}</strong>
+          <strong className="text-white">{fmtN(stats.total)}</strong>
         </span>
       </div>
     </div>

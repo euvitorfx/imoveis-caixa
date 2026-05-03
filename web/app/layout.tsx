@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-7xl mx-auto px-4 py-6">
           {children}
         </main>
-        <footer className="text-center text-xs text-gray-400 py-6 mt-10 border-t">
+        <footer className="text-center text-xs text-white py-6 mt-10" style={{ backgroundColor: "#01112c" }}>
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
           <ContadorVisitas />
         </footer>
