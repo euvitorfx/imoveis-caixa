@@ -5,7 +5,7 @@ import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
-import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, fmtBRL } from "@/lib/utils";
+import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, ESTADO_TEXTOS, fmtBRL } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
 
 const LIMIT = 24;
@@ -133,6 +133,17 @@ export default async function EstadoPage({
         </p>
         </div>
       </div>
+
+      {/* Texto SEO único por estado */}
+      {ESTADO_TEXTOS[uf] && (
+        <div className="bg-white rounded-xl shadow p-5 mb-6 text-sm text-gray-600 leading-relaxed">
+          <p>{ESTADO_TEXTOS[uf]}</p>
+          <p className="mt-3 text-xs text-gray-400">
+            Use os filtros abaixo para refinar sua busca por tipo de imóvel, faixa de preço, modalidade de venda e muito mais.
+            Os dados são atualizados diariamente diretamente do site oficial da Caixa Econômica Federal.
+          </p>
+        </div>
+      )}
 
       {/* Cidades */}
       {data.cidades.length > 0 && (
