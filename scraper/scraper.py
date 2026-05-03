@@ -70,6 +70,10 @@ def _parse_descricao(desc: str) -> dict:
     if m:
         result["vagas"] = int(m.group(1))
 
+    m = re.search(r"(\d+)\s*su[íi]te", desc, re.I)
+    if m:
+        result["suites"] = int(m.group(1))
+
     return result
 
 
@@ -180,7 +184,85 @@ class CaixaScraper:
             print(f"  [ERRO] download_csv({estado}): {e}")
             return None
 
-    # ── Enriquecimento com foto ───────────────────────────────────────────────
+    # ── Enriquecimento com detalhes da página ────────────────────────────────
+
+    def get_detalhes_imovel(self, hdn: str) -> dict:
+        """
+        Visita a página de detalhe do imóvel e extrai campos extras:
+        CEP, leiloeiro, edital, editaiUrl, matriculaUrl,
+        ocupacao, fgts, dataLeilao1, dataLeilao2, suites.
+        Retorna dict com os campos encontrados (pode ser vazio).
+        """
+        url = f"{DET_URL}?hdnimovel={hdn}"
+        extras: dict = {}
+        try:
+            self.page.goto(url, wait_until="domcontentloaded", timeout=25_000)
+            time.sleep(2)
+
+            text = self.page.inner_text("body")
+            html = self.page.content()
+
+            # CEP
+            m = re.search(r"CEP[:\s]*([\d]{5}-[\d]{3})", text)
+            if m:
+                extras["cep"] = m.group(1)
+
+            # Leiloeiro
+            m = re.search(r"Leiloeiro\(a\):\s*(.+)", text)
+            if m:
+                extras["leiloeiro"] = m.group(1).strip()
+
+            # Número do edital
+            m = re.search(r"Edital:\s*([^\n]+)", text)
+            if m:
+                val = m.group(1).strip()
+                if val:
+                    extras["edital"] = val
+
+            # URL do edital PDF (via onclick)
+            m = re.search(r"ExibeDoc\(['\"]([^'\"]*(?:edital|EL)[^'\"]*\.PDF)['\"]", html, re.I)
+            if m:
+                path = m.group(1)
+                extras["editaiUrl"] = f"{BASE_URL}{path}" if path.startswith("/") else path
+
+            # URL da matrícula PDF (via onclick)
+            m = re.search(r"ExibeDoc\(['\"]([^'\"]*matricula[^'\"]*\.pdf)['\"]", html, re.I)
+            if m:
+                path = m.group(1)
+                extras["matriculaUrl"] = f"{BASE_URL}{path}" if path.startswith("/") else path
+
+            # Ocupação
+            m = re.search(r"\b(Desocupado|Ocupado)\b", text, re.I)
+            if m:
+                extras["ocupacao"] = m.group(1).capitalize()
+            else:
+                # fallback: procura no HTML bruto (campo pode estar em input hidden)
+                m = re.search(r"\b(Desocupado|Ocupado)\b", html, re.I)
+                if m:
+                    extras["ocupacao"] = m.group(1).capitalize()
+
+            # FGTS
+            if re.search(r"Permite utiliza[çc][aã]o de FGTS", text, re.I):
+                extras["fgts"] = True
+
+            # Datas do leilão
+            m = re.search(r"Data do 1[°º]\s*Leil[ãa]o[^\d]*([\d]{2}/[\d]{2}/[\d]{4})", text)
+            if m:
+                extras["dataLeilao1"] = m.group(1)
+
+            m = re.search(r"Data do 2[°º]\s*Leil[ãa]o[^\d]*([\d]{2}/[\d]{2}/[\d]{4})", text)
+            if m:
+                extras["dataLeilao2"] = m.group(1)
+
+            # Suítes (da descrição detalhada na página)
+            m = re.search(r"(\d+)\s*su[íi]te", text, re.I)
+            if m:
+                extras["suites"] = int(m.group(1))
+
+        except Exception as e:
+            self._log(f"  [WARN] get_detalhes_imovel({hdn}): {e}")
+
+        return extras
 
     def get_foto_url(self, url_detalhe: str) -> Optional[str]:
         """Busca a URL da foto principal na página de detalhe do imóvel."""
