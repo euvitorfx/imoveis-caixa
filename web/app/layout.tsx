@@ -16,16 +16,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
-        <header className="text-white shadow-md" style={{ backgroundColor: "#01112c", minHeight: "100px" }}>
-          <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-center gap-3" style={{ minHeight: "100px" }}>
+        <header className="text-white shadow-md" style={{ backgroundColor: "#01112c" }}>
+          <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
+
+            {/* Linha 1: logo + atualização/nav (desktop) */}
             <div className="flex items-center justify-between">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="h-20 w-auto object-contain" style={{ height: "90px" }} />
+                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
-              <div className="flex flex-col items-end gap-2">
+              {/* Desktop: nav + atualização à direita */}
+              <div className="hidden sm:flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
-                <nav className="text-sm text-blue-200 hidden sm:flex gap-4">
+                <nav className="text-sm text-blue-200 flex gap-4">
                   <a href="/" className="hover:text-white transition-colors">Buscar</a>
                   <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
                   <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
@@ -33,6 +36,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </nav>
               </div>
             </div>
+
+            {/* Mobile: nav em segunda linha */}
+            <nav className="sm:hidden flex justify-around text-xs text-blue-200 border-t border-blue-900 mt-2 pt-2 pb-1">
+              <a href="/" className="hover:text-white transition-colors py-1">Buscar</a>
+              <a href="/mapa" className="hover:text-white transition-colors py-1">Mapa</a>
+              <a href="/estatisticas" className="hover:text-white transition-colors py-1">Estatísticas</a>
+              <a href="/corretores" className="hover:text-white transition-colors py-1">Corretores</a>
+            </nav>
+
           </div>
         </header>
         <main className="max-w-7xl mx-auto px-4 py-6">
