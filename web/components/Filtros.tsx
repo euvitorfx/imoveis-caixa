@@ -22,6 +22,7 @@ export default function Filtros() {
   const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")      || "");
   const [quartos,    setQuartos]    = useState(searchParams.get("quartos")       || "");
   const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
+  const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
 
   const [cidades,    setCidades]    = useState<string[]>([]);
   const [bairros,    setBairros]    = useState<string[]>([]);
@@ -54,12 +55,13 @@ export default function Filtros() {
     if (precoMax)   p.set("precoMax",      precoMax);
     if (quartos)    p.set("quartos",       quartos);
     if (finan)      p.set("financiamento", finan);
+    if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`/?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, router]);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, ordenar, router]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
-    setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan("");
+    setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan(""); setOrdenar("preco_asc");
     router.push("/");
   };
 
@@ -69,7 +71,7 @@ export default function Filtros() {
   return (
     <div className="bg-white rounded-xl shadow p-4 mb-6">
       <h2 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Filtros</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
 
         <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value); setCidade(""); setBairro(""); }}>
           <option value="">Estado</option>
@@ -113,6 +115,13 @@ export default function Filtros() {
         <select className={sel} value={finan} onChange={(e) => setFinan(e.target.value)}>
           <option value="">Financiamento</option>
           <option value="sim">Aceita</option>
+        </select>
+
+        <select className={sel} value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>
+          <option value="preco_asc">Menor preço</option>
+          <option value="preco_desc">Maior preço</option>
+          <option value="recente">Adicionado recentemente</option>
+          <option value="antigo">Adicionado há mais tempo</option>
         </select>
       </div>
 

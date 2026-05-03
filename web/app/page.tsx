@@ -15,6 +15,7 @@ interface SearchParams {
   precoMax?: string;
   quartos?: string;
   financiamento?: string;
+  ordenar?: string;
   page?: string;
 }
 
@@ -32,6 +33,14 @@ async function queryImoveis(sp: SearchParams) {
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (sp.quartos)    filter.quartos    = { $gte: parseInt(sp.quartos) };
 
+  const SORT_MAP: Record<string, Record<string, number>> = {
+    "preco_asc":  { preco: 1 },
+    "preco_desc": { preco: -1 },
+    "recente":    { dataInsercao: -1 },
+    "antigo":     { dataInsercao: 1 },
+  };
+  const sort = SORT_MAP[sp.ordenar || "preco_asc"] ?? { preco: 1 };
+
   if (sp.precoMin || sp.precoMax) {
     filter.preco = {};
     if (sp.precoMin) filter.preco.$gte = parseFloat(sp.precoMin);
@@ -47,7 +56,7 @@ async function queryImoveis(sp: SearchParams) {
   const [docs, total] = await Promise.all([
     col
       .find(filter)
-      .sort({ preco: 1 })
+      .sort(sort)
       .skip(skip)
       .limit(LIMIT)
       .project({

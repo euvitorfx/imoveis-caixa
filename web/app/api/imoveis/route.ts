@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
+const SORT_MAP: Record<string, Record<string, number>> = {
+  "preco_asc":       { preco: 1 },
+  "preco_desc":      { preco: -1 },
+  "recente":         { dataInsercao: -1 },
+  "antigo":          { dataInsercao: 1 },
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
 
@@ -13,6 +20,7 @@ export async function GET(req: NextRequest) {
   const precoMax   = searchParams.get("precoMax");
   const quartos    = searchParams.get("quartos");
   const financiamento = searchParams.get("financiamento");
+  const ordenar    = searchParams.get("ordenar") || "preco_asc";
   const page  = Math.max(1, parseInt(searchParams.get("page")  || "1"));
   const limit = Math.min(48, parseInt(searchParams.get("limit") || "24"));
   const skip  = (page - 1) * limit;
@@ -34,6 +42,8 @@ export async function GET(req: NextRequest) {
     if (precoMax) filter.preco.$lte = parseFloat(precoMax);
   }
 
+  const sort = SORT_MAP[ordenar] ?? SORT_MAP["preco_asc"];
+
   try {
     const client = await clientPromise;
     const db     = client.db(process.env.MONGODB_DB);
@@ -42,7 +52,7 @@ export async function GET(req: NextRequest) {
     const [docs, total] = await Promise.all([
       col
         .find(filter)
-        .sort({ preco: 1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .project({

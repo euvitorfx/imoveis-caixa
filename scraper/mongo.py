@@ -28,6 +28,7 @@ def ensure_indexes():
     col.create_index([("preco", ASCENDING)])
     col.create_index([("tipo", ASCENDING)])
     col.create_index([("ativo", ASCENDING)])
+    col.create_index([("dataInsercao", ASCENDING)])
     print("  Índices criados/verificados.")
 
 
