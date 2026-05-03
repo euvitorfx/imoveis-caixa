@@ -32,19 +32,24 @@ export default function ContadorVisitas() {
   if (!stats) return null;
 
   return (
-    <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-400 mt-3">
-      <span>
-        👁 Hoje:{" "}
-        <strong className="text-gray-500">{fmtN(stats.diario)}</strong>
-      </span>
-      <span>
-        📅 Este mês:{" "}
-        <strong className="text-gray-500">{fmtN(stats.mensal)}</strong>
-      </span>
-      <span>
-        🌐 Total:{" "}
-        <strong className="text-gray-500">{fmtN(stats.total)}</strong>
-      </span>
+    <div className="mt-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+        Total de visitas no site
+      </p>
+      <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-400">
+        <span>
+          👁 Hoje:{" "}
+          <strong className="text-gray-500">{fmtN(stats.diario)}</strong>
+        </span>
+        <span>
+          📅 Este mês:{" "}
+          <strong className="text-gray-500">{fmtN(stats.mensal)}</strong>
+        </span>
+        <span>
+          🌐 Total:{" "}
+          <strong className="text-gray-500">{fmtN(stats.total)}</strong>
+        </span>
+      </div>
     </div>
   );
 }
