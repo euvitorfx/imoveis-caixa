@@ -23,6 +23,7 @@ export default function Filtros() {
   const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")      || "");
   const [quartos,    setQuartos]    = useState(searchParams.get("quartos")       || "");
   const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
+  const [desconto,   setDesconto]   = useState(searchParams.get("descontoMin")   || "");
   const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
 
   const [cidades,    setCidades]    = useState<string[]>([]);
@@ -56,13 +57,14 @@ export default function Filtros() {
     if (precoMax)   p.set("precoMax",      precoMax);
     if (quartos)    p.set("quartos",       quartos);
     if (finan)      p.set("financiamento", finan);
+    if (desconto)   p.set("descontoMin",   desconto);
     if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, ordenar, router, pathname]);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
-    setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan(""); setOrdenar("preco_asc");
+    setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
     router.push(pathname);
   };
 
@@ -116,6 +118,15 @@ export default function Filtros() {
         <select className={sel} value={finan} onChange={(e) => setFinan(e.target.value)}>
           <option value="">Financiamento</option>
           <option value="sim">Aceita</option>
+        </select>
+
+        <select className={sel} value={desconto} onChange={(e) => setDesconto(e.target.value)}>
+          <option value="">Desconto</option>
+          <option value="10">Acima de 10%</option>
+          <option value="20">Acima de 20%</option>
+          <option value="30">Acima de 30%</option>
+          <option value="40">Acima de 40%</option>
+          <option value="50">Acima de 50%</option>
         </select>
 
         <select className={sel} value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>

@@ -16,6 +16,7 @@ interface SearchParams {
   precoMax?: string;
   quartos?: string;
   financiamento?: string;
+  descontoMin?: string;
   ordenar?: string;
   page?: string;
 }
@@ -33,6 +34,10 @@ async function queryImoveis(sp: SearchParams) {
   if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade, $options: "i" };
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (sp.quartos)    filter.quartos    = { $gte: parseInt(sp.quartos) };
+  if (sp.descontoMin) {
+    const pct = parseInt(sp.descontoMin) / 100;
+    filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };
+  }
 
   const SORT_MAP: Record<string, Sort> = {
     "preco_asc":  { preco: 1 },

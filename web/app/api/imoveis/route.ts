@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const precoMax   = searchParams.get("precoMax");
   const quartos    = searchParams.get("quartos");
   const financiamento = searchParams.get("financiamento");
+  const descontoMin = searchParams.get("descontoMin");
   const ordenar    = searchParams.get("ordenar") || "preco_asc";
   const page  = Math.max(1, parseInt(searchParams.get("page")  || "1"));
   const limit = Math.min(48, parseInt(searchParams.get("limit") || "24"));
@@ -36,6 +37,10 @@ export async function GET(req: NextRequest) {
   if (modalidade) filter.modalidade = { $regex: modalidade, $options: "i" };
   if (financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (quartos)    filter.quartos    = { $gte: parseInt(quartos) };
+  if (descontoMin) {
+    const pct = parseInt(descontoMin) / 100;
+    filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };
+  }
 
   if (precoMin || precoMax) {
     filter.preco = {};
