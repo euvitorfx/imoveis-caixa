@@ -82,10 +82,11 @@ async function getStats() {
       { $project: { hdnImovel: 1, preco: 1, precoAval: 1, pctDesconto: 1, cidade: 1, estado: 1, tipo: 1 } },
     ]).toArray() as Promise<DestaqueStat[]>,
 
-    // Preço médio m² por estado
+    // Preço médio m² por estado — filtra áreas < 15m² (dados inválidos) e outliers de preço/m²
     col.aggregate([
-      { $match: { ativo: true, areaTotal: { $gt: 0 }, preco: { $gt: 0 } } },
+      { $match: { ativo: true, areaTotal: { $gte: 15 }, preco: { $gt: 0 } } },
       { $addFields: { precoPorM2: { $divide: ["$preco", "$areaTotal"] } } },
+      { $match: { precoPorM2: { $gte: 100, $lte: 50000 } } },
       { $group: { _id: "$estado", precoPorM2Medio: { $avg: "$precoPorM2" }, total: { $sum: 1 } } },
       { $sort: { precoPorM2Medio: 1 } },
     ]).toArray() as Promise<M2Stat[]>,
@@ -268,7 +269,7 @@ export default async function EstatisticasPage() {
       {s.precoPorM2PorEstado.length > 0 && (
         <div className="bg-white rounded-xl shadow p-5 mb-6">
           <h2 className="font-semibold text-gray-700 mb-1">Preço médio por m² por estado</h2>
-          <p className="text-xs text-gray-400 mb-4">Calculado sobre imóveis com área total informada.</p>
+          <p className="text-xs text-gray-400 mb-4">Imóveis com área ≥ 15 m² e preço/m² entre R$ 100 e R$ 50.000. A quantidade pode diferir do total por estado.</p>
           <div className="space-y-2">
             {s.precoPorM2PorEstado.map((e) => (
               <div key={e._id} className="flex items-center gap-2 text-sm">
