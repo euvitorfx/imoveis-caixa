@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import UltimaAtualizacao from "@/components/UltimaAtualizacao";
 import ContadorVisitas from "@/components/ContadorVisitas";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
         <GoogleAnalytics />
+        <Analytics />
 
         <header className="text-white shadow-md" style={{ backgroundColor: "#01112c" }}>
           <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
