@@ -4,27 +4,31 @@ import clientPromise from "@/lib/mongodb";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const estado = searchParams.get("estado") || "";
+  const cidade = searchParams.get("cidade") || "";
 
   try {
     const client = await clientPromise;
     const col    = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
 
-    const matchStage = estado
-      ? { $match: { ativo: true, estado: estado.toUpperCase() } }
-      : { $match: { ativo: true } };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baseMatch: Record<string, any> = { ativo: true };
+    if (estado) baseMatch.estado = estado.toUpperCase();
+    if (cidade) baseMatch.cidade = { $regex: cidade, $options: "i" };
 
-    const [cidades, tipos, modalidades] = await Promise.all([
-      estado
-        ? col.distinct("cidade", { ativo: true, estado: estado.toUpperCase() })
-        : Promise.resolve([]),
-      col.distinct("tipo",       matchStage.$match),
-      col.distinct("modalidade", matchStage.$match),
+    const cidadeMatch = estado ? { ativo: true, estado: estado.toUpperCase() } : { ativo: true };
+
+    const [cidades, bairros, tipos, modalidades] = await Promise.all([
+      estado ? col.distinct("cidade", cidadeMatch) : Promise.resolve([]),
+      cidade ? col.distinct("bairro", baseMatch)   : Promise.resolve([]),
+      col.distinct("tipo",       baseMatch),
+      col.distinct("modalidade", baseMatch),
     ]);
 
     return NextResponse.json({
-      cidades:    (cidades as string[]).sort(),
-      tipos:      (tipos as string[]).filter(Boolean).sort(),
-      modalidades:(modalidades as string[]).filter(Boolean).sort(),
+      cidades:     (cidades as string[]).filter(Boolean).sort(),
+      bairros:     (bairros as string[]).filter(Boolean).sort(),
+      tipos:       (tipos as string[]).filter(Boolean).sort(),
+      modalidades: (modalidades as string[]).filter(Boolean).sort(),
     });
   } catch (err) {
     console.error(err);

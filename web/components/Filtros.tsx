@@ -13,45 +13,52 @@ export default function Filtros() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
-  const [estado,     setEstado]     = useState(searchParams.get("estado")     || "");
-  const [cidade,     setCidade]     = useState(searchParams.get("cidade")     || "");
-  const [tipo,       setTipo]       = useState(searchParams.get("tipo")       || "");
-  const [modalidade, setModalidade] = useState(searchParams.get("modalidade") || "");
-  const [precoMin,   setPrecoMin]   = useState(searchParams.get("precoMin")   || "");
-  const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")   || "");
-  const [quartos,    setQuartos]    = useState(searchParams.get("quartos")    || "");
+  const [estado,     setEstado]     = useState(searchParams.get("estado")        || "");
+  const [cidade,     setCidade]     = useState(searchParams.get("cidade")        || "");
+  const [bairro,     setBairro]     = useState(searchParams.get("bairro")        || "");
+  const [tipo,       setTipo]       = useState(searchParams.get("tipo")          || "");
+  const [modalidade, setModalidade] = useState(searchParams.get("modalidade")    || "");
+  const [precoMin,   setPrecoMin]   = useState(searchParams.get("precoMin")      || "");
+  const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")      || "");
+  const [quartos,    setQuartos]    = useState(searchParams.get("quartos")       || "");
   const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
 
   const [cidades,    setCidades]    = useState<string[]>([]);
+  const [bairros,    setBairros]    = useState<string[]>([]);
   const [tipos,      setTipos]      = useState<string[]>([]);
   const [modalidades,setModalidades]= useState<string[]>([]);
 
+  // Carrega cidades quando estado muda, bairros quando cidade muda
   useEffect(() => {
-    const url = estado ? `/api/filtros?estado=${estado}` : "/api/filtros";
-    fetch(url)
+    const qs = new URLSearchParams();
+    if (estado) qs.set("estado", estado);
+    if (cidade) qs.set("cidade", cidade);
+    fetch(`/api/filtros?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => {
         setCidades(d.cidades    || []);
+        setBairros(d.bairros    || []);
         setTipos(d.tipos        || []);
         setModalidades(d.modalidades || []);
       });
-  }, [estado]);
+  }, [estado, cidade]);
 
   const apply = useCallback(() => {
     const p = new URLSearchParams();
-    if (estado)     p.set("estado",     estado);
-    if (cidade)     p.set("cidade",     cidade);
-    if (tipo)       p.set("tipo",       tipo);
-    if (modalidade) p.set("modalidade", modalidade);
-    if (precoMin)   p.set("precoMin",   precoMin);
-    if (precoMax)   p.set("precoMax",   precoMax);
-    if (quartos)    p.set("quartos",    quartos);
+    if (estado)     p.set("estado",        estado);
+    if (cidade)     p.set("cidade",        cidade);
+    if (bairro)     p.set("bairro",        bairro);
+    if (tipo)       p.set("tipo",          tipo);
+    if (modalidade) p.set("modalidade",    modalidade);
+    if (precoMin)   p.set("precoMin",      precoMin);
+    if (precoMax)   p.set("precoMax",      precoMax);
+    if (quartos)    p.set("quartos",       quartos);
     if (finan)      p.set("financiamento", finan);
     router.push(`/?${p.toString()}`);
-  }, [estado, cidade, tipo, modalidade, precoMin, precoMax, quartos, finan, router]);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, router]);
 
   const clear = () => {
-    setEstado(""); setCidade(""); setTipo(""); setModalidade("");
+    setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
     setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan("");
     router.push("/");
   };
@@ -62,16 +69,21 @@ export default function Filtros() {
   return (
     <div className="bg-white rounded-xl shadow p-4 mb-6">
       <h2 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Filtros</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3">
 
-        <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value); setCidade(""); }}>
+        <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value); setCidade(""); setBairro(""); }}>
           <option value="">Estado</option>
           {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
         </select>
 
-        <select className={sel} value={cidade} onChange={(e) => setCidade(e.target.value)} disabled={!cidades.length}>
+        <select className={sel} value={cidade} onChange={(e) => { setCidade(e.target.value); setBairro(""); }} disabled={!cidades.length}>
           <option value="">Cidade</option>
           {cidades.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <select className={sel} value={bairro} onChange={(e) => setBairro(e.target.value)} disabled={!bairros.length}>
+          <option value="">Bairro</option>
+          {bairros.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
 
         <select className={sel} value={tipo} onChange={(e) => setTipo(e.target.value)}>

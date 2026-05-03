@@ -8,6 +8,7 @@ import clientPromise from "@/lib/mongodb";
 interface SearchParams {
   estado?: string;
   cidade?: string;
+  bairro?: string;
   tipo?: string;
   modalidade?: string;
   precoMin?: string;
@@ -25,6 +26,7 @@ async function queryImoveis(sp: SearchParams) {
 
   if (sp.estado)     filter.estado     = sp.estado.toUpperCase();
   if (sp.cidade)     filter.cidade     = { $regex: sp.cidade, $options: "i" };
+  if (sp.bairro)     filter.bairro     = { $regex: sp.bairro, $options: "i" };
   if (sp.tipo)       filter.tipo       = { $regex: sp.tipo,   $options: "i" };
   if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade, $options: "i" };
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
