@@ -170,7 +170,7 @@ export default async function EstatisticasPage() {
               {stats.porEstado.map((e) => (
                 <tr key={e._id} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="py-2 font-semibold text-brand-900">
-                    <a href={`/?estado=${e._id}`} className="hover:underline">{e._id}</a>
+                    <a href={`/imoveis/${e._id.toLowerCase()}`} className="hover:underline">{e._id}</a>
                   </td>
                   <td className="py-2 text-right">{fmtN(e.total)}</td>
                   <td className="py-2 text-right">{fmt(e.precoMedio)}</td>

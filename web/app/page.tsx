@@ -5,6 +5,7 @@ import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
 import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
+import { ALL_ESTADOS, ESTADO_NOMES } from "@/lib/utils";
 
 interface SearchParams {
   estado?: string;
@@ -127,6 +128,23 @@ export default async function HomePage({
           </Suspense>
         </>
       )}
+
+      {/* Explorar por estado */}
+      <div className="mt-12 pt-6 border-t">
+        <h2 className="text-base font-semibold text-gray-700 mb-3">Explorar por estado</h2>
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2">
+          {ALL_ESTADOS.map((uf) => (
+            <a
+              key={uf}
+              href={`/imoveis/${uf.toLowerCase()}`}
+              className="text-center bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg px-2 py-2 transition-colors"
+            >
+              <span className="block text-sm font-bold text-gray-800">{uf}</span>
+              <span className="block text-xs text-gray-400 truncate">{ESTADO_NOMES[uf]}</span>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
