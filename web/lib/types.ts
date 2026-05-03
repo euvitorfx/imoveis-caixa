@@ -17,11 +17,23 @@ export interface Imovel {
   areaUtil?: number;
   areaTerreno?: number;
   quartos?: number;
+  suites?: number;
   vagas?: number;
   ativo: boolean;
   lat?: number;
   lng?: number;
   historicoPreco?: { data: string; preco: number }[];
+  // Campos enriquecidos via página de detalhe
+  cep?: string;
+  ocupacao?: string;
+  fgts?: boolean;
+  leiloeiro?: string;
+  edital?: string;
+  editaiUrl?: string;
+  matriculaUrl?: string;
+  dataLeilao1?: string;
+  dataLeilao2?: string;
+  enriched?: boolean;
 }
 
 export interface FiltrosImovel {

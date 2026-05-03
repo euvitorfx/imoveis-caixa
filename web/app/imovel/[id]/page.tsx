@@ -96,13 +96,17 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
     ["Cidade",         imovel.cidade],
     ["Bairro",         imovel.bairro || "—"],
     ["Endereço",       imovel.endereco || "—"],
+    ...(imovel.cep          ? [["CEP",             imovel.cep]                       as [string,string]] : []),
     ["Tipo",           imovel.tipo || "—"],
     ["Modalidade",     imovel.modalidade || "—"],
     ["Financiamento",  imovel.financiamento || "—"],
+    ...(imovel.fgts !== undefined ? [["FGTS",       imovel.fgts ? "Sim" : "Não"]     as [string,string]] : []),
+    ...(imovel.ocupacao     ? [["Ocupação",         imovel.ocupacao]                 as [string,string]] : []),
     ["Área total",     imovel.areaTotal   ? `${imovel.areaTotal} m²`   : "—"],
     ["Área privativa", imovel.areaUtil    ? `${imovel.areaUtil} m²`    : "—"],
     ["Área terreno",   imovel.areaTerreno ? `${imovel.areaTerreno} m²` : "—"],
     ["Quartos",        imovel.quartos     ? String(imovel.quartos)      : "—"],
+    ...(imovel.suites       ? [["Suítes",           String(imovel.suites)]            as [string,string]] : []),
     ["Vagas",          imovel.vagas       ? String(imovel.vagas)        : "—"],
     ["N° do imóvel",   imovel.hdnImovel],
   ];
@@ -175,7 +179,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             </div>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-6 flex flex-wrap gap-2">
             <a
               href={imovel.urlDetalhe}
               target="_blank"
@@ -184,6 +188,18 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             >
               Ver no site da Caixa →
             </a>
+            {imovel.editaiUrl && (
+              <a href={imovel.editaiUrl} target="_blank" rel="noopener noreferrer"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1">
+                📄 Baixar edital
+              </a>
+            )}
+            {imovel.matriculaUrl && (
+              <a href={imovel.matriculaUrl} target="_blank" rel="noopener noreferrer"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1">
+                📋 Baixar matrícula
+              </a>
+            )}
           </div>
 
           {/* Informações */}
@@ -209,6 +225,41 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
           />
         </div>
       </div>
+
+      {/* Bloco leilão — aparece apenas quando há dados do leiloeiro ou datas */}
+      {(imovel.leiloeiro || imovel.dataLeilao1 || imovel.edital) && (
+        <div className="mt-6 bg-white rounded-xl shadow p-5">
+          <h2 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            🔨 Informações do Leilão
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            {imovel.leiloeiro && (
+              <div className="flex justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Leiloeiro(a)</span>
+                <span className="font-medium text-gray-800 text-right max-w-[60%]">{imovel.leiloeiro}</span>
+              </div>
+            )}
+            {imovel.edital && (
+              <div className="flex justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Edital</span>
+                <span className="font-medium text-gray-800">{imovel.edital}</span>
+              </div>
+            )}
+            {imovel.dataLeilao1 && (
+              <div className="flex justify-between bg-orange-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">1º Leilão</span>
+                <span className="font-semibold text-orange-700">{imovel.dataLeilao1}</span>
+              </div>
+            )}
+            {imovel.dataLeilao2 && (
+              <div className="flex justify-between bg-orange-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">2º Leilão</span>
+                <span className="font-semibold text-orange-700">{imovel.dataLeilao2}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Corretores parceiros */}
       <div className="mt-6 bg-white rounded-xl shadow p-5">
