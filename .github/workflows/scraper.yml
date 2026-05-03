@@ -2,7 +2,9 @@ name: Scraper Diário — Caixa Imóveis
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC = 03:00 BRT
+    - cron: "0 6 * * *"    # 03:00 BRT
+    - cron: "0 13 * * *"   # 10:00 BRT
+    - cron: "0 21 * * *"   # 18:00 BRT
   workflow_dispatch:       # permite rodar manualmente
 
 jobs:
