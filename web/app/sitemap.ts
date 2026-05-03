@@ -3,6 +3,7 @@ import clientPromise from "@/lib/mongodb";
 import { SITE_URL } from "@/lib/config";
 import { getPostsPublicados } from "@/lib/blog";
 import { getCorretoresAprovados } from "@/lib/corretores";
+import { ALL_ESTADOS, slugify } from "@/lib/utils";
 
 export const revalidate = 3600;
 
@@ -21,10 +22,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const client = await clientPromise;
     const col = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
 
-    const [imovelDocs, posts, corretores] = await Promise.all([
+    const [imovelDocs, posts, corretores, cidadesPorEstado] = await Promise.all([
       col.find({ ativo: true }).project({ hdnImovel: 1, dataAtualizacao: 1 }).toArray(),
       getPostsPublicados(),
       getCorretoresAprovados(),
+      Promise.all(
+        ALL_ESTADOS.map(async (uf) => {
+          const cidades = await col.distinct("cidade", { estado: uf, ativo: true }) as string[];
+          return { uf, cidades };
+        })
+      ),
     ]);
 
     const imovelPages: MetadataRoute.Sitemap = imovelDocs.map((doc) => ({
@@ -48,7 +55,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority:         0.5,
     }));
 
-    return [...staticPages, ...imovelPages, ...blogPages, ...corretorPages];
+    const estadoPages: MetadataRoute.Sitemap = ALL_ESTADOS.map((uf) => ({
+      url:             `${SITE_URL}/imoveis/${uf.toLowerCase()}`,
+      changeFrequency: "daily" as const,
+      priority:        0.8,
+    }));
+
+    const cidadePages: MetadataRoute.Sitemap = cidadesPorEstado.flatMap(({ uf, cidades }) =>
+      cidades.map((cidade) => ({
+        url:             `${SITE_URL}/imoveis/${uf.toLowerCase()}/${slugify(cidade)}`,
+        changeFrequency: "daily" as const,
+        priority:        0.7,
+      }))
+    );
+
+    return [...staticPages, ...estadoPages, ...cidadePages, ...imovelPages, ...blogPages, ...corretorPages];
   } catch {
     return staticPages;
   }
