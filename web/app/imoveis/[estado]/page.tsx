@@ -6,6 +6,7 @@ import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
 import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, fmtBRL } from "@/lib/utils";
+import BandeiraEstado from "@/components/BandeiraEstado";
 
 const LIMIT = 24;
 
@@ -105,12 +106,10 @@ export default async function EstadoPage({
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <BandeiraEstado
           src={ESTADO_BANDEIRAS[uf]}
           alt={`Bandeira ${nomeEstado}`}
           className="h-12 w-auto object-contain rounded shadow-sm flex-shrink-0"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
         <div>
         <h1 className="text-2xl font-bold text-gray-800">

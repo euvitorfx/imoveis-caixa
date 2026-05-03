@@ -6,6 +6,7 @@ import { Imovel } from "@/lib/types";
 import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { ALL_ESTADOS, ESTADO_NOMES, ESTADO_BANDEIRAS } from "@/lib/utils";
+import BandeiraEstado from "@/components/BandeiraEstado";
 
 interface SearchParams {
   estado?: string;
@@ -139,12 +140,10 @@ export default async function HomePage({
               href={`/imoveis/${uf.toLowerCase()}`}
               className="flex flex-col items-center bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg px-2 py-2 transition-colors gap-1"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <BandeiraEstado
                 src={ESTADO_BANDEIRAS[uf]}
                 alt={`Bandeira ${ESTADO_NOMES[uf]}`}
                 className="h-6 w-auto object-contain"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
               <span className="text-sm font-bold text-gray-800">{uf}</span>
               <span className="text-xs text-gray-400 truncate w-full text-center">{ESTADO_NOMES[uf]}</span>
