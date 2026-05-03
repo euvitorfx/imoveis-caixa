@@ -197,7 +197,7 @@ class CaixaScraper:
         extras: dict = {}
         try:
             self.page.goto(url, wait_until="domcontentloaded", timeout=25_000)
-            time.sleep(2)
+            time.sleep(1)
 
             text = self.page.inner_text("body")
             html = self.page.content()

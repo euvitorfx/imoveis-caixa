@@ -23,7 +23,7 @@ from scraper import CaixaScraper
 
 load_dotenv()
 
-DELAY_ENTRE_REQUESTS = 1.2   # segundos entre requisições (respeitar o servidor)
+DELAY_ENTRE_REQUESTS = 0.8   # segundos entre requisições (respeitar o servidor)
 BATCH_SIZE = 100
 
 

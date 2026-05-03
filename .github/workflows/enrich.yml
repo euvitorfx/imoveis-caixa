@@ -1,11 +1,14 @@
 name: Enriquecimento de Imóveis — Detalhes Caixa
 
 on:
-  # Roda 1h após cada execução do scraper diário
+  # Roda a cada 4 horas (6x por dia)
   schedule:
+    - cron: "0 3 * * *"    # 00:00 BRT
     - cron: "0 7 * * *"    # 04:00 BRT
-    - cron: "0 14 * * *"   # 11:00 BRT
-    - cron: "0 22 * * *"   # 19:00 BRT
+    - cron: "0 11 * * *"   # 08:00 BRT
+    - cron: "0 15 * * *"   # 12:00 BRT
+    - cron: "0 19 * * *"   # 16:00 BRT
+    - cron: "0 23 * * *"   # 20:00 BRT
   workflow_dispatch:        # permite rodar manualmente com parâmetros
     inputs:
       limite:
@@ -51,7 +54,7 @@ jobs:
           MONGODB_COLLECTION: ${{ secrets.MONGODB_COLLECTION }}
         run: |
           cd scraper
-          python enrich.py --limite 300 --headless
+          python enrich.py --limite 700 --headless
 
       - name: Enriquecer imóveis (disparo manual)
         if: github.event_name == 'workflow_dispatch'
