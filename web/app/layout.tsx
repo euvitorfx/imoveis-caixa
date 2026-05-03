@@ -60,6 +60,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <footer className="text-center text-xs text-white py-6 mt-10" style={{ backgroundColor: "#01112c" }}>
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
+          <p className="mt-1">
+            Contato:{" "}
+            <a href="mailto:atendimento@buscaleiloescaixa.com.br" className="text-blue-300 hover:text-white transition-colors">
+              atendimento@buscaleiloescaixa.com.br
+            </a>
+          </p>
           <ContadorVisitas />
         </footer>
       </body>

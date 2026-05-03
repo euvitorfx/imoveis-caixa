@@ -124,8 +124,8 @@ export default function FerramentasPage() {
 
       <p className="text-center text-xs text-gray-400 mt-10 italic">
         Dúvidas? Entre em contato pelo e-mail{" "}
-        <a href="mailto:contato@invistaemleiloes.com.br" className="text-blue-500 hover:underline">
-          contato@invistaemleiloes.com.br
+        <a href="mailto:atendimento@buscaleiloescaixa.com.br" className="text-blue-500 hover:underline">
+          atendimento@buscaleiloescaixa.com.br
         </a>
       </p>
     </div>

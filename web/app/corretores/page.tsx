@@ -26,7 +26,7 @@ export default function CorretoresPage() {
             </p>
           </div>
           <a
-            href="mailto:contato@invistaemleiloes.com.br?subject=Cadastro%20Corretor%20Credenciado&body=Nome:%0AEstado:%0ACRECI:%0ATelefone:%0AEmail:"
+            href="mailto:atendimento@buscaleiloescaixa.com.br?subject=Cadastro%20Corretor%20Credenciado&body=Nome:%0AEstado:%0ACRECI:%0ATelefone:%0AEmail:"
             className="shrink-0 bg-white text-brand-900 font-semibold px-5 py-2 rounded-lg text-sm hover:bg-blue-50 transition-colors"
           >
             Quero me cadastrar
@@ -90,8 +90,8 @@ export default function CorretoresPage() {
       {/* Contato */}
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>Dúvidas? Entre em contato pelo e-mail{" "}
-          <a href="mailto:contato@invistaemleiloes.com.br" className="text-blue-600 hover:underline">
-            contato@invistaemleiloes.com.br
+          <a href="mailto:atendimento@buscaleiloescaixa.com.br" className="text-blue-600 hover:underline">
+            atendimento@buscaleiloescaixa.com.br
           </a>
         </p>
       </div>
