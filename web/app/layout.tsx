@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center justify-between">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="h-20 w-auto object-contain" style={{ height: "80px" }} />
+                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="h-20 w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
