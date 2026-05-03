@@ -23,7 +23,7 @@ export async function GET() {
     const mesHoje  = mesAtual();
 
     return NextResponse.json({
-      total:  doc.total  ?? 0,
+      total:  doc.total         ?? 0,
       diario: doc.diario?.data  === dataHoje ? (doc.diario.count  ?? 0) : 0,
       mensal: doc.mensal?.mes   === mesHoje  ? (doc.mensal.count  ?? 0) : 0,
     });
@@ -42,28 +42,36 @@ export async function POST() {
 
     const doc = await meta.findOne({ key: "visitas" });
 
-    const diaIgual = doc?.diario?.data  === dataHoje;
-    const mesIgual = doc?.mensal?.mes   === mesHoje;
+    const diaIgual = doc?.diario?.data === dataHoje;
+    const mesIgual = doc?.mensal?.mes  === mesHoje;
+
+    // $inc e $set não podem tocar caminhos sobrepostos (ex: "diario" e "diario.count").
+    // Quando o dia/mês mudou, usamos só $set para recriar o subdocumento inteiro.
+    // Quando é o mesmo dia/mês, usamos só $inc no subcampo.
+    const incOp: Record<string, number> = { total: 1 };
+    const setOp: Record<string, unknown> = { key: "visitas" };
+
+    if (diaIgual) {
+      incOp["diario.count"] = 1;
+    } else {
+      setOp["diario"] = { data: dataHoje, count: 1 };
+    }
+
+    if (mesIgual) {
+      incOp["mensal.count"] = 1;
+    } else {
+      setOp["mensal"] = { mes: mesHoje, count: 1 };
+    }
 
     await meta.updateOne(
       { key: "visitas" },
-      {
-        $inc: {
-          total:          1,
-          "diario.count": diaIgual ? 1 : 0,
-          "mensal.count": mesIgual ? 1 : 0,
-        },
-        $set: {
-          key: "visitas",
-          ...(diaIgual ? {} : { diario: { data: dataHoje, count: 1 } }),
-          ...(mesIgual ? {} : { mensal: { mes:  mesHoje,  count: 1 } }),
-        },
-      },
+      { $inc: incOp, $set: setOp },
       { upsert: true },
     );
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error("[visita POST]", err);
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 }
