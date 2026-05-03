@@ -3,10 +3,12 @@ import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
 const SORT_MAP: Record<string, Sort> = {
-  "preco_asc":       { preco: 1 },
-  "preco_desc":      { preco: -1 },
-  "recente":         { dataInsercao: -1 },
-  "antigo":          { dataInsercao: 1 },
+  "preco_asc":      { preco: 1 },
+  "preco_desc":     { preco: -1 },
+  "desconto_desc":  { precoAval: -1 },
+  "area_desc":      { areaTotal: -1 },
+  "recente":        { dataInsercao: -1 },
+  "antigo":         { dataInsercao: 1 },
 };
 
 export async function GET(req: NextRequest) {
@@ -19,7 +21,13 @@ export async function GET(req: NextRequest) {
   const modalidade = searchParams.get("modalidade") || "";
   const precoMin   = searchParams.get("precoMin");
   const precoMax   = searchParams.get("precoMax");
+  const areaMin    = searchParams.get("areaMin");
+  const areaMax    = searchParams.get("areaMax");
   const quartos    = searchParams.get("quartos");
+  const vagas      = searchParams.get("vagas");
+  const suites     = searchParams.get("suites");
+  const ocupacao   = searchParams.get("ocupacao") || "";
+  const fgts       = searchParams.get("fgts");
   const financiamento = searchParams.get("financiamento");
   const descontoMin = searchParams.get("descontoMin");
   const ordenar    = searchParams.get("ordenar") || "preco_asc";
@@ -36,7 +44,18 @@ export async function GET(req: NextRequest) {
   if (tipo)       filter.tipo       = { $regex: tipo,   $options: "i" };
   if (modalidade) filter.modalidade = { $regex: modalidade, $options: "i" };
   if (financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
-  if (quartos)    filter.quartos    = { $gte: parseInt(quartos) };
+  if (quartos)    filter.quartos = { $gte: parseInt(quartos) };
+  if (vagas)      filter.vagas   = { $gte: parseInt(vagas) };
+  if (suites)     filter.suites  = { $gte: parseInt(suites) };
+  if (ocupacao)   filter.ocupacao = { $regex: ocupacao, $options: "i" };
+  if (fgts === "sim") filter.fgts = true;
+
+  if (areaMin || areaMax) {
+    filter.areaTotal = {};
+    if (areaMin) filter.areaTotal.$gte = parseFloat(areaMin);
+    if (areaMax) filter.areaTotal.$lte = parseFloat(areaMax);
+  }
+
   if (descontoMin) {
     const pct = parseInt(descontoMin) / 100;
     filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };

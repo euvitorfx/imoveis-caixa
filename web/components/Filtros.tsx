@@ -25,6 +25,9 @@ export default function Filtros() {
   const [areaMax,    setAreaMax]    = useState(searchParams.get("areaMax")       || "");
   const [quartos,    setQuartos]    = useState(searchParams.get("quartos")       || "");
   const [vagas,      setVagas]      = useState(searchParams.get("vagas")         || "");
+  const [suites,     setSuites]     = useState(searchParams.get("suites")        || "");
+  const [ocupacao,   setOcupacao]   = useState(searchParams.get("ocupacao")      || "");
+  const [fgts,       setFgts]       = useState(searchParams.get("fgts")          || "");
   const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
   const [desconto,   setDesconto]   = useState(searchParams.get("descontoMin")   || "");
   const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
@@ -61,16 +64,20 @@ export default function Filtros() {
     if (areaMax)    p.set("areaMax",       areaMax);
     if (quartos)    p.set("quartos",       quartos);
     if (vagas)      p.set("vagas",         vagas);
+    if (suites)     p.set("suites",        suites);
+    if (ocupacao)   p.set("ocupacao",      ocupacao);
+    if (fgts)       p.set("fgts",          fgts);
     if (finan)      p.set("financiamento", finan);
     if (desconto)   p.set("descontoMin",   desconto);
     if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, finan, desconto, ordenar, router, pathname]);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
     setPrecoMin(""); setPrecoMax(""); setAreaMin(""); setAreaMax("");
-    setQuartos(""); setVagas(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
+    setQuartos(""); setVagas(""); setSuites(""); setOcupacao(""); setFgts("");
+    setFinan(""); setDesconto(""); setOrdenar("preco_asc");
     router.push(pathname);
   };
 
@@ -125,6 +132,22 @@ export default function Filtros() {
         <select className={sel} value={vagas} onChange={(e) => setVagas(e.target.value)}>
           <option value="">Vagas</option>
           {[1,2,3,4].map((n) => <option key={n} value={n}>{n}+</option>)}
+        </select>
+
+        <select className={sel} value={suites} onChange={(e) => setSuites(e.target.value)}>
+          <option value="">Suítes</option>
+          {[1,2,3,4].map((n) => <option key={n} value={n}>{n}+</option>)}
+        </select>
+
+        <select className={sel} value={ocupacao} onChange={(e) => setOcupacao(e.target.value)}>
+          <option value="">Ocupação</option>
+          <option value="Desocupado">Desocupado</option>
+          <option value="Ocupado">Ocupado</option>
+        </select>
+
+        <select className={sel} value={fgts} onChange={(e) => setFgts(e.target.value)}>
+          <option value="">FGTS</option>
+          <option value="sim">Aceita FGTS</option>
         </select>
 
         <select className={sel} value={finan} onChange={(e) => setFinan(e.target.value)}>
