@@ -16,13 +16,13 @@ const FERRAMENTAS = [
     icone: "⚡",
     titulo: "Processo Rápido",
     subtitulo: "FERRAMENTA EXTERNA",
-    tag: "Gratuito",
-    tagColor: "bg-blue-100 text-blue-700",
+    tag: "Compra",
+    tagColor: "bg-green-100 text-green-700",
     descricao:
       "Consulte processos judiciais e baixe a íntegra de processos de forma rápida e prática. Indispensável para due diligence antes de arrematar.",
-    cta: "Acessar ferramenta",
+    cta: "Adquirir acesso",
     ctaHref: "#", // TODO: substituir pelo link do site externo
-    ctaStyle: "bg-blue-600 hover:bg-blue-700 text-white",
+    ctaStyle: "bg-green-600 hover:bg-green-700 text-white",
     destaque: false,
   },
   {
