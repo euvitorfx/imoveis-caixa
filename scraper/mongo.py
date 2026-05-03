@@ -50,12 +50,21 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
         if not chave:
             continue
         doc["dataAtualizacao"] = now
+        preco = doc.get("preco")
+        update: dict = {
+            "$set": doc,
+            "$setOnInsert": {"dataInsercao": now},
+        }
+        if preco is not None:
+            update["$push"] = {
+                "historicoPreco": {
+                    "$each": [{"data": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "preco": preco}],
+                    "$sort": {"data": 1},
+                }
+            }
         ops.append(UpdateOne(
             {"hdnImovel": chave},
-            {
-                "$set": doc,
-                "$setOnInsert": {"dataInsercao": now},
-            },
+            update,
             upsert=True,
         ))
 

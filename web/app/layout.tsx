@@ -6,9 +6,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Imóveis Caixa — Leilões e Vendas",
+  title: "Buscador de Imóveis Caixa - Canal Invista em Leilões",
   description: "Encontre imóveis da Caixa Econômica Federal em todo o Brasil. Leilões, vendas online e venda direta com os melhores filtros.",
-  keywords: ["imóveis caixa", "leilão caixa", "venda online caixa", "imóveis baratos"],
+  keywords: ["imóveis caixa", "leilão caixa", "venda online caixa", "imóveis baratos", "invista em leilões"],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,13 +19,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" className="flex items-center gap-2 font-bold text-xl">
               <span className="text-blue-300">🏠</span>
-              <span>Imóveis Caixa</span>
+              <span className="leading-tight">Buscador de Imóveis Caixa<span className="hidden sm:inline"> - Canal Invista em Leilões</span></span>
             </a>
             <div className="flex items-center gap-6">
               <UltimaAtualizacao />
               <nav className="text-sm text-blue-200 hidden sm:flex gap-4">
                 <a href="/" className="hover:text-white transition-colors">Buscar</a>
                 <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
+                <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
+                <a href="/corretores" className="hover:text-white transition-colors">Corretores</a>
               </nav>
             </div>
           </div>

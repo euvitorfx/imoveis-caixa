@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
+import GraficoPreco from "@/components/GraficoPreco";
 
 const MapaDetalhe = dynamic(() => import("@/components/MapaDetalhe"), { ssr: false });
 
@@ -12,13 +13,22 @@ interface Props {
   preco: string;
   endereco: string;
   mapaLabel: string;
+  historicoPreco?: { data: string; preco: number }[];
 }
 
-export default function DetalheClient({ lat, lng, titulo, preco, endereco, mapaLabel }: Props) {
+export default function DetalheClient({ lat, lng, titulo, preco, endereco, mapaLabel, historicoPreco }: Props) {
   const temMapa = !!(lat && lng);
+  const temHistorico = historicoPreco && historicoPreco.length >= 2;
 
   return (
     <>
+      {/* Evolução do preço */}
+      {temHistorico && (
+        <div className="mb-6 bg-gray-50 rounded-xl p-4">
+          <GraficoPreco historico={historicoPreco!} />
+        </div>
+      )}
+
       <div className="mb-6">
         <p className="text-sm font-semibold text-gray-600 mb-1">Compartilhar imóvel</p>
         <BotaoCompartilhar titulo={titulo} preco={preco} endereco={endereco} />

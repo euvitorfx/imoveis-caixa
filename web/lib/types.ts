@@ -21,6 +21,7 @@ export interface Imovel {
   ativo: boolean;
   lat?: number;
   lng?: number;
+  historicoPreco?: { data: string; preco: number }[];
 }
 
 export interface FiltrosImovel {

@@ -114,6 +114,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             preco={precoFmt}
             endereco={imovel.endereco || `${imovel.cidade}/${imovel.estado}`}
             mapaLabel={`${imovel.tipo || "Imóvel"} — ${precoFmt}`}
+            historicoPreco={imovel.historicoPreco}
           />
         </div>
       </div>
