@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
                   <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
                   <a href="/corretores" className="hover:text-white transition-colors">Corretores</a>
+                  <a href="/ferramentas" className="hover:text-white transition-colors">Ferramentas</a>
                 </nav>
               </div>
             </div>
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="/mapa" className="hover:text-white transition-colors py-1">Mapa</a>
                 <a href="/estatisticas" className="hover:text-white transition-colors py-1">Estatísticas</a>
                 <a href="/corretores" className="hover:text-white transition-colors py-1">Corretores</a>
+                <a href="/ferramentas" className="hover:text-white transition-colors py-1">Ferramentas</a>
               </nav>
             </div>
 
