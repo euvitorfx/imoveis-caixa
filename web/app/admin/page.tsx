@@ -3,7 +3,153 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BlogPost } from "@/lib/blog";
-import { Corretor } from "@/lib/corretores";
+import { Corretor, CategoriaCorretor } from "@/lib/corretores";
+
+const ESTADOS = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO",
+  "MA","MG","MS","MT","PA","PB","PE","PI","PR",
+  "RJ","RN","RO","RR","RS","SC","SE","SP","TO",
+];
+
+const ESPECIALIDADES_OPCOES = [
+  "Imóveis de Leilão","Venda Direta Caixa","Financiamento FGTS",
+  "Imóveis Residenciais","Imóveis Comerciais","Terrenos e Lotes",
+  "Imóveis na Planta","Avaliação de Imóveis",
+];
+
+function FormNovoCorretor({ onSuccess }: { onSuccess: () => void }) {
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [especialidades, setEspecialidades] = useState<string[]>([]);
+  const [form, setForm] = useState({
+    nome: "", creci: "", categoria: "corretor_geral" as CategoriaCorretor,
+    cidade: "", estado: "SP", bio: "",
+    whatsapp: "", instagram: "", email: "", website: "", foto: "",
+  });
+
+  function set(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function toggleEsp(e: string) {
+    setEspecialidades((prev) =>
+      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
+    );
+  }
+
+  async function enviar(ev: React.FormEvent) {
+    ev.preventDefault();
+    setErro("");
+    setEnviando(true);
+    const res = await fetch("/api/admin/corretores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, especialidades }),
+    });
+    const data = await res.json();
+    setEnviando(false);
+    if (!res.ok) { setErro(data.error || "Erro ao salvar."); return; }
+    setForm({ nome: "", creci: "", categoria: "corretor_geral", cidade: "", estado: "SP", bio: "", whatsapp: "", instagram: "", email: "", website: "", foto: "" });
+    setEspecialidades([]);
+    onSuccess();
+  }
+
+  return (
+    <form onSubmit={enviar} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Nome completo *</label>
+          <input required value={form.nome} onChange={(e) => set("nome", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">CRECI *</label>
+          <input required value={form.creci} onChange={(e) => set("creci", e.target.value)}
+            placeholder="Ex: 12345-F/SP"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Categoria *</label>
+          <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="credenciado_caixa">Credenciado Caixa</option>
+            <option value="corretor_geral">Corretor Geral</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Estado *</label>
+          <select value={form.estado} onChange={(e) => set("estado", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Cidade *</label>
+          <input required value={form.cidade} onChange={(e) => set("cidade", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Mini bio</label>
+          <textarea rows={3} value={form.bio} onChange={(e) => set("bio", e.target.value)}
+            placeholder="Experiência, especialização, diferenciais..."
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
+          <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)}
+            placeholder="5511999999999"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Instagram</label>
+          <input value={form.instagram} onChange={(e) => set("instagram", e.target.value)}
+            placeholder="@seuperfil"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">E-mail profissional</label>
+          <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Site / Link profissional</label>
+          <input value={form.website} onChange={(e) => set("website", e.target.value)}
+            placeholder="https://..."
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-medium text-gray-600 mb-1">URL da foto de perfil</label>
+          <input value={form.foto} onChange={(e) => set("foto", e.target.value)}
+            placeholder="https://..."
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-2">Especialidades</label>
+        <div className="flex flex-wrap gap-2">
+          {ESPECIALIDADES_OPCOES.map((e) => (
+            <button key={e} type="button" onClick={() => toggleEsp(e)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                especialidades.includes(e)
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
+              }`}>
+              {e}
+            </button>
+          ))}
+        </div>
+      </div>
+      {erro && <p className="text-sm text-red-600">{erro}</p>}
+      <div className="flex gap-3">
+        <button type="submit" disabled={enviando}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg text-sm transition-colors">
+          {enviando ? "Salvando..." : "Cadastrar parceiro"}
+        </button>
+      </div>
+      <p className="text-xs text-gray-400">O corretor será cadastrado diretamente como aprovado e aparecerá no site.</p>
+    </form>
+  );
+}
 
 function fmtData(iso: string) {
   const [y, m, d] = iso.split("-");
@@ -29,6 +175,8 @@ export default function AdminPage() {
   // Corretores state
   const [corretores,    setCorretores]    = useState<Corretor[]>([]);
   const [loadingCorr,   setLoadingCorr]   = useState(true);
+  const [showFormCorr,  setShowFormCorr]  = useState(false);
+  const [cadastroMsg,   setCadastroMsg]   = useState("");
 
   async function loadPosts() {
     const res = await fetch("/api/admin/posts");
@@ -295,10 +443,35 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* Formulário de cadastro manual */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                Cadastrar novo parceiro
+              </h2>
+              <button onClick={() => { setShowFormCorr((v) => !v); setCadastroMsg(""); }}
+                className="text-sm text-blue-600 hover:underline">
+                {showFormCorr ? "Fechar" : "+ Novo cadastro"}
+              </button>
+            </div>
+            {cadastroMsg && (
+              <p className="text-sm text-green-600 mb-3">{cadastroMsg}</p>
+            )}
+            {showFormCorr && (
+              <div className="bg-gray-50 border rounded-xl p-5">
+                <FormNovoCorretor onSuccess={() => {
+                  setShowFormCorr(false);
+                  setCadastroMsg("✓ Corretor cadastrado e publicado com sucesso.");
+                  loadCorretores();
+                }} />
+              </div>
+            )}
+          </div>
+
           {/* Aprovados */}
           <div>
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Aprovados ({aprovados})
+              Parceiros ativos ({aprovados})
             </h2>
             {loadingCorr ? (
               <p className="text-gray-400 text-center py-10">Carregando...</p>
