@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import UltimaAtualizacao from "@/components/UltimaAtualizacao";
+import ContadorVisitas from "@/components/ContadorVisitas";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -36,7 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <footer className="text-center text-xs text-gray-400 py-6 mt-10 border-t">
-          Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.
+          <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
+          <ContadorVisitas />
         </footer>
       </body>
     </html>
