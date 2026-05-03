@@ -82,13 +82,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <UltimaAtualizacao />
-              <nav className="flex justify-around w-full text-xs text-blue-200 border-t border-blue-900 pt-2 pb-1">
-                <a href="/" className="hover:text-white transition-colors py-1">Buscar</a>
-                <a href="/mapa" className="hover:text-white transition-colors py-1">Mapa</a>
-                <a href="/estatisticas" className="hover:text-white transition-colors py-1">Estatísticas</a>
-                <a href="/ferramentas" className="hover:text-white transition-colors py-1">Ferramentas</a>
-                <a href="/blog" className="hover:text-white transition-colors py-1">Blog</a>
-                <a href="/favoritos" className="hover:text-white transition-colors py-1 text-red-400">♥</a>
+              <nav className="flex w-full overflow-x-auto text-xs text-blue-200 border-t border-blue-900 pt-2 pb-1 gap-4 px-1 scrollbar-none">
+                <a href="/" className="hover:text-white transition-colors py-1 shrink-0">Buscar</a>
+                <a href="/mapa" className="hover:text-white transition-colors py-1 shrink-0">Mapa</a>
+                <a href="/estatisticas" className="hover:text-white transition-colors py-1 shrink-0">Estatísticas</a>
+                <a href="/corretores" className="hover:text-white transition-colors py-1 shrink-0">Corretores</a>
+                <a href="/ferramentas" className="hover:text-white transition-colors py-1 shrink-0">Ferramentas</a>
+                <a href="/blog" className="hover:text-white transition-colors py-1 shrink-0">Blog</a>
+                <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0 text-red-400">♥</a>
               </nav>
             </div>
 

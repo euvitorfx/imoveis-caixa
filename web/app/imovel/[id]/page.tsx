@@ -4,7 +4,8 @@ import clientPromise from "@/lib/mongodb";
 import { Imovel } from "@/lib/types";
 import { ObjectId } from "mongodb";
 import DetalheClient from "@/components/DetalheClient";
-import { SITE_URL, SITE_NAME } from "@/lib/config";
+import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
+import { getCorretoresAprovados, Corretor } from "@/lib/corretores";
 
 function fmt(v: number | null) {
   if (v == null) return "—";
@@ -73,8 +74,15 @@ export async function generateMetadata(
 
 export default async function DetalheImovel({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const imovel = await getImovel(id);
+  const [imovel, todosCorretores] = await Promise.all([
+    getImovel(id),
+    getCorretoresAprovados(),
+  ]);
   if (!imovel) notFound();
+
+  const corretoresEstado = todosCorretores
+    .filter((c) => c.estado === imovel.estado)
+    .slice(0, 3);
 
   const descPct = imovel.precoAval && imovel.preco
     ? Math.round((1 - imovel.preco / imovel.precoAval) * 100)
@@ -200,6 +208,66 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             historicoPreco={imovel.historicoPreco}
           />
         </div>
+      </div>
+
+      {/* Corretores parceiros */}
+      <div className="mt-6 bg-white rounded-xl shadow p-5">
+        <h2 className="font-semibold text-gray-700 mb-1">
+          Precisa de ajuda para arrematar?
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Corretores parceiros especializados em imóveis da Caixa em{" "}
+          <span className="font-medium">{imovel.estado}</span>.
+        </p>
+
+        {corretoresEstado.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {corretoresEstado.map((c: Corretor) => (
+              <a key={c._id} href={`/corretores/${c.slug}`}
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                {c.foto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.foto} alt={c.nome}
+                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-lg">
+                    👤
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 text-sm truncate">{c.nome}</p>
+                  <p className="text-xs text-gray-500">{c.cidade} · CRECI: {c.creci}</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {c.categoria === "credenciado_caixa" && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                      Credenciado
+                    </span>
+                  )}
+                  {c.whatsapp && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      WhatsApp
+                    </span>
+                  )}
+                </div>
+              </a>
+            ))}
+            <a href="/corretores" className="text-xs text-blue-600 hover:underline mt-1">
+              Ver todos os corretores parceiros →
+            </a>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-500 flex-1">
+              Ainda não temos corretores parceiros em {imovel.estado}. Entre em contato conosco para indicação.
+            </p>
+            <a
+              href={`mailto:${SITE_EMAIL}?subject=Indica%C3%A7%C3%A3o%20de%20corretor%20em%20${imovel.estado}&body=Ol%C3%A1%2C%20encontrei%20o%20im%C3%B3vel%20${imovel.hdnImovel}%20em%20${imovel.cidade}%2F${imovel.estado}%20e%20gostaria%20de%20indica%C3%A7%C3%A3o%20de%20corretor.`}
+              className="shrink-0 text-sm text-blue-600 hover:underline">
+              Solicitar indicação →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
