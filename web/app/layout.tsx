@@ -21,11 +21,19 @@ export const metadata: Metadata = {
     "arrematação imóvel", "busca leilões caixa",
   ],
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.png",    sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png",   sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     siteName: SITE_NAME,
     locale: "pt_BR",
     type: "website",
-    images: [{ url: "/logo.png", width: 400, height: 200, alt: SITE_NAME }],
+    images: [{ url: "/logo.png", width: 300, height: 125, alt: SITE_NAME }],
   },
   twitter: {
     card: "summary_large_image",
