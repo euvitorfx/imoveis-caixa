@@ -3,6 +3,7 @@ import Filtros from "@/components/Filtros";
 import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
+import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
 interface SearchParams {
@@ -33,7 +34,7 @@ async function queryImoveis(sp: SearchParams) {
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (sp.quartos)    filter.quartos    = { $gte: parseInt(sp.quartos) };
 
-  const SORT_MAP: Record<string, Record<string, number>> = {
+  const SORT_MAP: Record<string, Sort> = {
     "preco_asc":  { preco: 1 },
     "preco_desc": { preco: -1 },
     "recente":    { dataInsercao: -1 },

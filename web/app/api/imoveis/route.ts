@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
-const SORT_MAP: Record<string, Record<string, number>> = {
+const SORT_MAP: Record<string, Sort> = {
   "preco_asc":       { preco: 1 },
   "preco_desc":      { preco: -1 },
   "recente":         { dataInsercao: -1 },
