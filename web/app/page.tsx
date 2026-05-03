@@ -5,7 +5,7 @@ import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
 import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import { ALL_ESTADOS, ESTADO_NOMES } from "@/lib/utils";
+import { ALL_ESTADOS, ESTADO_NOMES, ESTADO_BANDEIRAS } from "@/lib/utils";
 
 interface SearchParams {
   estado?: string;
@@ -137,10 +137,17 @@ export default async function HomePage({
             <a
               key={uf}
               href={`/imoveis/${uf.toLowerCase()}`}
-              className="text-center bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg px-2 py-2 transition-colors"
+              className="flex flex-col items-center bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg px-2 py-2 transition-colors gap-1"
             >
-              <span className="block text-sm font-bold text-gray-800">{uf}</span>
-              <span className="block text-xs text-gray-400 truncate">{ESTADO_NOMES[uf]}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={ESTADO_BANDEIRAS[uf]}
+                alt={`Bandeira ${ESTADO_NOMES[uf]}`}
+                className="h-6 w-auto object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <span className="text-sm font-bold text-gray-800">{uf}</span>
+              <span className="text-xs text-gray-400 truncate w-full text-center">{ESTADO_NOMES[uf]}</span>
             </a>
           ))}
         </div>

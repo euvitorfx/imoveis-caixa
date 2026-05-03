@@ -5,7 +5,7 @@ import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
-import { slugify, ESTADO_NOMES, ALL_ESTADOS, fmtBRL } from "@/lib/utils";
+import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, fmtBRL } from "@/lib/utils";
 
 const LIMIT = 24;
 
@@ -104,13 +104,22 @@ export default async function EstadoPage({
       </nav>
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={ESTADO_BANDEIRAS[uf]}
+          alt={`Bandeira ${nomeEstado}`}
+          className="h-12 w-auto object-contain rounded shadow-sm flex-shrink-0"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <div>
         <h1 className="text-2xl font-bold text-gray-800">
           Imóveis Caixa em {nomeEstado} ({uf})
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           {data.total.toLocaleString("pt-BR")} imóveis disponíveis · Preço médio {fmtBRL(data.precoMedio)} · A partir de {fmtBRL(data.precoMin)}
         </p>
+        </div>
       </div>
 
       {/* Cidades */}
