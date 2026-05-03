@@ -60,6 +60,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <a href="/corretores" className="hover:text-white transition-colors">Corretores</a>
                   <a href="/ferramentas" className="hover:text-white transition-colors">Ferramentas</a>
                   <a href="/novidades" className="hover:text-white transition-colors">Novidades</a>
+                  <a href="/favoritos" className="hover:text-white transition-colors flex items-center gap-1">
+                    <span className="text-red-400">♥</span> Favoritos
+                  </a>
                 </nav>
               </div>
             </div>
@@ -77,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="/estatisticas" className="hover:text-white transition-colors py-1">Estatísticas</a>
                 <a href="/ferramentas" className="hover:text-white transition-colors py-1">Ferramentas</a>
                 <a href="/novidades" className="hover:text-white transition-colors py-1">Novidades</a>
+                <a href="/favoritos" className="hover:text-white transition-colors py-1 text-red-400">♥</a>
               </nav>
             </div>
 

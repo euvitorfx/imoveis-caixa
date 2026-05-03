@@ -21,7 +21,10 @@ export default function Filtros() {
   const [modalidade, setModalidade] = useState(searchParams.get("modalidade")    || "");
   const [precoMin,   setPrecoMin]   = useState(searchParams.get("precoMin")      || "");
   const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")      || "");
+  const [areaMin,    setAreaMin]    = useState(searchParams.get("areaMin")       || "");
+  const [areaMax,    setAreaMax]    = useState(searchParams.get("areaMax")       || "");
   const [quartos,    setQuartos]    = useState(searchParams.get("quartos")       || "");
+  const [vagas,      setVagas]      = useState(searchParams.get("vagas")         || "");
   const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
   const [desconto,   setDesconto]   = useState(searchParams.get("descontoMin")   || "");
   const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
@@ -31,7 +34,6 @@ export default function Filtros() {
   const [tipos,      setTipos]      = useState<string[]>([]);
   const [modalidades,setModalidades]= useState<string[]>([]);
 
-  // Carrega cidades quando estado muda, bairros quando cidade muda
   useEffect(() => {
     const qs = new URLSearchParams();
     if (estado) qs.set("estado", estado);
@@ -39,9 +41,9 @@ export default function Filtros() {
     fetch(`/api/filtros?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => {
-        setCidades(d.cidades    || []);
-        setBairros(d.bairros    || []);
-        setTipos(d.tipos        || []);
+        setCidades(d.cidades     || []);
+        setBairros(d.bairros     || []);
+        setTipos(d.tipos         || []);
         setModalidades(d.modalidades || []);
       });
   }, [estado, cidade]);
@@ -55,16 +57,20 @@ export default function Filtros() {
     if (modalidade) p.set("modalidade",    modalidade);
     if (precoMin)   p.set("precoMin",      precoMin);
     if (precoMax)   p.set("precoMax",      precoMax);
+    if (areaMin)    p.set("areaMin",       areaMin);
+    if (areaMax)    p.set("areaMax",       areaMax);
     if (quartos)    p.set("quartos",       quartos);
+    if (vagas)      p.set("vagas",         vagas);
     if (finan)      p.set("financiamento", finan);
     if (desconto)   p.set("descontoMin",   desconto);
     if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, desconto, ordenar, router, pathname]);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
-    setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
+    setPrecoMin(""); setPrecoMax(""); setAreaMin(""); setAreaMax("");
+    setQuartos(""); setVagas(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
     router.push(pathname);
   };
 
@@ -101,17 +107,23 @@ export default function Filtros() {
           {modalidades.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
 
-        <input
-          type="number" placeholder="Preço mín R$" className={inp}
-          value={precoMin} onChange={(e) => setPrecoMin(e.target.value)}
-        />
-        <input
-          type="number" placeholder="Preço máx R$" className={inp}
-          value={precoMax} onChange={(e) => setPrecoMax(e.target.value)}
-        />
+        <input type="number" placeholder="Preço mín R$" className={inp}
+          value={precoMin} onChange={(e) => setPrecoMin(e.target.value)} />
+        <input type="number" placeholder="Preço máx R$" className={inp}
+          value={precoMax} onChange={(e) => setPrecoMax(e.target.value)} />
+
+        <input type="number" placeholder="Área mín m²" className={inp}
+          value={areaMin} onChange={(e) => setAreaMin(e.target.value)} />
+        <input type="number" placeholder="Área máx m²" className={inp}
+          value={areaMax} onChange={(e) => setAreaMax(e.target.value)} />
 
         <select className={sel} value={quartos} onChange={(e) => setQuartos(e.target.value)}>
           <option value="">Quartos</option>
+          {[1,2,3,4].map((n) => <option key={n} value={n}>{n}+</option>)}
+        </select>
+
+        <select className={sel} value={vagas} onChange={(e) => setVagas(e.target.value)}>
+          <option value="">Vagas</option>
           {[1,2,3,4].map((n) => <option key={n} value={n}>{n}+</option>)}
         </select>
 
@@ -121,7 +133,7 @@ export default function Filtros() {
         </select>
 
         <select className={sel} value={desconto} onChange={(e) => setDesconto(e.target.value)}>
-          <option value="">Desconto</option>
+          <option value="">Desconto mín</option>
           <option value="10">Acima de 10%</option>
           <option value="20">Acima de 20%</option>
           <option value="30">Acima de 30%</option>
@@ -132,24 +144,26 @@ export default function Filtros() {
         <select className={sel} value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>
           <option value="preco_asc">Menor preço</option>
           <option value="preco_desc">Maior preço</option>
+          <option value="desconto_desc">Maior desconto</option>
+          <option value="area_desc">Maior área</option>
           <option value="recente">Adicionado recentemente</option>
           <option value="antigo">Adicionado há mais tempo</option>
         </select>
       </div>
 
       <div className="flex gap-3 mt-4">
-        <button
-          onClick={apply}
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-        >
+        <button onClick={apply}
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
           Buscar
         </button>
-        <button
-          onClick={clear}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm underline"
-        >
+        <button onClick={clear}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm underline">
           Limpar
         </button>
+        <a href="/favoritos"
+          className="ml-auto flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors">
+          <span>♥</span> Meus favoritos
+        </a>
       </div>
     </div>
   );

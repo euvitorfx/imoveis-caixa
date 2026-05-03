@@ -16,7 +16,10 @@ interface SearchParams {
   modalidade?: string;
   precoMin?: string;
   precoMax?: string;
+  areaMin?: string;
+  areaMax?: string;
   quartos?: string;
+  vagas?: string;
   financiamento?: string;
   descontoMin?: string;
   ordenar?: string;
@@ -35,25 +38,33 @@ async function queryImoveis(sp: SearchParams) {
   if (sp.tipo)       filter.tipo       = { $regex: sp.tipo,   $options: "i" };
   if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade, $options: "i" };
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
-  if (sp.quartos)    filter.quartos    = { $gte: parseInt(sp.quartos) };
+  if (sp.quartos) filter.quartos = { $gte: parseInt(sp.quartos) };
+  if (sp.vagas)   filter.vagas   = { $gte: parseInt(sp.vagas) };
   if (sp.descontoMin) {
     const pct = parseInt(sp.descontoMin) / 100;
     filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };
   }
-
-  const SORT_MAP: Record<string, Sort> = {
-    "preco_asc":  { preco: 1 },
-    "preco_desc": { preco: -1 },
-    "recente":    { dataInsercao: -1 },
-    "antigo":     { dataInsercao: 1 },
-  };
-  const sort = SORT_MAP[sp.ordenar || "preco_asc"] ?? { preco: 1 };
 
   if (sp.precoMin || sp.precoMax) {
     filter.preco = {};
     if (sp.precoMin) filter.preco.$gte = parseFloat(sp.precoMin);
     if (sp.precoMax) filter.preco.$lte = parseFloat(sp.precoMax);
   }
+  if (sp.areaMin || sp.areaMax) {
+    filter.areaTotal = {};
+    if (sp.areaMin) filter.areaTotal.$gte = parseFloat(sp.areaMin);
+    if (sp.areaMax) filter.areaTotal.$lte = parseFloat(sp.areaMax);
+  }
+
+  const SORT_MAP: Record<string, Sort> = {
+    "preco_asc":     { preco: 1 },
+    "preco_desc":    { preco: -1 },
+    "desconto_desc": { desconto: -1 },
+    "area_desc":     { areaTotal: -1 },
+    "recente":       { dataInsercao: -1 },
+    "antigo":        { dataInsercao: 1 },
+  };
+  const sort = SORT_MAP[sp.ordenar || "preco_asc"] ?? { preco: 1 };
 
   const page  = Math.max(1, parseInt(sp.page || "1"));
   const skip  = (page - 1) * LIMIT;
