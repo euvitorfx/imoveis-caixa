@@ -1,0 +1,26 @@
+# Segredos
+.env
+.env.local
+scraper/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Debug / artefatos locais
+debug/
+*.log
+*.csv
+*.docx
+
+# macOS
+.DS_Store

@@ -1,0 +1,38 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Imóveis Caixa — Leilões e Vendas",
+  description: "Encontre imóveis da Caixa Econômica Federal em todo o Brasil. Leilões, vendas online e venda direta com os melhores filtros.",
+  keywords: ["imóveis caixa", "leilão caixa", "venda online caixa", "imóveis baratos"],
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+        <header className="bg-brand-900 text-white shadow-md">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" className="flex items-center gap-2 font-bold text-xl">
+              <span className="text-blue-300">🏠</span>
+              <span>Imóveis Caixa</span>
+            </a>
+            <nav className="text-sm text-blue-200 hidden sm:flex gap-4">
+              <a href="/" className="hover:text-white transition-colors">Buscar</a>
+              <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
+            </nav>
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          {children}
+        </main>
+        <footer className="text-center text-xs text-gray-400 py-6 mt-10 border-t">
+          Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.
+        </footer>
+      </body>
+    </html>
+  );
+}
