@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const ESTADOS = [
@@ -11,6 +11,7 @@ const ESTADOS = [
 
 export default function Filtros() {
   const router       = useRouter();
+  const pathname     = usePathname();
   const searchParams = useSearchParams();
 
   const [estado,     setEstado]     = useState(searchParams.get("estado")        || "");
@@ -56,13 +57,13 @@ export default function Filtros() {
     if (quartos)    p.set("quartos",       quartos);
     if (finan)      p.set("financiamento", finan);
     if (ordenar)    p.set("ordenar",       ordenar);
-    router.push(`/?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, ordenar, router]);
+    router.push(`${pathname}?${p.toString()}`);
+  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, quartos, finan, ordenar, router, pathname]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
     setPrecoMin(""); setPrecoMax(""); setQuartos(""); setFinan(""); setOrdenar("preco_asc");
-    router.push("/");
+    router.push(pathname);
   };
 
   const sel = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
