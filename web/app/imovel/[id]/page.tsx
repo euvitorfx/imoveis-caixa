@@ -99,8 +99,44 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
     ["N° do imóvel",   imovel.hdnImovel],
   ];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    name: titulo,
+    description: [
+      imovel.tipo, imovel.modalidade,
+      imovel.areaTotal ? `${imovel.areaTotal}m²` : null,
+      imovel.quartos   ? `${imovel.quartos} quartos` : null,
+      "Imóvel da Caixa Econômica Federal",
+    ].filter(Boolean).join(" · "),
+    url:   `${SITE_URL}/imovel/${imovel.hdnImovel}`,
+    image: imovel.fotoUrl ?? `${SITE_URL}/logo.png`,
+    offers: {
+      "@type": "Offer",
+      price:         imovel.preco,
+      priceCurrency: "BRL",
+      availability:  "https://schema.org/InStock",
+      url:           imovel.urlDetalhe,
+      seller: { "@type": "Organization", name: "Caixa Econômica Federal" },
+    },
+    address: {
+      "@type":           "PostalAddress",
+      streetAddress:     imovel.endereco  || undefined,
+      addressLocality:   imovel.cidade,
+      addressRegion:     imovel.estado,
+      addressCountry:    "BR",
+    },
+    ...(imovel.lat && imovel.lng ? {
+      geo: { "@type": "GeoCoordinates", latitude: imovel.lat, longitude: imovel.lng },
+    } : {}),
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <a href="/" className="text-blue-600 hover:underline text-sm mb-4 inline-block">← Voltar à listagem</a>
 
       <div className="bg-white rounded-xl shadow overflow-hidden mt-2">

@@ -95,8 +95,21 @@ export default async function EstadoPage({
   const page = Math.max(1, parseInt(sp.page || "1"));
   const data = await getData(uf, page);
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Início",                       item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: `Imóveis em ${nomeEstado} (${uf})` },
+    ],
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-400 mb-4">
         <a href="/" className="hover:underline">Início</a>

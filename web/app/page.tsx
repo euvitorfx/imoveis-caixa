@@ -94,8 +94,44 @@ export default async function HomePage({
   const sp   = await searchParams;
   const data = await queryImoveis(sp);
 
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "O que são os imóveis da Caixa Econômica Federal?",
+        acceptedAnswer: { "@type": "Answer", text: "São imóveis retomados ou leiloados pela Caixa Econômica Federal, disponíveis para compra com preços abaixo do mercado nas modalidades leilão, venda online e venda direta." },
+      },
+      {
+        "@type": "Question",
+        name: "Como funciona o leilão de imóveis da Caixa?",
+        acceptedAnswer: { "@type": "Answer", text: "Os imóveis são ofertados em leilões presenciais ou online. O maior lance arrematante fica com o imóvel. É possível financiar parte do valor pela própria Caixa em muitos casos." },
+      },
+      {
+        "@type": "Question",
+        name: "É possível financiar imóvel da Caixa?",
+        acceptedAnswer: { "@type": "Answer", text: "Sim. Muitos imóveis da Caixa aceitam financiamento pela Caixa Econômica Federal, inclusive com uso do FGTS. Use o filtro 'Aceita financiamento' para encontrá-los." },
+      },
+      {
+        "@type": "Question",
+        name: "Como filtrar imóveis por estado ou cidade?",
+        acceptedAnswer: { "@type": "Answer", text: "Use os filtros disponíveis na listagem para selecionar estado, cidade, bairro, tipo, modalidade, faixa de preço e outras características. Você também pode navegar diretamente pela página de cada estado." },
+      },
+      {
+        "@type": "Question",
+        name: "Com que frequência os dados são atualizados?",
+        acceptedAnswer: { "@type": "Answer", text: "Os dados são obtidos diretamente do site da Caixa Econômica Federal e atualizados automaticamente 3 vezes ao dia: às 3h, 10h e 18h (horário de Brasília)." },
+      },
+    ],
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Imóveis Caixa</h1>
         <p className="text-gray-500 text-sm mt-1">
