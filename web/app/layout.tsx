@@ -16,12 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
-        <header className="text-white shadow-md" style={{ backgroundColor: "#01112c", minHeight: "150px" }}>
-          <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-center gap-3" style={{ minHeight: "150px" }}>
+        <header className="text-white shadow-md" style={{ backgroundColor: "#01112c", minHeight: "100px" }}>
+          <div className="max-w-7xl mx-auto px-4 h-full flex flex-col justify-center gap-3" style={{ minHeight: "100px" }}>
             <div className="flex items-center justify-between">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="h-20 w-auto object-contain" />
+                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="h-20 w-auto object-contain" style={{ height: "80px" }} />
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
