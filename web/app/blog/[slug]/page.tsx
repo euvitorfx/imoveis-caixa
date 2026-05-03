@@ -98,9 +98,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </nav>
 
       <article className="bg-white rounded-xl shadow overflow-hidden">
-        {post.imagem && (
+        {/* Imagem de capa apenas para posts sem vídeo */}
+        {post.imagem && post.tipo !== "youtube" && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={post.imagem} alt={post.titulo} className="w-full h-56 object-cover" />
+          <img src={post.imagem} alt={post.titulo} className="w-full aspect-video object-cover" />
         )}
 
         <div className="p-6">
@@ -115,19 +116,6 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800 leading-snug mb-6">{post.titulo}</h1>
-
-          {/* Embed YouTube no topo se for post de vídeo */}
-          {post.tipo === "youtube" && post.videoId && (
-            <div className="mb-6 aspect-video w-full rounded-xl overflow-hidden shadow">
-              <iframe
-                src={`https://www.youtube.com/embed/${post.videoId}`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={post.titulo}
-              />
-            </div>
-          )}
 
           <div>{renderContent(post.conteudo)}</div>
         </div>

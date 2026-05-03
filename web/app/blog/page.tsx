@@ -35,20 +35,22 @@ export default async function BlogPage() {
           {posts.map((post) => (
             <article key={post._id} className="bg-white rounded-xl shadow hover:shadow-md transition-shadow overflow-hidden flex flex-col">
 
-              {/* Imagem de capa */}
-              {post.imagem ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={post.imagem}
-                  alt={post.titulo}
-                  className="w-full h-44 object-cover"
-                />
-              ) : (
-                <div className="w-full h-44 flex items-center justify-center text-4xl"
-                  style={{ background: "linear-gradient(135deg, #01112c 0%, #1e3a5f 100%)" }}>
-                  {post.tipo === "youtube" ? "▶" : "📰"}
-                </div>
-              )}
+              {/* Imagem de capa — proporção 16:9 */}
+              <div className="w-full aspect-video overflow-hidden">
+                {post.imagem ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={post.imagem}
+                    alt={post.titulo}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl"
+                    style={{ background: "linear-gradient(135deg, #01112c 0%, #1e3a5f 100%)" }}>
+                    {post.tipo === "youtube" ? "▶" : "📰"}
+                  </div>
+                )}
+              </div>
 
               <div className="p-5 flex flex-col flex-1">
                 {/* Tags */}
