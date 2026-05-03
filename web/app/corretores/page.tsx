@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Corretores Credenciados",
+  description: "Encontre corretores especializados em imóveis da Caixa Econômica Federal em todo o Brasil. Cadastre-se gratuitamente.",
+};
+
 const ESTADOS = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO",
   "MA","MG","MS","MT","PA","PB","PE","PI","PR",

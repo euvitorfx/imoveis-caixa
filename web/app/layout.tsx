@@ -2,20 +2,46 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import UltimaAtualizacao from "@/components/UltimaAtualizacao";
 import ContadorVisitas from "@/components/ContadorVisitas";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Buscador de Imóveis Caixa - Canal Invista em Leilões",
-  description: "Encontre imóveis da Caixa Econômica Federal em todo o Brasil. Leilões, vendas online e venda direta com os melhores filtros.",
-  keywords: ["imóveis caixa", "leilão caixa", "venda online caixa", "imóveis baratos", "invista em leilões"],
+  title: {
+    default: `${SITE_NAME} — Leilões e Vendas da Caixa`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description:
+    "Encontre imóveis da Caixa Econômica Federal em todo o Brasil. Leilões, vendas online e venda direta com os melhores filtros. Atualizado diariamente.",
+  keywords: [
+    "imóveis caixa", "leilão caixa", "venda online caixa",
+    "imóveis baratos", "leilão de imóveis", "caixa econômica federal",
+    "arrematação imóvel", "busca leilões caixa",
+  ],
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    siteName: SITE_NAME,
+    locale: "pt_BR",
+    type: "website",
+    images: [{ url: "/logo.png", width: 400, height: 200, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+        <GoogleAnalytics />
+
         <header className="text-white shadow-md" style={{ backgroundColor: "#01112c" }}>
           <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
 
@@ -23,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="hidden sm:flex items-center justify-between">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="w-auto object-contain" style={{ height: "90px" }} />
+                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
@@ -41,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="sm:hidden flex flex-col items-center gap-2">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="IO Leilões — Buscador de Imóveis da Caixa" className="w-auto object-contain" style={{ height: "90px" }} />
+                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <UltimaAtualizacao />
               <nav className="flex justify-around w-full text-xs text-blue-200 border-t border-blue-900 pt-2 pb-1">
@@ -55,15 +81,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           </div>
         </header>
+
         <main className="max-w-7xl mx-auto px-4 py-6">
           {children}
         </main>
+
         <footer className="text-center text-xs text-white py-6 mt-10" style={{ backgroundColor: "#01112c" }}>
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
           <p className="mt-1">
             Contato:{" "}
-            <a href="mailto:atendimento@buscaleiloescaixa.com.br" className="text-blue-300 hover:text-white transition-colors">
-              atendimento@buscaleiloescaixa.com.br
+            <a href={`mailto:${SITE_EMAIL}`} className="text-blue-300 hover:text-white transition-colors">
+              {SITE_EMAIL}
             </a>
           </p>
           <ContadorVisitas />

@@ -1,3 +1,10 @@
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Ferramentas & Serviços",
+  description: "Planilha de viabilidade, assessoria para arrematação, análise de crédito Caixa e muito mais. Tudo que você precisa para arrematar com segurança.",
+};
+
 const FERRAMENTAS = [
   {
     icone: "📊",

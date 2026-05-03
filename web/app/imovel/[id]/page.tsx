@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import clientPromise from "@/lib/mongodb";
 import { Imovel } from "@/lib/types";
 import { ObjectId } from "mongodb";
 import DetalheClient from "@/components/DetalheClient";
+import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 function fmt(v: number | null) {
   if (v == null) return "—";
@@ -22,6 +24,51 @@ async function getImovel(id: string): Promise<Imovel | null> {
   } catch {
     return null;
   }
+}
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Metadata> {
+  const { id } = await params;
+  const imovel = await getImovel(id);
+  if (!imovel) return {};
+
+  const titulo  = `${imovel.tipo || "Imóvel"} em ${imovel.cidade}/${imovel.estado}`;
+  const preco   = imovel.preco
+    ? imovel.preco.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
+    : null;
+  const desc    = [
+    titulo,
+    preco ? `por ${preco}` : null,
+    imovel.modalidade || null,
+    imovel.areaTotal ? `${imovel.areaTotal}m²` : null,
+    imovel.quartos   ? `${imovel.quartos} quartos` : null,
+    `Imóvel da Caixa Econômica Federal.`,
+  ].filter(Boolean).join(" · ");
+
+  const pageUrl = `${SITE_URL}/imovel/${imovel.hdnImovel}`;
+  const image   = imovel.fotoUrl ?? `${SITE_URL}/logo.png`;
+
+  return {
+    title: `${titulo}${preco ? ` — ${preco}` : ""} | ${SITE_NAME}`,
+    description: desc,
+    openGraph: {
+      title: `${titulo}${preco ? ` — ${preco}` : ""}`,
+      description: desc,
+      url: pageUrl,
+      siteName: SITE_NAME,
+      images: [{ url: image, width: 800, height: 600, alt: titulo }],
+      type: "website",
+      locale: "pt_BR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${titulo}${preco ? ` — ${preco}` : ""}`,
+      description: desc,
+      images: [image],
+    },
+    alternates: { canonical: pageUrl },
+  };
 }
 
 export default async function DetalheImovel({ params }: { params: Promise<{ id: string }> }) {

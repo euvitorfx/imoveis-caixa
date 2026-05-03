@@ -1,4 +1,10 @@
+import { Metadata } from "next";
 import clientPromise from "@/lib/mongodb";
+
+export const metadata: Metadata = {
+  title: "Estatísticas",
+  description: "Panorama geral dos imóveis da Caixa disponíveis no Brasil. Dados por estado, tipo, modalidade e desconto.",
+};
 
 function fmt(v: number | null | undefined) {
   if (v == null) return "—";
