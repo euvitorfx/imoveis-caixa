@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
-function hoje() {
-  return new Date().toISOString().slice(0, 10); // "2026-05-03"
+// UTC-3 (horário de Brasília)
+function hojeUTC3() {
+  const now = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10); // "2026-05-04"
 }
 
-function mesAtual() {
-  return new Date().toISOString().slice(0, 7); // "2026-05"
+function mesAtualUTC3() {
+  const now = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 7); // "2026-05"
 }
 
 export async function GET() {
@@ -16,51 +19,55 @@ export async function GET() {
 
     const doc = await meta.findOne({ key: "visitas" });
     if (!doc) {
-      return NextResponse.json({ total: 0, diario: 0, mensal: 0 });
+      return NextResponse.json({ diario: 0, mensal: 0, pageviews: 0 });
     }
 
-    const dataHoje = hoje();
-    const mesHoje  = mesAtual();
+    const dataHoje = hojeUTC3();
+    const mesHoje  = mesAtualUTC3();
 
     return NextResponse.json({
-      total:  doc.total         ?? 0,
-      diario: doc.diario?.data  === dataHoje ? (doc.diario.count  ?? 0) : 0,
-      mensal: doc.mensal?.mes   === mesHoje  ? (doc.mensal.count  ?? 0) : 0,
+      diario:    doc.diario?.data === dataHoje ? (doc.diario.count  ?? 0) : 0,
+      mensal:    doc.mensal?.mes  === mesHoje  ? (doc.mensal.count  ?? 0) : 0,
+      pageviews: doc.pageviews ?? 0,
     });
   } catch {
-    return NextResponse.json({ total: 0, diario: 0, mensal: 0 });
+    return NextResponse.json({ diario: 0, mensal: 0, pageviews: 0 });
   }
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const body = await req.json().catch(() => ({}));
+    const novaSessao = body.novaSessao === true;
+
     const client = await clientPromise;
     const meta = client.db(process.env.MONGODB_DB).collection("_meta");
 
-    const dataHoje = hoje();
-    const mesHoje  = mesAtual();
+    const dataHoje = hojeUTC3();
+    const mesHoje  = mesAtualUTC3();
 
     const doc = await meta.findOne({ key: "visitas" });
 
     const diaIgual = doc?.diario?.data === dataHoje;
     const mesIgual = doc?.mensal?.mes  === mesHoje;
 
-    // $inc e $set não podem tocar caminhos sobrepostos (ex: "diario" e "diario.count").
-    // Quando o dia/mês mudou, usamos só $set para recriar o subdocumento inteiro.
-    // Quando é o mesmo dia/mês, usamos só $inc no subcampo.
-    const incOp: Record<string, number> = { total: 1 };
+    // pageviews: incrementa sempre (toda abertura de página)
+    const incOp: Record<string, number> = { pageviews: 1 };
     const setOp: Record<string, unknown> = { key: "visitas" };
 
-    if (diaIgual) {
-      incOp["diario.count"] = 1;
-    } else {
-      setOp["diario"] = { data: dataHoje, count: 1 };
-    }
+    // diario e mensal: só incrementa em nova sessão
+    if (novaSessao) {
+      if (diaIgual) {
+        incOp["diario.count"] = 1;
+      } else {
+        setOp["diario"] = { data: dataHoje, count: 1 };
+      }
 
-    if (mesIgual) {
-      incOp["mensal.count"] = 1;
-    } else {
-      setOp["mensal"] = { mes: mesHoje, count: 1 };
+      if (mesIgual) {
+        incOp["mensal.count"] = 1;
+      } else {
+        setOp["mensal"] = { mes: mesHoje, count: 1 };
+      }
     }
 
     await meta.updateOne(

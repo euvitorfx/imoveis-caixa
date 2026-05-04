@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 interface Stats {
-  total: number;
   diario: number;
   mensal: number;
+  pageviews: number;
 }
 
 function fmtN(n: number) {
@@ -16,13 +16,6 @@ export default function ContadorVisitas() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    // Registra visita uma única vez por sessão
-    if (!sessionStorage.getItem("visitou")) {
-      sessionStorage.setItem("visitou", "1");
-      fetch("/api/visita", { method: "POST" });
-    }
-
-    // Busca contadores para exibir
     fetch("/api/visita")
       .then((r) => r.json())
       .then(setStats)
@@ -46,8 +39,8 @@ export default function ContadorVisitas() {
           <strong className="text-white">{fmtN(stats.mensal)}</strong>
         </span>
         <span>
-          🌐 Total:{" "}
-          <strong className="text-white">{fmtN(stats.total)}</strong>
+          📄 Páginas carregadas:{" "}
+          <strong className="text-white">{fmtN(stats.pageviews)}</strong>
         </span>
       </div>
     </div>

@@ -5,6 +5,7 @@ import UltimaAtualizacao from "@/components/UltimaAtualizacao";
 import ContadorVisitas from "@/components/ContadorVisitas";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MetaPixel from "@/components/MetaPixel";
+import RegistraVisita from "@/components/RegistraVisita";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+        <RegistraVisita />
         <GoogleAnalytics />
         <MetaPixel />
         <Analytics />
