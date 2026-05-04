@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import UltimaAtualizacao from "@/components/UltimaAtualizacao";
 import ContadorVisitas from "@/components/ContadorVisitas";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import MetaPixel from "@/components/MetaPixel";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
         <GoogleAnalytics />
+        <MetaPixel />
         <Analytics />
 
         <header className="text-white shadow-md" style={{ backgroundColor: "#01112c" }}>
