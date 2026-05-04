@@ -33,6 +33,8 @@ export interface Imovel {
   matriculaUrl?: string;
   dataLeilao1?: string;
   dataLeilao2?: string;
+  dataLeilao1Date?: string;
+  dataLeilao2Date?: string;
   enriched?: boolean;
 }
 

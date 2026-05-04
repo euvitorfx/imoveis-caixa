@@ -24,6 +24,7 @@ interface SearchParams {
   suites?: string;
   ocupacao?: string;
   fgts?: string;
+  leilaoAgendado?: string;
   financiamento?: string;
   descontoMin?: string;
   ordenar?: string;
@@ -48,6 +49,7 @@ async function queryImoveis(sp: SearchParams) {
   if (sp.suites)   filter.suites   = { $gte: parseInt(sp.suites) };
   if (sp.ocupacao) filter.ocupacao = { $regex: sp.ocupacao, $options: "i" };
   if (sp.fgts === "sim") filter.fgts = true;
+  if (sp.leilaoAgendado === "sim") filter.dataLeilao1Date = { $gte: new Date() };
   if (sp.descontoMin) {
     const pct = parseInt(sp.descontoMin) / 100;
     filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };
@@ -69,6 +71,7 @@ async function queryImoveis(sp: SearchParams) {
     "preco_desc":    { preco: -1 },
     "desconto_desc": { desconto: -1 },
     "area_desc":     { areaTotal: -1 },
+    "leilao_prox":   { dataLeilao1Date: 1 },
     "recente":       { dataInsercao: -1 },
     "antigo":        { dataInsercao: 1 },
   };
@@ -91,7 +94,7 @@ async function queryImoveis(sp: SearchParams) {
         endereco: 1, preco: 1, precoAval: 1, desconto: 1,
         modalidade: 1, financiamento: 1, tipo: 1,
         areaTotal: 1, areaUtil: 1, quartos: 1, vagas: 1,
-        fotoUrl: 1, urlDetalhe: 1,
+        fotoUrl: 1, urlDetalhe: 1, dataLeilao1: 1,
       })
       .toArray(),
     col.countDocuments(filter),

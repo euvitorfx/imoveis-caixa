@@ -9,6 +9,7 @@ import csv
 import io
 import re
 import time
+from datetime import datetime
 from typing import Optional
 
 from bs4 import BeautifulSoup
@@ -24,6 +25,14 @@ ALL_ESTADOS = [
     "MA","MG","MS","MT","PA","PB","PE","PI","PR",
     "RJ","RN","RO","RR","RS","SC","SE","SP","TO",
 ]
+
+
+def _parse_date_br(date_str: str) -> Optional[datetime]:
+    """Converte 'DD/MM/YYYY' → datetime UTC para armazenar como ISODate no MongoDB."""
+    try:
+        return datetime.strptime(date_str.strip(), "%d/%m/%Y")
+    except (ValueError, AttributeError):
+        return None
 
 
 def _br_float(text: str) -> Optional[float]:
@@ -245,14 +254,22 @@ class CaixaScraper:
             if re.search(r"Permite utiliza[çc][aã]o de FGTS", text, re.I):
                 extras["fgts"] = True
 
-            # Datas do leilão
+            # Datas do leilão — Leilão SFI
             m = re.search(r"Data do 1[°º]\s*Leil[ãa]o[^\d]*([\d]{2}/[\d]{2}/[\d]{4})", text)
             if m:
                 extras["dataLeilao1"] = m.group(1)
+                extras["dataLeilao1Date"] = _parse_date_br(m.group(1))
 
             m = re.search(r"Data do 2[°º]\s*Leil[ãa]o[^\d]*([\d]{2}/[\d]{2}/[\d]{4})", text)
             if m:
                 extras["dataLeilao2"] = m.group(1)
+                extras["dataLeilao2Date"] = _parse_date_br(m.group(1))
+
+            # Data da Licitação Aberta
+            m = re.search(r"Data da Licita[çc][ãa]o Aberta\s*[-–]\s*([\d]{2}/[\d]{2}/[\d]{4})", text)
+            if m:
+                extras["dataLeilao1"] = m.group(1)
+                extras["dataLeilao1Date"] = _parse_date_br(m.group(1))
 
             # Suítes (da descrição detalhada na página)
             m = re.search(r"(\d+)\s*su[íi]te", text, re.I)

@@ -28,8 +28,9 @@ export default function Filtros() {
   const [vagas,      setVagas]      = useState(searchParams.get("vagas")         || "");
   const [suites,     setSuites]     = useState(searchParams.get("suites")        || "");
   const [ocupacao,   setOcupacao]   = useState(searchParams.get("ocupacao")      || "");
-  const [fgts,       setFgts]       = useState(searchParams.get("fgts")          || "");
-  const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
+  const [fgts,         setFgts]         = useState(searchParams.get("fgts")            || "");
+  const [leilaoAgend,  setLeilaoAgend]  = useState(searchParams.get("leilaoAgendado")  || "");
+  const [finan,        setFinan]        = useState(searchParams.get("financiamento")   || "");
   const [desconto,   setDesconto]   = useState(searchParams.get("descontoMin")   || "");
   const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
 
@@ -68,18 +69,19 @@ export default function Filtros() {
     if (vagas)      p.set("vagas",         vagas);
     if (suites)     p.set("suites",        suites);
     if (ocupacao)   p.set("ocupacao",      ocupacao);
-    if (fgts)       p.set("fgts",          fgts);
-    if (finan)      p.set("financiamento", finan);
+    if (fgts)         p.set("fgts",            fgts);
+    if (leilaoAgend)  p.set("leilaoAgendado", leilaoAgend);
+    if (finan)        p.set("financiamento",  finan);
     if (desconto)   p.set("descontoMin",   desconto);
     if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
-  }, [estado, cidade, bairro, endereco, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, finan, desconto, ordenar, router, pathname]);
+  }, [estado, cidade, bairro, endereco, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, leilaoAgend, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
     setEstado(""); setCidade(""); setBairro(""); setEndereco(""); setTipo(""); setModalidade("");
     setPrecoMin(""); setPrecoMax(""); setAreaMin(""); setAreaMax("");
     setQuartos(""); setVagas(""); setSuites(""); setOcupacao(""); setFgts("");
-    setFinan(""); setDesconto(""); setOrdenar("preco_asc");
+    setLeilaoAgend(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
     router.push(pathname);
   };
 
@@ -155,6 +157,11 @@ export default function Filtros() {
           <option value="sim">Aceita FGTS</option>
         </select>
 
+        <select className={sel} value={leilaoAgend} onChange={(e) => setLeilaoAgend(e.target.value)}>
+          <option value="">Leilão agendado</option>
+          <option value="sim">Somente com leilão</option>
+        </select>
+
         <select className={sel} value={finan} onChange={(e) => setFinan(e.target.value)}>
           <option value="">Financiamento</option>
           <option value="sim">Aceita</option>
@@ -174,6 +181,7 @@ export default function Filtros() {
           <option value="preco_desc">Maior preço</option>
           <option value="desconto_desc">Maior desconto</option>
           <option value="area_desc">Maior área</option>
+          <option value="leilao_prox">Leilão mais próximo</option>
           <option value="recente">Adicionado recentemente</option>
           <option value="antigo">Adicionado há mais tempo</option>
         </select>

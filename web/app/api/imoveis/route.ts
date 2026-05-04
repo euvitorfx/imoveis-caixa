@@ -7,6 +7,7 @@ const SORT_MAP: Record<string, Sort> = {
   "preco_desc":     { preco: -1 },
   "desconto_desc":  { precoAval: -1 },
   "area_desc":      { areaTotal: -1 },
+  "leilao_prox":    { dataLeilao1Date: 1 },
   "recente":        { dataInsercao: -1 },
   "antigo":         { dataInsercao: 1 },
 };
@@ -28,8 +29,9 @@ export async function GET(req: NextRequest) {
   const vagas      = searchParams.get("vagas");
   const suites     = searchParams.get("suites");
   const ocupacao   = searchParams.get("ocupacao") || "";
-  const fgts       = searchParams.get("fgts");
-  const financiamento = searchParams.get("financiamento");
+  const fgts            = searchParams.get("fgts");
+  const leilaoAgendado  = searchParams.get("leilaoAgendado");
+  const financiamento   = searchParams.get("financiamento");
   const descontoMin = searchParams.get("descontoMin");
   const ordenar    = searchParams.get("ordenar") || "preco_asc";
   const page  = Math.max(1, parseInt(searchParams.get("page")  || "1"));
@@ -51,6 +53,9 @@ export async function GET(req: NextRequest) {
   if (suites)     filter.suites  = { $gte: parseInt(suites) };
   if (ocupacao)   filter.ocupacao = { $regex: ocupacao, $options: "i" };
   if (fgts === "sim") filter.fgts = true;
+  if (leilaoAgendado === "sim") {
+    filter.dataLeilao1Date = { $gte: new Date() };
+  }
 
   if (areaMin || areaMax) {
     filter.areaTotal = {};

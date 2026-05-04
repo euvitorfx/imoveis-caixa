@@ -63,6 +63,11 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
             {imovel.vagas     && <span>🚗 {imovel.vagas} vaga{imovel.vagas > 1 ? "s" : ""}</span>}
           </div>
 
+          {imovel.dataLeilao1 && (
+            <span className="mt-2 text-xs text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded w-fit font-medium">
+              🔨 Leilão: {imovel.dataLeilao1}
+            </span>
+          )}
           {imovel.financiamento?.toLowerCase().includes("sim") && (
             <span className="mt-2 text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-fit">
               ✓ Aceita financiamento
