@@ -39,7 +39,7 @@ export default function ContadorVisitas() {
           <strong className="text-white">{fmtN(stats.mensal)}</strong>
         </span>
         <span>
-          📄 Páginas carregadas:{" "}
+          📄 Total de páginas carregadas:{" "}
           <strong className="text-white">{fmtN(stats.pageviews)}</strong>
         </span>
       </div>
