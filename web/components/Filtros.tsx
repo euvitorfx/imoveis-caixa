@@ -17,6 +17,7 @@ export default function Filtros() {
   const [estado,     setEstado]     = useState(searchParams.get("estado")        || "");
   const [cidade,     setCidade]     = useState(searchParams.get("cidade")        || "");
   const [bairro,     setBairro]     = useState(searchParams.get("bairro")        || "");
+  const [endereco,   setEndereco]   = useState(searchParams.get("endereco")      || "");
   const [tipo,       setTipo]       = useState(searchParams.get("tipo")          || "");
   const [modalidade, setModalidade] = useState(searchParams.get("modalidade")    || "");
   const [precoMin,   setPrecoMin]   = useState(searchParams.get("precoMin")      || "");
@@ -56,6 +57,7 @@ export default function Filtros() {
     if (estado)     p.set("estado",        estado);
     if (cidade)     p.set("cidade",        cidade);
     if (bairro)     p.set("bairro",        bairro);
+    if (endereco)   p.set("endereco",      endereco);
     if (tipo)       p.set("tipo",          tipo);
     if (modalidade) p.set("modalidade",    modalidade);
     if (precoMin)   p.set("precoMin",      precoMin);
@@ -71,10 +73,10 @@ export default function Filtros() {
     if (desconto)   p.set("descontoMin",   desconto);
     if (ordenar)    p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
-  }, [estado, cidade, bairro, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, finan, desconto, ordenar, router, pathname]);
+  }, [estado, cidade, bairro, endereco, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
-    setEstado(""); setCidade(""); setBairro(""); setTipo(""); setModalidade("");
+    setEstado(""); setCidade(""); setBairro(""); setEndereco(""); setTipo(""); setModalidade("");
     setPrecoMin(""); setPrecoMax(""); setAreaMin(""); setAreaMax("");
     setQuartos(""); setVagas(""); setSuites(""); setOcupacao(""); setFgts("");
     setFinan(""); setDesconto(""); setOrdenar("preco_asc");
@@ -103,6 +105,9 @@ export default function Filtros() {
           <option value="">Bairro</option>
           {bairros.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
+
+        <input type="text" placeholder="Nome da rua" className={inp}
+          value={endereco} onChange={(e) => setEndereco(e.target.value)} />
 
         <select className={sel} value={tipo} onChange={(e) => setTipo(e.target.value)}>
           <option value="">Tipo</option>

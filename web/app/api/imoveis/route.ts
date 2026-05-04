@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const estado     = searchParams.get("estado") || "";
   const cidade     = searchParams.get("cidade") || "";
   const bairro     = searchParams.get("bairro") || "";
+  const endereco   = searchParams.get("endereco") || "";
   const tipo       = searchParams.get("tipo") || "";
   const modalidade = searchParams.get("modalidade") || "";
   const precoMin   = searchParams.get("precoMin");
@@ -40,7 +41,8 @@ export async function GET(req: NextRequest) {
 
   if (estado)     filter.estado     = estado.toUpperCase();
   if (cidade)     filter.cidade     = { $regex: cidade, $options: "i" };
-  if (bairro)     filter.bairro     = { $regex: bairro, $options: "i" };
+  if (bairro)     filter.bairro    = { $regex: bairro,   $options: "i" };
+  if (endereco)   filter.endereco  = { $regex: endereco, $options: "i" };
   if (tipo)       filter.tipo       = { $regex: tipo,   $options: "i" };
   if (modalidade) filter.modalidade = { $regex: modalidade, $options: "i" };
   if (financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
