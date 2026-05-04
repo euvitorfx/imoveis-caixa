@@ -12,6 +12,7 @@ interface SearchParams {
   estado?: string;
   cidade?: string;
   bairro?: string;
+  endereco?: string;
   tipo?: string;
   modalidade?: string;
   precoMin?: string;
@@ -20,6 +21,9 @@ interface SearchParams {
   areaMax?: string;
   quartos?: string;
   vagas?: string;
+  suites?: string;
+  ocupacao?: string;
+  fgts?: string;
   financiamento?: string;
   descontoMin?: string;
   ordenar?: string;
@@ -33,13 +37,17 @@ async function queryImoveis(sp: SearchParams) {
   const filter: Record<string, any> = { ativo: true };
 
   if (sp.estado)     filter.estado     = sp.estado.toUpperCase();
-  if (sp.cidade)     filter.cidade     = { $regex: sp.cidade, $options: "i" };
-  if (sp.bairro)     filter.bairro     = { $regex: sp.bairro, $options: "i" };
-  if (sp.tipo)       filter.tipo       = { $regex: sp.tipo,   $options: "i" };
-  if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade, $options: "i" };
+  if (sp.cidade)     filter.cidade     = { $regex: sp.cidade,    $options: "i" };
+  if (sp.bairro)     filter.bairro     = { $regex: sp.bairro,    $options: "i" };
+  if (sp.endereco)   filter.endereco   = { $regex: sp.endereco,  $options: "i" };
+  if (sp.tipo)       filter.tipo       = { $regex: sp.tipo,      $options: "i" };
+  if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade,$options: "i" };
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
-  if (sp.quartos) filter.quartos = { $gte: parseInt(sp.quartos) };
-  if (sp.vagas)   filter.vagas   = { $gte: parseInt(sp.vagas) };
+  if (sp.quartos)  filter.quartos  = { $gte: parseInt(sp.quartos) };
+  if (sp.vagas)    filter.vagas    = { $gte: parseInt(sp.vagas) };
+  if (sp.suites)   filter.suites   = { $gte: parseInt(sp.suites) };
+  if (sp.ocupacao) filter.ocupacao = { $regex: sp.ocupacao, $options: "i" };
+  if (sp.fgts === "sim") filter.fgts = true;
   if (sp.descontoMin) {
     const pct = parseInt(sp.descontoMin) / 100;
     filter.$expr = { $gte: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, pct] };
