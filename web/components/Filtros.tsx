@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MultiSelect from "@/components/MultiSelect";
 
 const ESTADOS = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO",
@@ -9,17 +10,37 @@ const ESTADOS = [
   "RJ","RN","RO","RR","RS","SC","SE","SP","TO",
 ];
 
+const SESSION_KEY = "filtros_imoveis_v2";
+
 export default function Filtros() {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
 
-  const [estado,     setEstado]     = useState(searchParams.get("estado")        || "");
-  const [cidade,     setCidade]     = useState(searchParams.get("cidade")        || "");
-  const [bairro,     setBairro]     = useState(searchParams.get("bairro")        || "");
+  // Multi-select fields (string[])
+  const [estado,     setEstado]     = useState<string[]>(() => {
+    const v = searchParams.get("estado");
+    return v ? v.split(",").filter(Boolean) : [];
+  });
+  const [cidade,     setCidade]     = useState<string[]>(() => {
+    const v = searchParams.get("cidade");
+    return v ? v.split(",").filter(Boolean) : [];
+  });
+  const [bairro,     setBairro]     = useState<string[]>(() => {
+    const v = searchParams.get("bairro");
+    return v ? v.split(",").filter(Boolean) : [];
+  });
+  const [tipo,       setTipo]       = useState<string[]>(() => {
+    const v = searchParams.get("tipo");
+    return v ? v.split(",").filter(Boolean) : [];
+  });
+  const [modalidade, setModalidade] = useState<string[]>(() => {
+    const v = searchParams.get("modalidade");
+    return v ? v.split(",").filter(Boolean) : [];
+  });
+
+  // Single-value fields
   const [endereco,   setEndereco]   = useState(searchParams.get("endereco")      || "");
-  const [tipo,       setTipo]       = useState(searchParams.get("tipo")          || "");
-  const [modalidade, setModalidade] = useState(searchParams.get("modalidade")    || "");
   const [precoMin,   setPrecoMin]   = useState(searchParams.get("precoMin")      || "");
   const [precoMax,   setPrecoMax]   = useState(searchParams.get("precoMax")      || "");
   const [areaMin,    setAreaMin]    = useState(searchParams.get("areaMin")       || "");
@@ -28,21 +49,70 @@ export default function Filtros() {
   const [vagas,      setVagas]      = useState(searchParams.get("vagas")         || "");
   const [suites,     setSuites]     = useState(searchParams.get("suites")        || "");
   const [ocupacao,   setOcupacao]   = useState(searchParams.get("ocupacao")      || "");
-  const [fgts,         setFgts]         = useState(searchParams.get("fgts")            || "");
-  const [leilaoAgend,  setLeilaoAgend]  = useState(searchParams.get("leilaoAgendado")  || "");
-  const [finan,        setFinan]        = useState(searchParams.get("financiamento")   || "");
+  const [fgts,       setFgts]       = useState(searchParams.get("fgts")          || "");
+  const [leilaoAgend,setLeilaoAgend]= useState(searchParams.get("leilaoAgendado")|| "");
+  const [finan,      setFinan]      = useState(searchParams.get("financiamento") || "");
   const [desconto,   setDesconto]   = useState(searchParams.get("descontoMin")   || "");
   const [ordenar,    setOrdenar]    = useState(searchParams.get("ordenar")       || "preco_asc");
 
+  // Dropdown option lists
   const [cidades,    setCidades]    = useState<string[]>([]);
   const [bairros,    setBairros]    = useState<string[]>([]);
   const [tipos,      setTipos]      = useState<string[]>([]);
   const [modalidades,setModalidades]= useState<string[]>([]);
 
+  // Skip saving on first render to avoid overwriting sessionStorage before restore
+  const firstRender = useRef(true);
+
+  // Restore from sessionStorage if page loaded without URL params
+  useEffect(() => {
+    if (searchParams.toString() !== "") return;
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (!saved) return;
+      const s = JSON.parse(saved);
+      if (Array.isArray(s.estado)     && s.estado.length)     setEstado(s.estado);
+      if (Array.isArray(s.cidade)     && s.cidade.length)     setCidade(s.cidade);
+      if (Array.isArray(s.bairro)     && s.bairro.length)     setBairro(s.bairro);
+      if (Array.isArray(s.tipo)       && s.tipo.length)       setTipo(s.tipo);
+      if (Array.isArray(s.modalidade) && s.modalidade.length) setModalidade(s.modalidade);
+      if (s.endereco)    setEndereco(s.endereco);
+      if (s.precoMin)    setPrecoMin(s.precoMin);
+      if (s.precoMax)    setPrecoMax(s.precoMax);
+      if (s.areaMin)     setAreaMin(s.areaMin);
+      if (s.areaMax)     setAreaMax(s.areaMax);
+      if (s.quartos)     setQuartos(s.quartos);
+      if (s.vagas)       setVagas(s.vagas);
+      if (s.suites)      setSuites(s.suites);
+      if (s.ocupacao)    setOcupacao(s.ocupacao);
+      if (s.fgts)        setFgts(s.fgts);
+      if (s.leilaoAgend) setLeilaoAgend(s.leilaoAgend);
+      if (s.finan)       setFinan(s.finan);
+      if (s.desconto)    setDesconto(s.desconto);
+      if (s.ordenar)     setOrdenar(s.ordenar);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save all filters to sessionStorage whenever they change
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      estado, cidade, bairro, endereco, tipo, modalidade,
+      precoMin, precoMax, areaMin, areaMax,
+      quartos, vagas, suites, ocupacao, fgts, leilaoAgend, finan, desconto, ordenar,
+    }));
+  }, [estado, cidade, bairro, endereco, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, leilaoAgend, finan, desconto, ordenar]);
+
+  // Stable keys for cascade effect dependencies
+  const estadoKey = useMemo(() => estado.join(","), [estado]);
+  const cidadeKey = useMemo(() => cidade.join(","), [cidade]);
+
+  // Load dropdown options based on selected estado/cidade
   useEffect(() => {
     const qs = new URLSearchParams();
-    if (estado) qs.set("estado", estado);
-    if (cidade) qs.set("cidade", cidade);
+    if (estadoKey) qs.set("estado", estadoKey);
+    if (cidadeKey) qs.set("cidade", cidadeKey);
     fetch(`/api/filtros?${qs.toString()}`)
       .then((r) => r.json())
       .then((d) => {
@@ -51,37 +121,50 @@ export default function Filtros() {
         setTipos(d.tipos         || []);
         setModalidades(d.modalidades || []);
       });
-  }, [estado, cidade]);
+  }, [estadoKey, cidadeKey]);
+
+  const handleEstadoChange = useCallback((vals: string[]) => {
+    setEstado(vals);
+    setCidade([]);
+    setBairro([]);
+  }, []);
+
+  const handleCidadeChange = useCallback((vals: string[]) => {
+    setCidade(vals);
+    setBairro([]);
+  }, []);
 
   const apply = useCallback(() => {
     const p = new URLSearchParams();
-    if (estado)     p.set("estado",        estado);
-    if (cidade)     p.set("cidade",        cidade);
-    if (bairro)     p.set("bairro",        bairro);
-    if (endereco)   p.set("endereco",      endereco);
-    if (tipo)       p.set("tipo",          tipo);
-    if (modalidade) p.set("modalidade",    modalidade);
-    if (precoMin)   p.set("precoMin",      precoMin);
-    if (precoMax)   p.set("precoMax",      precoMax);
-    if (areaMin)    p.set("areaMin",       areaMin);
-    if (areaMax)    p.set("areaMax",       areaMax);
-    if (quartos)    p.set("quartos",       quartos);
-    if (vagas)      p.set("vagas",         vagas);
-    if (suites)     p.set("suites",        suites);
-    if (ocupacao)   p.set("ocupacao",      ocupacao);
-    if (fgts)         p.set("fgts",            fgts);
-    if (leilaoAgend)  p.set("leilaoAgendado", leilaoAgend);
-    if (finan)        p.set("financiamento",  finan);
-    if (desconto)   p.set("descontoMin",   desconto);
-    if (ordenar)    p.set("ordenar",       ordenar);
+    if (estado.length)     p.set("estado",        estado.join(","));
+    if (cidade.length)     p.set("cidade",        cidade.join(","));
+    if (bairro.length)     p.set("bairro",        bairro.join(","));
+    if (endereco)          p.set("endereco",      endereco);
+    if (tipo.length)       p.set("tipo",          tipo.join(","));
+    if (modalidade.length) p.set("modalidade",    modalidade.join(","));
+    if (precoMin)          p.set("precoMin",      precoMin);
+    if (precoMax)          p.set("precoMax",      precoMax);
+    if (areaMin)           p.set("areaMin",       areaMin);
+    if (areaMax)           p.set("areaMax",       areaMax);
+    if (quartos)           p.set("quartos",       quartos);
+    if (vagas)             p.set("vagas",         vagas);
+    if (suites)            p.set("suites",        suites);
+    if (ocupacao)          p.set("ocupacao",      ocupacao);
+    if (fgts)              p.set("fgts",          fgts);
+    if (leilaoAgend)       p.set("leilaoAgendado",leilaoAgend);
+    if (finan)             p.set("financiamento", finan);
+    if (desconto)          p.set("descontoMin",   desconto);
+    if (ordenar)           p.set("ordenar",       ordenar);
     router.push(`${pathname}?${p.toString()}`);
   }, [estado, cidade, bairro, endereco, tipo, modalidade, precoMin, precoMax, areaMin, areaMax, quartos, vagas, suites, ocupacao, fgts, leilaoAgend, finan, desconto, ordenar, router, pathname]);
 
   const clear = () => {
-    setEstado(""); setCidade(""); setBairro(""); setEndereco(""); setTipo(""); setModalidade("");
+    setEstado([]); setCidade([]); setBairro([]); setEndereco("");
+    setTipo([]); setModalidade([]);
     setPrecoMin(""); setPrecoMax(""); setAreaMin(""); setAreaMax("");
     setQuartos(""); setVagas(""); setSuites(""); setOcupacao(""); setFgts("");
     setLeilaoAgend(""); setFinan(""); setDesconto(""); setOrdenar("preco_asc");
+    sessionStorage.removeItem(SESSION_KEY);
     router.push(pathname);
   };
 
@@ -93,33 +176,49 @@ export default function Filtros() {
       <h2 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Filtros</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
 
-        <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value); setCidade(""); setBairro(""); }}>
-          <option value="">Estado</option>
-          {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-        </select>
+        <MultiSelect
+          label="Estado"
+          options={ESTADOS}
+          value={estado}
+          onChange={handleEstadoChange}
+          searchable
+        />
 
-        <select className={sel} value={cidade} onChange={(e) => { setCidade(e.target.value); setBairro(""); }} disabled={!cidades.length}>
-          <option value="">Cidade</option>
-          {cidades.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <MultiSelect
+          label="Cidade"
+          options={cidades}
+          value={cidade}
+          onChange={handleCidadeChange}
+          disabled={!cidades.length}
+          searchable
+        />
 
-        <select className={sel} value={bairro} onChange={(e) => setBairro(e.target.value)} disabled={!bairros.length}>
-          <option value="">Bairro</option>
-          {bairros.map((b) => <option key={b} value={b}>{b}</option>)}
-        </select>
+        <MultiSelect
+          label="Bairro"
+          options={bairros}
+          value={bairro}
+          onChange={setBairro}
+          disabled={!bairros.length}
+          searchable
+        />
 
         <input type="text" placeholder="Nome da rua" className={inp}
           value={endereco} onChange={(e) => setEndereco(e.target.value)} />
 
-        <select className={sel} value={tipo} onChange={(e) => setTipo(e.target.value)}>
-          <option value="">Tipo</option>
-          {tipos.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
+        <MultiSelect
+          label="Tipo"
+          options={tipos}
+          value={tipo}
+          onChange={setTipo}
+          searchable
+        />
 
-        <select className={sel} value={modalidade} onChange={(e) => setModalidade(e.target.value)}>
-          <option value="">Modalidade</option>
-          {modalidades.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
+        <MultiSelect
+          label="Modalidade"
+          options={modalidades}
+          value={modalidade}
+          onChange={setModalidade}
+        />
 
         <input type="number" placeholder="Preço mín R$" className={inp}
           value={precoMin} onChange={(e) => setPrecoMin(e.target.value)} />

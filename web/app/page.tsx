@@ -33,16 +33,37 @@ interface SearchParams {
 
 const LIMIT = 24;
 
+function parseList(val: string | undefined): string[] {
+  if (!val) return [];
+  return val.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 async function queryImoveis(sp: SearchParams) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filter: Record<string, any> = { ativo: true };
 
-  if (sp.estado)     filter.estado     = sp.estado.toUpperCase();
-  if (sp.cidade)     filter.cidade     = { $regex: sp.cidade,    $options: "i" };
-  if (sp.bairro)     filter.bairro     = { $regex: sp.bairro,    $options: "i" };
-  if (sp.endereco)   filter.endereco   = { $regex: sp.endereco,  $options: "i" };
-  if (sp.tipo)       filter.tipo       = { $regex: sp.tipo,      $options: "i" };
-  if (sp.modalidade) filter.modalidade = { $regex: sp.modalidade,$options: "i" };
+  const estadoList = parseList(sp.estado);
+  const cidadeList = parseList(sp.cidade);
+  const bairroList = parseList(sp.bairro);
+  const tipoList   = parseList(sp.tipo);
+  const modalList  = parseList(sp.modalidade);
+
+  if (estadoList.length === 1) filter.estado = estadoList[0].toUpperCase();
+  else if (estadoList.length > 1) filter.estado = { $in: estadoList.map((s) => s.toUpperCase()) };
+
+  if (cidadeList.length === 1) filter.cidade = { $regex: cidadeList[0], $options: "i" };
+  else if (cidadeList.length > 1) filter.cidade = { $in: cidadeList };
+
+  if (bairroList.length === 1) filter.bairro = { $regex: bairroList[0], $options: "i" };
+  else if (bairroList.length > 1) filter.bairro = { $in: bairroList };
+
+  if (sp.endereco) filter.endereco = { $regex: sp.endereco, $options: "i" };
+
+  if (tipoList.length === 1) filter.tipo = { $regex: tipoList[0], $options: "i" };
+  else if (tipoList.length > 1) filter.tipo = { $in: tipoList };
+
+  if (modalList.length === 1) filter.modalidade = { $regex: modalList[0], $options: "i" };
+  else if (modalList.length > 1) filter.modalidade = { $in: modalList };
   if (sp.financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (sp.quartos)  filter.quartos  = { $gte: parseInt(sp.quartos) };
   if (sp.vagas)    filter.vagas    = { $gte: parseInt(sp.vagas) };

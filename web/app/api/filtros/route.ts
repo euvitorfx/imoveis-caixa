@@ -3,8 +3,11 @@ import clientPromise from "@/lib/mongodb";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const estado = searchParams.get("estado") || "";
-  const cidade = searchParams.get("cidade") || "";
+  const estadoRaw = searchParams.get("estado") || "";
+  const cidadeRaw = searchParams.get("cidade") || "";
+
+  const estadoList = estadoRaw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const cidadeList = cidadeRaw.split(",").map((s) => s.trim()).filter(Boolean);
 
   try {
     const client = await clientPromise;
@@ -12,14 +15,19 @@ export async function GET(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseMatch: Record<string, any> = { ativo: true };
-    if (estado) baseMatch.estado = estado.toUpperCase();
-    if (cidade) baseMatch.cidade = { $regex: cidade, $options: "i" };
+    if (estadoList.length === 1) baseMatch.estado = estadoList[0];
+    else if (estadoList.length > 1) baseMatch.estado = { $in: estadoList };
+    if (cidadeList.length === 1) baseMatch.cidade = { $regex: cidadeList[0], $options: "i" };
+    else if (cidadeList.length > 1) baseMatch.cidade = { $in: cidadeList };
 
-    const cidadeMatch = estado ? { ativo: true, estado: estado.toUpperCase() } : { ativo: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cidadeMatch: Record<string, any> = { ativo: true };
+    if (estadoList.length === 1) cidadeMatch.estado = estadoList[0];
+    else if (estadoList.length > 1) cidadeMatch.estado = { $in: estadoList };
 
     const [cidades, bairros, tipos, modalidades] = await Promise.all([
-      estado ? col.distinct("cidade", cidadeMatch) : Promise.resolve([]),
-      cidade ? col.distinct("bairro", baseMatch)   : Promise.resolve([]),
+      estadoList.length > 0 ? col.distinct("cidade", cidadeMatch) : Promise.resolve([]),
+      cidadeList.length > 0 ? col.distinct("bairro", baseMatch)   : Promise.resolve([]),
       col.distinct("tipo",       baseMatch),
       col.distinct("modalidade", baseMatch),
     ]);

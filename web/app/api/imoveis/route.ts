@@ -12,15 +12,20 @@ const SORT_MAP: Record<string, Sort> = {
   "antigo":         { dataInsercao: 1 },
 };
 
+function parseList(val: string | null): string[] {
+  if (!val) return [];
+  return val.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
 
-  const estado     = searchParams.get("estado") || "";
-  const cidade     = searchParams.get("cidade") || "";
-  const bairro     = searchParams.get("bairro") || "";
+  const estadoList = parseList(searchParams.get("estado"));
+  const cidadeList = parseList(searchParams.get("cidade"));
+  const bairroList = parseList(searchParams.get("bairro"));
+  const tipoList   = parseList(searchParams.get("tipo"));
+  const modalList  = parseList(searchParams.get("modalidade"));
   const endereco   = searchParams.get("endereco") || "";
-  const tipo       = searchParams.get("tipo") || "";
-  const modalidade = searchParams.get("modalidade") || "";
   const precoMin   = searchParams.get("precoMin");
   const precoMax   = searchParams.get("precoMax");
   const areaMin    = searchParams.get("areaMin");
@@ -41,12 +46,22 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filter: Record<string, any> = { ativo: true };
 
-  if (estado)     filter.estado     = estado.toUpperCase();
-  if (cidade)     filter.cidade     = { $regex: cidade, $options: "i" };
-  if (bairro)     filter.bairro    = { $regex: bairro,   $options: "i" };
-  if (endereco)   filter.endereco  = { $regex: endereco, $options: "i" };
-  if (tipo)       filter.tipo       = { $regex: tipo,   $options: "i" };
-  if (modalidade) filter.modalidade = { $regex: modalidade, $options: "i" };
+  if (estadoList.length === 1) filter.estado = estadoList[0].toUpperCase();
+  else if (estadoList.length > 1) filter.estado = { $in: estadoList.map((s) => s.toUpperCase()) };
+
+  if (cidadeList.length === 1) filter.cidade = { $regex: cidadeList[0], $options: "i" };
+  else if (cidadeList.length > 1) filter.cidade = { $in: cidadeList };
+
+  if (bairroList.length === 1) filter.bairro = { $regex: bairroList[0], $options: "i" };
+  else if (bairroList.length > 1) filter.bairro = { $in: bairroList };
+
+  if (endereco) filter.endereco = { $regex: endereco, $options: "i" };
+
+  if (tipoList.length === 1) filter.tipo = { $regex: tipoList[0], $options: "i" };
+  else if (tipoList.length > 1) filter.tipo = { $in: tipoList };
+
+  if (modalList.length === 1) filter.modalidade = { $regex: modalList[0], $options: "i" };
+  else if (modalList.length > 1) filter.modalidade = { $in: modalList };
   if (financiamento === "sim") filter.financiamento = { $regex: "sim", $options: "i" };
   if (quartos)    filter.quartos = { $gte: parseInt(quartos) };
   if (vagas)      filter.vagas   = { $gte: parseInt(vagas) };
