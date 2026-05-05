@@ -195,12 +195,24 @@ class CaixaScraper:
 
     # ── Enriquecimento com detalhes da página ────────────────────────────────
 
+    # Frases que indicam que o imóvel foi removido/vendido na Caixa
+    _FRASES_INATIVO = [
+        "imóvel não encontrado",
+        "não foi possível localizar",
+        "registro não encontrado",
+        "imóvel indisponível",
+        "imóvel removido",
+        "imovel nao encontrado",
+    ]
+
     def get_detalhes_imovel(self, hdn: str) -> dict:
         """
         Visita a página de detalhe do imóvel e extrai campos extras:
         CEP, leiloeiro, edital, editaiUrl, matriculaUrl,
         ocupacao, fgts, dataLeilao1, dataLeilao2, suites.
-        Retorna dict com os campos encontrados (pode ser vazio).
+
+        Retorna {"_inativo": True} se o imóvel não está mais disponível na Caixa.
+        Retorna dict com os campos encontrados (pode ser vazio) nos demais casos.
         """
         url = f"{DET_URL}?hdnimovel={hdn}"
         extras: dict = {}
@@ -208,8 +220,17 @@ class CaixaScraper:
             self.page.goto(url, wait_until="domcontentloaded", timeout=25_000)
             time.sleep(1)
 
+            # Redirecionamento = imóvel não existe mais na Caixa
+            if "detalhe-imovel.asp" not in self.page.url:
+                return {"_inativo": True}
+
             text = self.page.inner_text("body")
             html = self.page.content()
+
+            # Texto de erro na página = imóvel removido/vendido
+            texto_lower = text.lower()
+            if any(frase in texto_lower for frase in self._FRASES_INATIVO):
+                return {"_inativo": True}
 
             # CEP
             m = re.search(r"CEP[:\s]*([\d]{5}-[\d]{3})", text)

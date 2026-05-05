@@ -81,7 +81,7 @@ def main():
         return
 
     scraper = CaixaScraper(headless=headless)
-    processados = enriquecidos = erros = 0
+    processados = enriquecidos = erros = inativos = 0
 
     try:
         cursor = col.find(filtro, {"hdnImovel": 1}).limit(a_processar or 0).batch_size(BATCH_SIZE)
@@ -89,6 +89,22 @@ def main():
         for doc in cursor:
             hdn = doc["hdnImovel"]
             extras = scraper.get_detalhes_imovel(hdn)
+
+            # Imóvel removido/vendido na Caixa — desativa no banco
+            if extras.get("_inativo"):
+                col.update_one(
+                    {"_id": doc["_id"]},
+                    {"$set": {
+                        "ativo": False,
+                        "enriched": True,
+                        "dataAtualizacao": datetime.now(timezone.utc),
+                    }},
+                )
+                inativos += 1
+                processados += 1
+                print(f"  ⚠ Desativado: {hdn} (página não encontrada na Caixa)")
+                time.sleep(DELAY_ENTRE_REQUESTS)
+                continue
 
             update: dict = {"enriched": True}
             if extras:
@@ -102,7 +118,10 @@ def main():
 
             if processados % 50 == 0 or processados == a_processar:
                 pct = processados / a_processar * 100 if a_processar else 0
-                print(f"  [{processados:,}/{a_processar:,}] {pct:.1f}% | enriquecidos={enriquecidos:,} erros={erros}")
+                print(
+                    f"  [{processados:,}/{a_processar:,}] {pct:.1f}% | "
+                    f"enriquecidos={enriquecidos:,} inativos={inativos} erros={erros}"
+                )
 
             time.sleep(DELAY_ENTRE_REQUESTS)
 
@@ -116,6 +135,7 @@ def main():
     print("  RESUMO")
     print(f"  Processados  : {processados:,}")
     print(f"  Enriquecidos : {enriquecidos:,}")
+    print(f"  Desativados  : {inativos:,}")
     print(f"  Sem dados    : {erros:,}")
     print("=" * 60)
     print()

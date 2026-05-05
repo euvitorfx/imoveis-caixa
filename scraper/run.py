@@ -53,24 +53,33 @@ def main():
     ensure_indexes()
 
     scraper = CaixaScraper(headless=headless, debug=debug)
-    totais = {"inseridos": 0, "atualizados": 0, "erros": 0, "imoveis": 0}
+    totais  = {"inseridos": 0, "atualizados": 0, "erros": 0, "imoveis": 0}
+    falhas  = []   # estados que falharam mesmo após retry
 
     try:
         for i, estado in enumerate(estados, 1):
             print(f"\n[{i}/{len(estados)}] Estado: {estado}")
             t0 = time.time()
 
-            props = scraper.scrape_estado(estado, com_fotos=not sem_detalhes)
+            # Retry automático: tenta até 2 vezes antes de desistir
+            props = []
+            for tentativa in range(1, 3):
+                props = scraper.scrape_estado(estado, com_fotos=not sem_detalhes)
+                if props:
+                    break
+                if tentativa == 1:
+                    print(f"  ⚠ {estado}: download falhou, nova tentativa em 10s...")
+                    time.sleep(10)
 
             if props:
                 stats = upsert_imoveis(props)
                 hdns  = [p["hdnImovel"] for p in props if p.get("hdnImovel")]
                 inat  = marcar_inativos(estado, hdns)
 
-                totais["inseridos"]  += stats["inseridos"]
+                totais["inseridos"]   += stats["inseridos"]
                 totais["atualizados"] += stats["atualizados"]
-                totais["erros"]      += stats["erros"]
-                totais["imoveis"]    += len(props)
+                totais["erros"]       += stats["erros"]
+                totais["imoveis"]     += len(props)
 
                 elapsed = time.time() - t0
                 print(
@@ -81,7 +90,8 @@ def main():
                     f"{elapsed:.0f}s"
                 )
             else:
-                print(f"  ✗ {estado}: nenhum imóvel obtido")
+                falhas.append(estado)
+                print(f"  ✗ {estado}: falhou após 2 tentativas — inativos NÃO atualizados")
 
             # Pausa entre estados para não sobrecarregar o servidor
             if i < len(estados):
@@ -114,6 +124,8 @@ def main():
     print(f"  Atualizados         : {totais['atualizados']:,}")
     print(f"  Erros               : {totais['erros']:,}")
     print(f"  Duração             : ~{duracao} minutos")
+    if falhas:
+        print(f"  ⚠ Estados com falha : {', '.join(falhas)}")
     print()
     print("  Totais no banco por estado:")
     for uf, total in total_por_estado().items():
