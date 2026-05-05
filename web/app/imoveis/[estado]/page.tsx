@@ -4,6 +4,8 @@ import clientPromise from "@/lib/mongodb";
 import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
 import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, ESTADO_TEXTOS, fmtBRL } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";

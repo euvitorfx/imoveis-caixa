@@ -8,6 +8,8 @@ import clientPromise from "@/lib/mongodb";
 import { ALL_ESTADOS, ESTADO_NOMES, ESTADO_BANDEIRAS } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
 
+export const dynamic = "force-dynamic";
+
 interface SearchParams {
   estado?: string;
   cidade?: string;
