@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoPDF from "@/components/BotaoPDF";
+import BotaoFavorito from "@/components/BotaoFavorito";
 import GraficoPreco from "@/components/GraficoPreco";
 import { Imovel } from "@/lib/types";
 
@@ -35,6 +36,7 @@ export default function DetalheClient({ imovel, titulo, preco, endereco, mapaLab
         <div className="flex flex-wrap gap-2">
           <BotaoCompartilhar titulo={titulo} preco={preco} endereco={endereco} />
           <BotaoPDF imovel={imovel} />
+          <BotaoFavorito imovel={imovel} variant="inline" />
         </div>
       </div>
 

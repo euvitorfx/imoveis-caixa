@@ -17,7 +17,12 @@ function salvar(lista: Imovel[]) {
   localStorage.setItem(KEY, JSON.stringify(lista));
 }
 
-export default function BotaoFavorito({ imovel }: { imovel: Imovel }) {
+interface Props {
+  imovel: Imovel;
+  variant?: "card" | "inline";
+}
+
+export default function BotaoFavorito({ imovel, variant = "card" }: Props) {
   const [salvo, setSalvo] = useState(false);
 
   useEffect(() => {
@@ -35,6 +40,23 @@ export default function BotaoFavorito({ imovel }: { imovel: Imovel }) {
       salvar([...atual, imovel]);
       setSalvo(true);
     }
+  }
+
+  if (variant === "inline") {
+    return (
+      <button
+        onClick={toggle}
+        title={salvo ? "Remover dos favoritos" : "Salvar nos favoritos"}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+          salvo
+            ? "border-red-300 bg-red-50 text-red-600 hover:bg-red-100"
+            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        <span className="text-base leading-none">{salvo ? "♥" : "♡"}</span>
+        {salvo ? "Salvo nos favoritos" : "Salvar nos favoritos"}
+      </button>
+    );
   }
 
   return (
