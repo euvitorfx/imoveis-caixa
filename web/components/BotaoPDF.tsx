@@ -9,14 +9,35 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
   const handleClick = async () => {
     setLoading(true);
     try {
+      // Busca a foto via proxy (evita bloqueio de CORS da Caixa)
+      let fotoBase64: string | undefined;
+      if (imovel.fotoUrl) {
+        try {
+          const proxyUrl = `/api/proxy-imagem?url=${encodeURIComponent(imovel.fotoUrl)}`;
+          const imgRes = await fetch(proxyUrl);
+          if (imgRes.ok) {
+            const imgBlob = await imgRes.blob();
+            fotoBase64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror  = reject;
+              reader.readAsDataURL(imgBlob);
+            });
+          }
+        } catch {
+          // segue sem foto se falhar
+        }
+      }
+
       const [renderer, { ImovelPDF }] = await Promise.all([
         import("@react-pdf/renderer"),
         import("@/components/PdfImovelDoc"),
       ]);
 
       const { createElement } = await import("react");
+      const imovelComFoto = fotoBase64 ? { ...imovel, fotoUrl: fotoBase64 } : imovel;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const blob = await renderer.pdf(createElement(ImovelPDF, { imovel }) as any).toBlob();
+      const blob = await renderer.pdf(createElement(ImovelPDF, { imovel: imovelComFoto }) as any).toBlob();
 
       const url = URL.createObjectURL(blob);
       const a   = document.createElement("a");
