@@ -213,15 +213,13 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             ))}
           </div>
 
-          {/* Compartilhar + Mapa (client) */}
+          {/* Compartilhar + PDF + Mapa (client) */}
           <DetalheClient
-            lat={imovel.lat}
-            lng={imovel.lng}
+            imovel={imovel}
             titulo={titulo}
             preco={precoFmt}
             endereco={imovel.endereco || `${imovel.cidade}/${imovel.estado}`}
             mapaLabel={`${imovel.tipo || "Imóvel"} — ${precoFmt}`}
-            historicoPreco={imovel.historicoPreco}
           />
         </div>
       </div>
