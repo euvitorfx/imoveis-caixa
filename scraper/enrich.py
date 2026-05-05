@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 
 from mongo import get_db
 from scraper import CaixaScraper
+from foto_upload import upload_foto
 
 load_dotenv()
 
@@ -84,7 +85,7 @@ def main():
     processados = enriquecidos = erros = inativos = 0
 
     try:
-        cursor = col.find(filtro, {"hdnImovel": 1}).limit(a_processar or 0).batch_size(BATCH_SIZE)
+        cursor = col.find(filtro, {"hdnImovel": 1, "fotoUrl": 1}).limit(a_processar or 0).batch_size(BATCH_SIZE)
 
         for doc in cursor:
             hdn = doc["hdnImovel"]
@@ -112,6 +113,14 @@ def main():
                 enriquecidos += 1
             else:
                 erros += 1
+
+            # Upload da foto para o Cloudinary se ainda for URL da Caixa
+            foto_atual = doc.get("fotoUrl", "")
+            if foto_atual and "caixa.gov.br" in foto_atual:
+                nova_url = upload_foto(hdn, foto_atual)
+                if nova_url:
+                    update["fotoUrl"] = nova_url
+                    update["fotoMigrada"] = True
 
             col.update_one({"_id": doc["_id"]}, {"$set": update})
             processados += 1
