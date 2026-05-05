@@ -14,19 +14,15 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
         import("@/components/PdfImovelDoc"),
       ]);
 
-      // Busca a foto via proxy (server-side, sem CORS) e converte para data URL
+      // Servidor converte a foto para data URL (base64 via Node.js Buffer, sem CORS)
       let fotoDataUrl: string | undefined;
       if (imovel.fotoUrl) {
         try {
-          const proxyUrl = `${window.location.origin}/api/proxy-imagem?url=${encodeURIComponent(imovel.fotoUrl)}`;
-          const res = await fetch(proxyUrl);
+          const b64Url = `/api/proxy-imagem-b64?url=${encodeURIComponent(imovel.fotoUrl)}`;
+          const res = await fetch(b64Url);
           if (res.ok) {
-            const buf = await res.arrayBuffer();
-            const uint8 = new Uint8Array(buf);
-            let bin = "";
-            for (let i = 0; i < uint8.length; i++) bin += String.fromCharCode(uint8[i]);
-            const contentType = res.headers.get("content-type") || "image/jpeg";
-            fotoDataUrl = `data:${contentType};base64,${btoa(bin)}`;
+            const json = await res.json();
+            fotoDataUrl = json.dataUrl;
           }
         } catch {
           // sem foto no PDF
