@@ -3,6 +3,29 @@ import clientPromise from "@/lib/mongodb";
 
 export const revalidate = 3600;
 
+async function getAnalytics(): Promise<{ pageviews: number | null; visitors: number | null }> {
+  const token     = process.env.VERCEL_API_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return { pageviews: null, visitors: null };
+  try {
+    const to   = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const res  = await fetch(
+      `https://vercel.com/api/web-analytics/timeseries?projectId=${projectId}&environment=production&from=${from}&to=${to}&filter=%7B%7D`,
+      { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return { pageviews: null, visitors: null };
+    const json = await res.json();
+    const rows: { total: number; devices: number }[] = json?.data?.groups?.all ?? [];
+    return {
+      pageviews: rows.reduce((s, r) => s + r.total, 0),
+      visitors:  rows.reduce((s, r) => s + r.devices, 0),
+    };
+  } catch {
+    return { pageviews: null, visitors: null };
+  }
+}
+
 export const metadata: Metadata = {
   title: "Estatísticas",
   description: "Panorama geral dos imóveis da Caixa disponíveis no Brasil. Dados por estado, tipo, modalidade, desconto e evolução do acervo.",
@@ -130,7 +153,7 @@ async function getStats() {
 }
 
 export default async function EstatisticasPage() {
-  const s = await getStats();
+  const [s, analytics] = await Promise.all([getStats(), getAnalytics()]);
   const maxEstado = Math.max(...s.porEstado.map((e) => e.total));
   const maxM2 = Math.max(...s.precoPorM2PorEstado.map((e) => e.precoPorM2Medio));
   const maxEvolucao = Math.max(...s.evolucaoAcervo.map((e) => e.total), 1);
@@ -205,6 +228,24 @@ export default async function EstatisticasPage() {
           <p className="text-xs text-gray-500 mt-1">Estados cobertos</p>
         </div>
       </div>
+
+      {/* Pageviews Vercel Analytics */}
+      {(analytics.pageviews !== null || analytics.visitors !== null) && (
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-white rounded-xl shadow p-4 text-center">
+            <p className="text-3xl font-bold text-indigo-600">
+              {analytics.pageviews !== null ? fmtN(analytics.pageviews) : "—"}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Pageviews (últimos 30 dias)</p>
+          </div>
+          <div className="bg-white rounded-xl shadow p-4 text-center">
+            <p className="text-3xl font-bold text-indigo-400">
+              {analytics.visitors !== null ? fmtN(analytics.visitors) : "—"}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Visitantes únicos (últimos 30 dias)</p>
+          </div>
+        </div>
+      )}
 
       {/* Evolução do acervo */}
       {s.evolucaoAcervo.length > 0 && (
