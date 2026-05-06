@@ -14,22 +14,23 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
         import("@/components/PdfImovelDoc"),
       ]);
 
-      // Servidor converte a foto para data URL (base64 via Node.js Buffer, sem CORS)
-      let fotoDataUrl: string | undefined;
+      // Garante que a foto esteja no Cloudinary (CORS ok para @react-pdf/renderer)
+      let fotoUrl: string | undefined;
       if (imovel.fotoUrl) {
         try {
-          const b64Url = `/api/proxy-imagem-b64?url=${encodeURIComponent(imovel.fotoUrl)}`;
-          const res = await fetch(b64Url);
+          const res = await fetch(
+            `/api/proxy-imagem-b64?url=${encodeURIComponent(imovel.fotoUrl)}`
+          );
           if (res.ok) {
             const json = await res.json();
-            fotoDataUrl = json.dataUrl;
+            fotoUrl = json.cloudinaryUrl ?? undefined;
           }
         } catch {
           // sem foto no PDF
         }
       }
 
-      const imovelParaPDF = { ...imovel, fotoUrl: fotoDataUrl };
+      const imovelParaPDF = { ...imovel, fotoUrl };
 
       const { createElement } = await import("react");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
