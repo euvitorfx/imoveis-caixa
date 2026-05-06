@@ -3,10 +3,10 @@ import clientPromise from "@/lib/mongodb";
 
 export const revalidate = 3600;
 
-async function getAnalytics(): Promise<{ pageviews: number | null; visitors: number | null }> {
+async function getAnalytics(): Promise<{ visitas30d: number | null }> {
   const token     = process.env.VERCEL_API_TOKEN;
   const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return { pageviews: null, visitors: null };
+  if (!token || !projectId) return { visitas30d: null };
   try {
     const to   = new Date().toISOString().slice(0, 10);
     const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -14,15 +14,12 @@ async function getAnalytics(): Promise<{ pageviews: number | null; visitors: num
       `https://vercel.com/api/web-analytics/timeseries?projectId=${projectId}&environment=production&from=${from}&to=${to}&filter=%7B%7D`,
       { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } }
     );
-    if (!res.ok) return { pageviews: null, visitors: null };
+    if (!res.ok) return { visitas30d: null };
     const json = await res.json();
-    const rows: { total: number; devices: number }[] = json?.data?.groups?.all ?? [];
-    return {
-      pageviews: rows.reduce((s, r) => s + r.total, 0),
-      visitors:  rows.reduce((s, r) => s + r.devices, 0),
-    };
+    const rows: { total: number }[] = json?.data?.groups?.all ?? [];
+    return { visitas30d: rows.reduce((s, r) => s + r.total, 0) };
   } catch {
-    return { pageviews: null, visitors: null };
+    return { visitas30d: null };
   }
 }
 
@@ -50,15 +47,21 @@ const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov"
 
 async function getStats() {
   const client = await clientPromise;
-  const col = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
+  const db  = client.db(process.env.MONGODB_DB);
+  const col = db.collection(process.env.MONGODB_COLLECTION!);
+  const meta = db.collection("_meta");
+
+  const trinta = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [
     total, porEstado, porTipo, porModalidade,
     comDesconto30, aceitaFinanciamento,
     maisBaratoArr, maiorDescontoArr,
     precoPorM2PorEstado,
-    comDesconto50, abaixo100k, novos24h,
+    comDesconto50, abaixo100k,
+    novos30d, removidos30d, atualizados30d,
     evolucaoAcervo,
+    visitasDoc,
   ] = await Promise.all([
 
     col.countDocuments({ ativo: true }),
@@ -105,7 +108,7 @@ async function getStats() {
       { $project: { hdnImovel: 1, preco: 1, precoAval: 1, pctDesconto: 1, cidade: 1, estado: 1, tipo: 1 } },
     ]).toArray() as Promise<DestaqueStat[]>,
 
-    // Preço médio m² por estado — filtra áreas < 15m² (dados inválidos) e outliers de preço/m²
+    // Preço médio m² por estado
     col.aggregate([
       { $match: { ativo: true, areaTotal: { $gte: 15 }, preco: { $gt: 0 } } },
       { $addFields: { precoPorM2: { $divide: ["$preco", "$areaTotal"] } } },
@@ -123,8 +126,10 @@ async function getStats() {
     // Abaixo de R$ 100k
     col.countDocuments({ ativo: true, preco: { $gt: 0, $lt: 100000 } }),
 
-    // Novos nas últimas 24h
-    col.countDocuments({ dataInsercao: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }),
+    // Movimentações últimos 30 dias
+    col.countDocuments({ dataInsercao: { $gte: trinta } }),
+    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: trinta } }),
+    col.countDocuments({ ativo: true,  dataAtualizacao: { $gte: trinta }, dataInsercao: { $lt: trinta } }),
 
     // Evolução do acervo por mês
     col.aggregate([
@@ -137,18 +142,23 @@ async function getStats() {
       { $limit: 24 },
     ]).toArray() as Promise<EvolucaoItem[]>,
 
+    // Pageviews cumulativos (MongoDB)
+    meta.findOne({ key: "visitas" }),
   ]);
 
   const maisBarato    = maisBaratoArr[0]    ?? null;
   const maiorDesconto = maiorDescontoArr[0] ?? null;
+  const pageviewsTotal: number = (visitasDoc as Record<string, number> | null)?.pageviews ?? 0;
 
   return {
     total, porEstado, porTipo, porModalidade,
     comDesconto30, aceitaFinanciamento,
     maisBarato, maiorDesconto,
     precoPorM2PorEstado,
-    comDesconto50, abaixo100k, novos24h,
+    comDesconto50, abaixo100k,
+    novos30d, removidos30d, atualizados30d,
     evolucaoAcervo,
+    pageviewsTotal,
   };
 }
 
@@ -214,35 +224,57 @@ export default async function EstatisticasPage() {
       </div>
 
       {/* Cards resumo — linha 2 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
         <div className="bg-white rounded-xl shadow p-4 text-center">
           <p className="text-3xl font-bold text-blue-600">{fmtN(s.abaixo100k)}</p>
           <p className="text-xs text-gray-500 mt-1">Abaixo de R$ 100k</p>
         </div>
         <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-3xl font-bold text-purple-600">{fmtN(s.novos24h)}</p>
-          <p className="text-xs text-gray-500 mt-1">Novos nas últimas 24h</p>
-        </div>
-        <div className="bg-white rounded-xl shadow p-4 text-center">
           <p className="text-3xl font-bold text-blue-600">{s.porEstado.length}</p>
           <p className="text-xs text-gray-500 mt-1">Estados cobertos</p>
         </div>
+        <div className="bg-white rounded-xl shadow p-4 text-center">
+          <p className="text-3xl font-bold text-indigo-600">{fmtN(s.pageviewsTotal)}</p>
+          <p className="text-xs text-gray-500 mt-1">Total de páginas carregadas</p>
+        </div>
       </div>
 
-      {/* Pageviews Vercel Analytics */}
-      {(analytics.pageviews !== null || analytics.visitors !== null) && (
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow p-4 text-center">
-            <p className="text-3xl font-bold text-indigo-600">
-              {analytics.pageviews !== null ? fmtN(analytics.pageviews) : "—"}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Pageviews (últimos 30 dias)</p>
+      {/* Mini painel — Movimentações últimos 30 dias */}
+      <div className="bg-white rounded-xl shadow p-5 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-semibold text-gray-700">Movimentações do acervo</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Últimos 30 dias</p>
           </div>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-100 px-3 py-1 rounded-full">
+            30 dias
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
+            <p className="text-2xl font-bold text-green-600">+{fmtN(s.novos30d)}</p>
+            <p className="text-xs text-green-700 font-medium mt-1">Novos imóveis</p>
+            <p className="text-xs text-gray-400 mt-0.5">adicionados</p>
+          </div>
+          <div className="text-center p-3 bg-red-50 rounded-lg border border-red-100">
+            <p className="text-2xl font-bold text-red-500">-{fmtN(s.removidos30d)}</p>
+            <p className="text-xs text-red-700 font-medium mt-1">Removidos</p>
+            <p className="text-xs text-gray-400 mt-0.5">vendidos ou retirados</p>
+          </div>
+          <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-2xl font-bold text-blue-500">{fmtN(s.atualizados30d)}</p>
+            <p className="text-xs text-blue-700 font-medium mt-1">Atualizados</p>
+            <p className="text-xs text-gray-400 mt-0.5">preço ou dados</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Visitas — pageviews 30 dias (Vercel Analytics) */}
+      {analytics.visitas30d !== null && (
+        <div className="grid grid-cols-1 gap-4 mb-8">
           <div className="bg-white rounded-xl shadow p-4 text-center">
-            <p className="text-3xl font-bold text-indigo-400">
-              {analytics.visitors !== null ? fmtN(analytics.visitors) : "—"}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Visitantes únicos (últimos 30 dias)</p>
+            <p className="text-3xl font-bold text-indigo-500">{fmtN(analytics.visitas30d)}</p>
+            <p className="text-xs text-gray-500 mt-1">Visitas ao site (últimos 30 dias)</p>
           </div>
         </div>
       )}

@@ -12,19 +12,14 @@ export default function ContadorVisitas() {
   const [pageviews, setPageviews] = useState<number | null>(null);
 
   useEffect(() => {
-    // Sessões de hoje e do mês vêm do contador MongoDB (por sessão)
+    // Todos os contadores vêm do MongoDB: diário e mensal (sessões) + pageviews (cumulativo total)
     fetch("/api/visita")
       .then((r) => r.json())
       .then((d) => {
-        setDiario(d.diario  ?? 0);
-        setMensal(d.mensal  ?? 0);
+        setDiario(d.diario    ?? 0);
+        setMensal(d.mensal    ?? 0);
+        if (d.pageviews != null) setPageviews(d.pageviews);
       })
-      .catch(() => {});
-
-    // Pageviews totais vêm do Vercel Analytics (últimos 30 dias)
-    fetch("/api/analytics")
-      .then((r) => r.json())
-      .then((d) => { if (d.pageviews != null) setPageviews(d.pageviews); })
       .catch(() => {});
   }, []);
 
@@ -50,7 +45,7 @@ export default function ContadorVisitas() {
         )}
         {pageviews !== null && (
           <span>
-            📄 Páginas carregadas (30 dias):{" "}
+            📄 Total de páginas carregadas:{" "}
             <strong className="text-white">{fmtN(pageviews)}</strong>
           </span>
         )}
