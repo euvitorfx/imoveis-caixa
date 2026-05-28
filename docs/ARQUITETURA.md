@@ -75,6 +75,7 @@ enrich.py
     │   └─ Extrai: CEP, leiloeiro, FGTS, ocupação, datas de leilão
     │
     ├─ Se _inativo: ativo = false   (imóvel removido da Caixa)
+    ├─ Se fotoUrl aponta para caixa.gov.br → upload_foto() → Cloudinary CDN
     └─ Se ok: salva campos extras + enriched = true
 ```
 
@@ -210,3 +211,6 @@ Gratuito, sem limite de uso com espera de 1s entre requisições. Para ~30.000 i
 
 ### Por que MongoDB Atlas M0?
 Tier gratuito (512MB) suficiente para ~30.000 documentos com os campos do projeto. Sem custo operacional para o volume atual.
+
+### Por que Cloudinary para as fotos?
+O Vercel bloqueia requisições diretas a `venda-imoveis.caixa.gov.br` por CORS. As fotos são migradas para o Cloudinary CDN pelo `enrich.py`, resolvendo o problema tanto na exibição web quanto no PDF (que precisa de URL CORS-permitida para incluir a imagem).

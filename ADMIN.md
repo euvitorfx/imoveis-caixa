@@ -21,13 +21,13 @@ Referência rápida para as principais tarefas de administração do sistema.
 ## 1. Verificar se o site está no ar
 
 **Onde:** Navegador  
-**URL:** https://imoveis-caixa.vercel.app
+**URL:** https://www.buscaleiloescaixa.com.br
 
 Para diagnóstico técnico (conexão com banco, total de imóveis):
 ```
-https://imoveis-caixa.vercel.app/api/health
+https://www.buscaleiloescaixa.com.br/api/health
 ```
-Retorna JSON com status do MongoDB e total de imóveis. Se aparecer `"ok": true`, tudo funcionando.
+Retorna JSON com status do MongoDB e total de imóveis. Se `mongo_connection` mostrar `✓ connected`, tudo funcionando.
 
 ---
 
@@ -35,11 +35,11 @@ Retorna JSON com status do MongoDB e total de imóveis. Se aparecer `"ok": true`
 
 Toda vez que você fizer `git push`, o Vercel detecta automaticamente e faz o deploy em ~1 minuto.
 
-**Onde:** Terminal do Mac  
-**Pasta:** `/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa`
+**Onde:** Terminal (Windows)  
+**Pasta:** `C:\Users\vitor\imoveis-caixa`
 
 ```bash
-cd "/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa"
+cd C:\Users\vitor\imoveis-caixa
 
 # Verificar o que mudou
 git status
@@ -71,20 +71,20 @@ Site: https://vercel.com/euvitorfx/imoveis-caixa → aba **Deployments**
 
 Use quando quiser forçar uma atualização imediata dos imóveis sem esperar o cron automático.
 
-**Onde:** Terminal do Mac  
-**Pasta:** `/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa/scraper`
+**Onde:** Terminal (Windows)  
+**Pasta:** `C:\Users\vitor\imoveis-caixa\scraper`
 
 ```bash
-cd "/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa/scraper"
+cd C:\Users\vitor\imoveis-caixa\scraper
 
 # Atualizar todos os 27 estados (demora ~10-20 min)
-python3 run.py --headless
+python run.py --headless
 
 # Atualizar só um ou mais estados específicos (mais rápido)
-python3 run.py --headless --estados RN SP MG
+python run.py --headless --estados RN SP MG
 
 # Sem geocodificar após o scrape (mais rápido ainda)
-python3 run.py --headless --sem-geocode
+python run.py --headless --sem-geocode
 ```
 
 > **Obs:** O scraper também roda automaticamente 3x por dia via GitHub Actions:
@@ -96,23 +96,23 @@ python3 run.py --headless --sem-geocode
 
 Use para geocodificar imóveis que ainda não têm coordenadas (necessário para aparecerem no mapa).
 
-**Onde:** Terminal do Mac  
-**Pasta:** `/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa/scraper`
+**Onde:** Terminal (Windows)  
+**Pasta:** `C:\Users\vitor\imoveis-caixa\scraper`
 
 ```bash
-cd "/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa/scraper"
+cd C:\Users\vitor\imoveis-caixa\scraper
 
 # Ver quantos faltam sem rodar nada
-python3 geocode_run.py --dry-run
+python geocode_run.py --dry-run
 
 # Rodar (pode pausar com Ctrl+C e retomar depois — continua de onde parou)
-python3 geocode_run.py
+python geocode_run.py
 
 # Só estados específicos
-python3 geocode_run.py --estados RN SP
+python geocode_run.py --estados RN SP
 
 # Reprocessar imóveis que falharam antes (lat=null)
-python3 geocode_run.py --retry-falhas
+python geocode_run.py --retry-falhas
 ```
 
 > **Atenção:** A geocodificação é lenta (~1 imóvel/segundo) por respeitar o limite
@@ -192,7 +192,7 @@ git push origin main
 
 **Se também precisar atualizar os Secrets do GitHub Actions** (para o scraper automático):  
 URL: https://github.com/euvitorfx/imoveis-caixa/settings/secrets/actions  
-Secrets necessários: `MONGODB_URI`, `MONGODB_DB`, `MONGODB_COLLECTION`
+Secrets necessários: `MONGODB_URI`, `MONGODB_DB`, `MONGODB_COLLECTION`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 
 ---
 
@@ -210,13 +210,22 @@ Variáveis necessárias:
 
 Após alterar: vá em **Deployments** → clique nos 3 pontinhos do último deploy → **Redeploy**.
 
-### No GitHub Actions (scraper)
+### No GitHub Actions (scraper + enrich)
 **Onde:** https://github.com/euvitorfx/imoveis-caixa/settings/secrets/actions
 
-Mesmas 3 variáveis acima. Altere e o próximo cron já usará os novos valores.
+| Secret | Usado por |
+|---|---|
+| `MONGODB_URI` | scraper + enrich |
+| `MONGODB_DB` | scraper + enrich |
+| `MONGODB_COLLECTION` | scraper + enrich |
+| `CLOUDINARY_CLOUD_NAME` | enrich (upload de fotos) |
+| `CLOUDINARY_API_KEY` | enrich (upload de fotos) |
+| `CLOUDINARY_API_SECRET` | enrich (upload de fotos) |
+
+> ⚠️ **Atenção:** se o `MONGODB_URI` ou os secrets do Cloudinary mudarem, atualize aqui E no Vercel. São independentes.
 
 ### No scraper local
-**Arquivo:** `/Users/macbookpro/Documents/Desenvolvimento Code/imoveis-caixa/scraper/.env`  
+**Arquivo:** `C:\Users\vitor\imoveis-caixa\scraper\.env`  
 Edite com VS Code ou qualquer editor de texto.
 
 ---
@@ -257,8 +266,8 @@ Edite, faça commit e push. Conversor de horários: https://crontab.guru
 
 | O que | Onde |
 |-------|------|
-| Site ao vivo | https://imoveis-caixa.vercel.app |
-| Diagnóstico | https://imoveis-caixa.vercel.app/api/health |
+| Site ao vivo | https://www.buscaleiloescaixa.com.br |
+| Diagnóstico | https://www.buscaleiloescaixa.com.br/api/health |
 | Repositório | https://github.com/euvitorfx/imoveis-caixa |
 | Logs Actions | https://github.com/euvitorfx/imoveis-caixa/actions |
 | Deploy Vercel | https://vercel.com/euvitorfx/imoveis-caixa |
@@ -266,3 +275,4 @@ Edite, faça commit e push. Conversor de horários: https://crontab.guru
 | Tokens GitHub | https://github.com/settings/tokens |
 | Secrets Actions | https://github.com/euvitorfx/imoveis-caixa/settings/secrets/actions |
 | Env Vars Vercel | https://vercel.com/euvitorfx/imoveis-caixa/settings/environment-variables |
+| Cloudinary | https://cloudinary.com/console |

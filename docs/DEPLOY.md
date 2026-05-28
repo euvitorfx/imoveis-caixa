@@ -27,12 +27,19 @@ O projeto tem dois ambientes de deploy independentes:
 No painel do projeto → **Settings → Environment Variables**:
 
 ```
-MONGODB_URI       = mongodb+srv://...
-MONGODB_DB        = imoveis_caixa
+MONGODB_URI        = mongodb://admin:%40Acesso00@ac-jmn2ibr-shard-00-00...  (URI direta, não srv)
+MONGODB_DB         = imoveis_caixa
 MONGODB_COLLECTION = imoveis
+CLOUDINARY_CLOUD_NAME = dhh78ri31
+CLOUDINARY_API_KEY    = (ver web/.env.local)
+CLOUDINARY_API_SECRET = (ver web/.env.local)
+VERCEL_API_TOKEN      = (token da Vercel para analytics)
+VERCEL_PROJECT_ID     = prj_XpgXS1P5VDqlC7KkXxK70fwt5Ea0
 ```
 
-Marcar como ativas para: **Production**, **Preview**, **Development**.
+> ⚠️ **Importante:** usar a URI direta (`mongodb://`) e não a SRV (`mongodb+srv://`). A URI SRV com as credenciais antigas causou o site fora do ar em 28/mai/2026.
+
+Marcar como ativas para: **Production** e **Preview**.
 
 ### Deploy Automático
 
@@ -61,10 +68,15 @@ https://www.buscaleiloescaixa.com.br/api/health
 No repositório GitHub → **Settings → Secrets and variables → Actions**:
 
 ```
-MONGODB_URI        = mongodb+srv://...
-MONGODB_DB         = imoveis_caixa
-MONGODB_COLLECTION = imoveis
+MONGODB_URI           = mongodb://admin:%40Acesso00@...  (mesma URI do Vercel)
+MONGODB_DB            = imoveis_caixa
+MONGODB_COLLECTION    = imoveis
+CLOUDINARY_CLOUD_NAME = dhh78ri31
+CLOUDINARY_API_KEY    = (ver scraper/.env)
+CLOUDINARY_API_SECRET = (ver scraper/.env)
 ```
+
+> ⚠️ **Atenção:** o `enrich.yml` **exige** os secrets do Cloudinary. Sem eles o workflow falha na importação do `foto_upload.py` antes de executar qualquer linha — erro `KeyError: CLOUDINARY_CLOUD_NAME`. Isso causou 23 dias de falha silenciosa (05/mai a 28/mai/2026).
 
 ### Workflows
 
@@ -99,7 +111,8 @@ Runner:  ubuntu-22.04
 2. Visita a página de detalhe de cada um na Caixa
 3. Extrai CEP, leiloeiro, FGTS, ocupação, datas de leilão
 4. Detecta e desativa imóveis removidos da Caixa
-5. Salva campos extras no MongoDB
+5. Faz upload da foto para o Cloudinary (se ainda apontar para caixa.gov.br)
+6. Salva campos extras no MongoDB
 
 ### Ativar os Workflows
 
@@ -197,11 +210,13 @@ git push origin main
 2. Checar se há erros de build em **Deployments → último deploy → Build Logs**
 3. Erro comum: variável de ambiente ausente → adicionar em Settings → Environment Variables
 
-### Scraper falhou no GitHub Actions
+### Scraper ou Enrich falhou no GitHub Actions
 
 1. Actions → workflow → execução com ❌ → ver logs completos
 2. Erros comuns:
    - `MONGODB_URI not set` → verificar secrets
+   - `KeyError: CLOUDINARY_CLOUD_NAME` → secrets do Cloudinary ausentes no GitHub Actions (ver seção Configuração dos Secrets)
+   - `bad auth: authentication failed` → MONGODB_URI com senha errada — atualizar secret no GitHub e env var no Vercel
    - `Timeout downloading CSV` → site da Caixa instável, retry automático deve resolver
    - `playwright: browser not found` → passo de instalação falhou, rerun the workflow
 

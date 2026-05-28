@@ -49,6 +49,29 @@ Registro de sprints concluídas e planejadas para o projeto.
 
 ---
 
+## 🔥 Incidentes Resolvidos — 28/mai/2026
+
+### Incidente 1 — Site fora do ar (HTTP 500)
+**Duração:** Indeterminada (detectado em 28/mai)  
+**Causa:** `MONGODB_URI` no Vercel estava com credenciais antigas (`Iniciar123`). A senha foi trocada no MongoDB Atlas mas o env var do Vercel nunca foi atualizado.  
+**Sintoma:** `Application error: a server-side exception has occurred` em qualquer página. `/api/health` retornava `mongo_connection: ✗ ERROR: bad auth`.  
+**Resolução:** Atualizado `MONGODB_URI` no Vercel via API + redeploy forçado. Site voltou em ~2 min.  
+**Lição:** Toda troca de senha no MongoDB Atlas deve ser propagada simultaneamente para Vercel ENV e GitHub Actions Secrets.
+
+### Incidente 2 — Enriquecimento falhando há 23 dias
+**Duração:** 05/mai a 28/mai (100% das execuções com exit code 1)  
+**Causa raiz:** Commit `c02abd7` (05/mai) adicionou `from foto_upload import upload_foto` ao `enrich.py`. O `foto_upload.py` usa `os.environ["CLOUDINARY_CLOUD_NAME"]` no nível de módulo — lançava `KeyError` no GitHub Actions porque os secrets do Cloudinary nunca foram cadastrados lá.  
+**Por que não foi percebido antes:** Localmente o `.env` existia e mascarava o problema. O site continuava funcionando visualmente.  
+**Impacto:** 74,7% dos imóveis sem enriquecimento; filtros de FGTS/ocupação/leilão com cobertura < 10%; imóveis vendidos continuando visíveis; PDF sem fotos.  
+**Resolução:**
+- `foto_upload.py`: trocado `os.environ[]` por `os.environ.get()` (não quebra mais no import)
+- `enrich.yml`: adicionados `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` como env vars
+- GitHub Actions Secrets: cadastrados os 3 secrets do Cloudinary + MONGODB_URI atualizado via API
+- `enrich.yml` e `scraper.yml`: adicionado `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` (prazo GitHub: 02/jun/2026)
+- `scraper/.env` local: URI do MongoDB corrigida para a versão atual
+
+---
+
 ## 🎨 Sprint 8 — Redesign Visual (planejada)
 
 **Design escolhido:** Navy Bold  
