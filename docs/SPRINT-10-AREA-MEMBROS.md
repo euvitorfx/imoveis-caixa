@@ -95,9 +95,9 @@ O percentual evolui de forma independente para o comprador (baseado no históric
 
 | Compras concluídas pelo comprador | % sobre o valor da compra |
 |---|---|
-| 1 a 4 compras | **0,50%** |
-| 5 a 9 compras | **0,75%** |
-| 10 compras ou mais | **1,00%** |
+| 1 a 5 compras | **0,50%** |
+| 6 a 10 compras | **0,75%** |
+| 11 compras ou mais | **1,00%** |
 
 > Contabiliza apenas compras nas modalidades **Venda Online** e **Venda Direta** com checklist 100% aprovado.
 
@@ -105,9 +105,9 @@ O percentual evolui de forma independente para o comprador (baseado no históric
 
 | Vendas redirecionadas pelo site ao corretor | % sobre o valor da venda |
 |---|---|
-| 1 a 4 vendas | **0,50%** |
-| 5 a 9 vendas | **0,75%** |
-| 10 vendas ou mais | **1,00%** |
+| 1 a 5 vendas | **0,50%** |
+| 6 a 10 vendas | **0,75%** |
+| 11 vendas ou mais | **1,00%** |
 
 > Contabiliza apenas vendas concluídas (checklist aprovado) vinculadas ao corretor exclusivo indicado pelo site.
 
