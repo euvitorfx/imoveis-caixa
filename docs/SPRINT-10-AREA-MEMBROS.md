@@ -73,13 +73,75 @@ Equipe do site que modera todo o processo, valida os passos concluídos, aprova 
 
 ---
 
-## Sistema de Cashback
+## Sistema de Cashback / Comissão
 
-### Regras
-- O cashback é liberado **somente após a conclusão de todas as etapas** do processo
-- O comprador deve ter informado o código do corretor exclusivo da cidade do imóvel no momento do registro
-- O valor do cashback é definido pelo admin (% do valor do imóvel ou valor fixo)
-- O admin faz a liberação manual após validar o checklist completo
+### Modalidades elegíveis
+
+| Modalidade | Comprador | Site |
+|---|---|---|
+| **Venda Online** | ✅ Cashback progressivo | ✅ Comissão progressiva |
+| **Venda Direta** | ✅ Cashback progressivo | ✅ Comissão progressiva |
+| **1º Leilão** | ❌ Sem cashback (atendimento especial) | ✅ Taxa fixa |
+| **2º Leilão** | ❌ Sem cashback (atendimento especial) | ✅ Taxa fixa |
+| **Licitação Aberta** | ❌ Sem cashback (atendimento especial) | ✅ Taxa fixa |
+
+---
+
+### Tabela progressiva — Venda Online e Venda Direta
+
+O percentual evolui de forma independente para o comprador (baseado no histórico de compras dele) e para o site (baseado no volume de vendas gerado para aquele corretor).
+
+#### Cashback do Comprador
+
+| Compras concluídas pelo comprador | % sobre o valor da compra |
+|---|---|
+| 1 a 4 compras | **0,50%** |
+| 5 a 9 compras | **0,75%** |
+| 10 compras ou mais | **1,00%** |
+
+> Contabiliza apenas compras nas modalidades **Venda Online** e **Venda Direta** com checklist 100% aprovado.
+
+#### Comissão do Site (sobre o corretor)
+
+| Vendas redirecionadas pelo site ao corretor | % sobre o valor da venda |
+|---|---|
+| 1 a 4 vendas | **0,50%** |
+| 5 a 9 vendas | **0,75%** |
+| 10 vendas ou mais | **1,00%** |
+
+> Contabiliza apenas vendas concluídas (checklist aprovado) vinculadas ao corretor exclusivo indicado pelo site.
+
+#### Exemplo prático
+
+> Comprador com 3 compras anteriores adquire um imóvel de **R$ 300.000** por Venda Online, indicado pelo corretor que já recebeu 7 vendas do site:
+> - Cashback do comprador: 0,50% × R$ 300.000 = **R$ 1.500**
+> - Comissão do site: 0,75% × R$ 300.000 = **R$ 2.250**
+> - Total movimentado: **R$ 3.750**
+
+---
+
+### Taxa fixa — 1º Leilão, 2º Leilão e Licitação Aberta
+
+O comprador **não recebe cashback** nessas modalidades, mas tem direito a **atendimento especial** do corretor parceiro durante todo o processo.
+
+O site cobra uma **taxa fixa** que será definida conforme o valor da arrematação:
+
+| Valor da arrematação | Taxa do site |
+|---|---|
+| A definir (faixa 1) | R$ 60,00 |
+| A definir (faixa 2) | R$ 100,00 |
+
+> ⚠️ **Pendência:** definir as faixas de valor que determinam R$ 60 ou R$ 100.
+
+---
+
+### Regras gerais
+
+- Cashback liberado **somente após conclusão e aprovação de todas as etapas** do checklist
+- O comprador deve ter informado o **código do corretor exclusivo** da cidade do imóvel ao registrar a arrematação
+- O admin faz a **liberação manual** após validar o checklist completo
+- Os contadores de compras (comprador) e vendas (corretor) são **cumulativos e permanentes** — não resetam por período
+- Em caso de cancelamento ou rejeição da operação, a contagem **não é incrementada**
 
 ### Fluxo
 ```
@@ -87,13 +149,19 @@ Comprador registra arrematação + informa código do corretor
     ↓
 Admin valida o vínculo corretor ↔ cidade do imóvel
     ↓
-Processo de checklist se inicia (ambas as partes alimentam)
+Sistema identifica modalidade → define se há cashback ou taxa fixa
+    ↓
+Checklist se inicia (comprador e corretor alimentam)
     ↓
 Admin aprova etapas individualmente
     ↓
-Checklist 100% concluído + aprovado pelo admin
+Checklist 100% aprovado
     ↓
-Admin libera cashback → comprador recebe notificação
+Sistema calcula cashback (% progressivo conforme contadores)
+    ↓
+Admin libera cashback → comprador e corretor recebem notificação
+    ↓
+Contadores de compras (comprador) e vendas (corretor) são incrementados
 ```
 
 ---
@@ -261,7 +329,8 @@ PUT  /api/admin/corretores/[id]/cidades
 
 ## Pendências antes de iniciar o desenvolvimento
 
-- [ ] Definir valor/percentual do cashback
+- [x] Definir valor/percentual do cashback — ✅ definido (progressivo 0,5% → 0,75% → 1%; taxa fixa R$60–100 para leilão)
+- [ ] Definir faixas de valor para a taxa fixa de leilão (quando cobra R$60 vs R$100)
 - [ ] Definir quais etapas do checklist são obrigatórias vs. opcionais
 - [ ] Definir se haverá diferença no checklist por modalidade (leilão vs. venda direta)
 - [ ] Decidir ferramenta de autenticação (NextAuth vs. outro)
