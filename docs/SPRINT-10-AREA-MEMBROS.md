@@ -111,12 +111,49 @@ O percentual evolui de forma independente para o comprador (baseado no históric
 
 > Contabiliza apenas vendas concluídas (checklist aprovado) vinculadas ao corretor exclusivo indicado pelo site.
 
-#### Exemplo prático
+---
 
-> Comprador com 3 compras anteriores adquire um imóvel de **R$ 300.000** por Venda Online, indicado pelo corretor que já recebeu 7 vendas do site:
-> - Cashback do comprador: 0,50% × R$ 300.000 = **R$ 1.500**
-> - Comissão do site: 0,75% × R$ 300.000 = **R$ 2.250**
-> - Total movimentado: **R$ 3.750**
+### Regra de Complemento (teto de 2%)
+
+O total máximo da operação é sempre **2%** (1% comprador + 1% site).
+
+Quando o site já tiver recomendado **no mínimo 22 operações concluídas** para um mesmo corretor, ele adquire o direito ao **complemento percentual** correspondente ao saldo que o comprador ainda não conquistou pelo seu próprio marco.
+
+**Fórmula:**
+```
+Se site_recomendacoes_ao_corretor >= 22:
+    site_%  = site_marco_% + (1% − comprador_marco_%)
+    total   = comprador_marco_% + site_% = 2% (sempre)
+```
+
+> A regra de complemento é **unidirecional**: só o site herda o saldo não conquistado pelo comprador. O comprador nunca herda saldo do site.
+
+#### Por que 22?
+Para que ambos cheguem ao teto de 1% individualmente, cada um precisa de no mínimo 11 operações. 11 (comprador) + 11 (site) = **22 operações** é o ponto onde o cashback total naturalmente chegaria a 2% sem complemento. Ao usar 22 como gatilho do site, garante-se que o teto seja sempre atingido independentemente do estágio do comprador.
+
+#### Tabela de cenários
+
+| Compras do comprador | Recomendações do site ao corretor | Cashback comprador | Comissão site | Total |
+|---|---|---|---|---|
+| 4 (marco 1) | 6 (marco 2) | 0,50% | 0,75% | 1,25% |
+| 4 (marco 1) | 12 (marco 3) | 0,50% | 1,00% | 1,50% |
+| 7 (marco 2) | 12 (marco 3) | 0,75% | 1,00% | 1,75% |
+| 11 (marco 3) | 11 (marco 3) | 1,00% | 1,00% | 2,00% |
+| 4 (marco 1) | **23 (≥22, complemento)** | 0,50% | **1,50%** | **2,00%** |
+| 7 (marco 2) | **22 (≥22, complemento)** | 0,75% | **1,25%** | **2,00%** |
+| 11 (marco 3) | **22 (≥22, complemento)** | 1,00% | 1,00% | **2,00%** |
+
+#### Exemplos em valores reais (imóvel de R$ 300.000)
+
+> **Exemplo 1** — Comprador com 4 compras, site com 23 recomendações ao corretor:
+> - Cashback comprador: 0,50% × R$ 300.000 = **R$ 1.500**
+> - Comissão site: 1,50% × R$ 300.000 = **R$ 4.500**
+> - Total: **R$ 6.000** (= 2%)
+
+> **Exemplo 2** — Comprador com 7 compras, site com 8 recomendações ao corretor:
+> - Cashback comprador: 0,75% × R$ 300.000 = **R$ 2.250**
+> - Comissão site: 0,75% × R$ 300.000 = **R$ 2.250**
+> - Total: **R$ 4.500** (= 1,50%, sem complemento pois site < 22)
 
 ---
 
