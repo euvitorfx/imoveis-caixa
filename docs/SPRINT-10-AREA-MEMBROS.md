@@ -73,7 +73,12 @@ Equipe do site que modera todo o processo, valida os passos concluídos, aprova 
 
 ---
 
-## Sistema de Cashback / Comissão
+## Clube de Benefícios BLC
+> *"Receba até 1% de volta sobre o valor de sua compra."*
+
+---
+
+## Sistema de Benefícios / Comissão
 
 ### Modalidades elegíveis
 
