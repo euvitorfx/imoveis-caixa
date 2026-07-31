@@ -60,6 +60,7 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
                 "historicoPreco": {
                     "$each": [{"data": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "preco": preco}],
                     "$sort": {"data": 1},
+                    "$slice": -30,
                 }
             }
         ops.append(UpdateOne(
