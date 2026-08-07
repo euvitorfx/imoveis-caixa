@@ -35,7 +35,14 @@ export async function GET() {
   }
 }
 
+const BOT_UA = /bot|crawler|spider|slurp|scrapy|python|curl\/|wget\/|headless|prerender|phantom|selenium/i;
+
 export async function POST(req: NextRequest) {
+  const userAgent = req.headers.get("user-agent") ?? "";
+  if (BOT_UA.test(userAgent)) {
+    return NextResponse.json({ ok: true });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const novaSessao = body.novaSessao === true;
