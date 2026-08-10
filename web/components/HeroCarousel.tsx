@@ -178,7 +178,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
                 {slide.hasVideo && (
                   <div className="hidden lg:flex flex-col items-center justify-center rounded-2xl"
                     style={{
-                      width: 380, flexShrink: 0, aspectRatio: "16/9",
+                      width: 480, flexShrink: 0, aspectRatio: "16/9",
                       border: "2px dashed rgba(255,255,255,0.25)",
                       backgroundColor: "rgba(0,0,0,0.18)",
                     }}
