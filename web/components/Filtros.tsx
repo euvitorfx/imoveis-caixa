@@ -168,12 +168,12 @@ export default function Filtros() {
     router.push(pathname);
   };
 
-  const sel = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#4338CA]";
+  const sel = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0C4A6E]";
   const inp = sel;
 
   return (
     <div className="bg-white rounded-xl shadow p-4 mb-6">
-      <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#4338CA" }}>Filtros</h2>
+      <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#0C4A6E" }}>Filtros</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
 
         <MultiSelect
@@ -290,7 +290,7 @@ export default function Filtros() {
         <button
           onClick={apply}
           className="px-5 py-2 text-white rounded-lg text-sm font-bold tracking-wide transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#4338CA" }}
+          style={{ backgroundColor: "#0C4A6E" }}
         >
           Buscar
         </button>

@@ -45,7 +45,7 @@ export default function FavoritosPage() {
           <p className="text-5xl mb-4">♡</p>
           <p className="text-lg font-medium text-gray-500">Nenhum favorito ainda</p>
           <p className="text-sm mt-2">Clique no coração ♡ em qualquer imóvel para salvá-lo aqui.</p>
-          <a href="/" className="inline-block mt-6 hover:underline text-sm" style={{ color: "#4338CA" }}>
+          <a href="/" className="inline-block mt-6 hover:underline text-sm" style={{ color: "#0C4A6E" }}>
             ← Voltar à listagem
           </a>
         </div>

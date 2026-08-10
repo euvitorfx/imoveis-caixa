@@ -150,13 +150,13 @@ export default async function EstadoPage({
       {/* Cidades */}
       {data.cidades.length > 0 && (
         <div className="bg-white rounded-xl shadow p-4 mb-6">
-          <h2 className="font-semibold text-xs uppercase tracking-widest mb-3" style={{ color: "#4338CA" }}>Cidades com mais imóveis</h2>
+          <h2 className="font-semibold text-xs uppercase tracking-widest mb-3" style={{ color: "#0C4A6E" }}>Cidades com mais imóveis</h2>
           <div className="flex flex-wrap gap-2">
             {data.cidades.map((c) => (
               <a
                 key={c._id}
                 href={`/imoveis/${estado}/${slugify(c._id)}`}
-                className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-[#4338CA] text-sm px-3 py-1.5 rounded-full transition-colors"
+                className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-[#0C4A6E] text-sm px-3 py-1.5 rounded-full transition-colors"
               >
                 <span className="text-gray-700">{c._id}</span>
                 <span className="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full">{c.total}</span>
@@ -185,7 +185,7 @@ export default async function EstadoPage({
 
       {/* Link outros estados */}
       <div className="mt-10 pt-6 border-t">
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#4338CA" }}>Explorar outros estados</p>
+        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#0C4A6E" }}>Explorar outros estados</p>
         <div className="flex flex-wrap gap-2">
           {ALL_ESTADOS.filter((uf2) => uf2 !== uf).map((uf2) => (
             <a

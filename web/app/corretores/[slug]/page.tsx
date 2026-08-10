@@ -152,7 +152,7 @@ export default async function CorretorPerfilPage(
       </div>
 
       <div className="mt-4">
-        <a href="/corretores" className="text-sm hover:underline" style={{ color: "#4338CA" }}>← Ver todos os corretores</a>
+        <a href="/corretores" className="text-sm hover:underline" style={{ color: "#0C4A6E" }}>← Ver todos os corretores</a>
       </div>
     </div>
   );

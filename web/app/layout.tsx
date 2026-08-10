@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header
           className="shadow-sm"
-          style={{ backgroundColor: "#FFFFFF", borderBottom: "3px solid #4338CA" }}
+          style={{ backgroundColor: "#0C4A6E", borderBottom: "3px solid #F59E0B" }}
         >
           <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
 
@@ -70,15 +70,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
-                <nav className="text-sm text-slate-500 flex gap-4">
-                  <a href="/" className="hover:text-slate-900 transition-colors">Buscar</a>
-                  <a href="/mapa" className="hover:text-slate-900 transition-colors">Mapa</a>
-                  <a href="/estatisticas" className="hover:text-slate-900 transition-colors">Estatísticas</a>
-                  <a href="/corretores" className="hover:text-slate-900 transition-colors">Corretores</a>
-                  <a href="/ferramentas" className="hover:text-slate-900 transition-colors">Ferramentas</a>
-                  <a href="/blog" className="hover:text-slate-900 transition-colors">Blog</a>
-                  <a href="/favoritos" className="hover:text-slate-900 transition-colors flex items-center gap-1">
-                    <span style={{ color: "#4338CA" }}>♥</span> Favoritos
+                <nav className="text-sm flex gap-4" style={{ color: "rgba(255,255,255,0.75)" }}>
+                  <a href="/" className="hover:text-white transition-colors">Buscar</a>
+                  <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
+                  <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
+                  <a href="/corretores" className="hover:text-white transition-colors">Corretores</a>
+                  <a href="/ferramentas" className="hover:text-white transition-colors">Ferramentas</a>
+                  <a href="/blog" className="hover:text-white transition-colors">Blog</a>
+                  <a href="/favoritos" className="hover:text-white transition-colors flex items-center gap-1">
+                    <span style={{ color: "#F59E0B" }}>♥</span> Favoritos
                   </a>
                 </nav>
               </div>
@@ -91,14 +91,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <UltimaAtualizacao />
-              <nav className="flex w-full overflow-x-auto text-xs text-slate-500 border-t border-slate-200 pt-2 pb-1 gap-4 px-1 scrollbar-none">
-                <a href="/" className="hover:text-slate-900 transition-colors py-1 shrink-0">Buscar</a>
-                <a href="/mapa" className="hover:text-slate-900 transition-colors py-1 shrink-0">Mapa</a>
-                <a href="/estatisticas" className="hover:text-slate-900 transition-colors py-1 shrink-0">Estatísticas</a>
-                <a href="/corretores" className="hover:text-slate-900 transition-colors py-1 shrink-0">Corretores</a>
-                <a href="/ferramentas" className="hover:text-slate-900 transition-colors py-1 shrink-0">Ferramentas</a>
-                <a href="/blog" className="hover:text-slate-900 transition-colors py-1 shrink-0">Blog</a>
-                <a href="/favoritos" className="hover:text-slate-900 transition-colors py-1 shrink-0" style={{ color: "#4338CA" }}>♥</a>
+              <nav className="flex w-full overflow-x-auto text-xs border-t pt-2 pb-1 gap-4 px-1 scrollbar-none" style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.75)" }}>
+                <a href="/" className="hover:text-white transition-colors py-1 shrink-0">Buscar</a>
+                <a href="/mapa" className="hover:text-white transition-colors py-1 shrink-0">Mapa</a>
+                <a href="/estatisticas" className="hover:text-white transition-colors py-1 shrink-0">Estatísticas</a>
+                <a href="/corretores" className="hover:text-white transition-colors py-1 shrink-0">Corretores</a>
+                <a href="/ferramentas" className="hover:text-white transition-colors py-1 shrink-0">Ferramentas</a>
+                <a href="/blog" className="hover:text-white transition-colors py-1 shrink-0">Blog</a>
+                <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0" style={{ color: "#F59E0B" }}>♥</a>
               </nav>
             </div>
 
@@ -111,12 +111,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer
           className="text-center text-xs text-slate-500 py-6 mt-10"
-          style={{ backgroundColor: "#F8FAFC", borderTop: "3px solid #4338CA" }}
+          style={{ backgroundColor: "#F8FAFC", borderTop: "3px solid #F59E0B" }}
         >
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
           <p className="mt-1">
             Contato:{" "}
-            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-slate-900 transition-colors" style={{ color: "#4338CA" }}>
+            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-slate-900 transition-colors" style={{ color: "#0C4A6E" }}>
               {SITE_EMAIL}
             </a>
           </p>

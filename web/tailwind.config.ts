@@ -9,13 +9,13 @@ const config: Config = {
     extend: {
       colors: {
         night: {
-          DEFAULT: "#1E293B",
-          hover:   "#334155",
+          DEFAULT: "#0C4A6E",
+          hover:   "#0A3D5C",
         },
         coral: {
-          DEFAULT: "#4338CA",
-          dark:    "#3730A3",
-          light:   "#6366F1",
+          DEFAULT: "#F59E0B",
+          dark:    "#D97706",
+          light:   "#FBBF24",
         },
       },
     },
