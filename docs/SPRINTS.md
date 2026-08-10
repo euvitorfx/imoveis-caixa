@@ -74,22 +74,24 @@ Registro de sprints concluídas e planejadas para o projeto.
 
 ## 🎨 Sprint 8 — Redesign Visual (planejada)
 
-**Design escolhido:** Navy Bold  
-**Arquivo de referência:** `/tmp/mockups-hibridos3.html` (tema A)  
+**Design escolhido:** Escuro & Coral  
 **Status:** Aguardando início — não implementar no site atual sem aprovação
+
+> Nota: direção anterior (Navy Bold `#060d1f` + `#F7A800`) foi avaliada e **descartada** em 10/08/2026.  
+> Nova direção escolhida após comparação entre 4 opções.
 
 ### Sistema de design definido
 
 | Elemento | Valor |
 |---|---|
-| Background principal | `#060d1f` |
-| Background header/hero | `#01112c` |
-| Background cards | `#0d1930` |
-| Borda header (inferior) | `3px solid #F7A800` |
-| Cor de destaque primária | `#F7A800` (ouro Caixa) |
-| Cor de destaque secundária | `#ea580c` (laranja) |
-| Fonte | Plus Jakarta Sans (400–900) |
-| Tipografia headers | Uppercase, weight 900, letter-spacing negativo |
+| Background principal (cards/conteúdo) | `#f3f4f6` |
+| Background header e hero | `#1a1a2e` |
+| Background cards | `#ffffff` |
+| Borda inferior header/hero | `3px solid #E83A3A` |
+| Cor de destaque primária (CTA, badge desconto) | `#E83A3A` |
+| Cor de destaque secundária (hover, acento) | `#ff7043` |
+| Texto principal | `#1a1a2e` |
+| Texto secundário | `#64748b` |
 
 ### Componentes a implementar
 

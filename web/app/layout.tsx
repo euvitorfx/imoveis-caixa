@@ -56,7 +56,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MetaPixel />
         <Analytics />
 
-        <header className="text-white shadow-md" style={{ backgroundColor: "#01112c" }}>
+        <header
+          className="text-white shadow-md"
+          style={{ backgroundColor: "#1a1a2e", borderBottom: "3px solid #E83A3A" }}
+        >
           <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
 
             {/* Desktop: logo esquerda + nav/atualização direita */}
@@ -67,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
-                <nav className="text-sm text-blue-200 flex gap-4">
+                <nav className="text-sm text-white/60 flex gap-4">
                   <a href="/" className="hover:text-white transition-colors">Buscar</a>
                   <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
                   <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
@@ -75,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <a href="/ferramentas" className="hover:text-white transition-colors">Ferramentas</a>
                   <a href="/blog" className="hover:text-white transition-colors">Blog</a>
                   <a href="/favoritos" className="hover:text-white transition-colors flex items-center gap-1">
-                    <span className="text-red-400">♥</span> Favoritos
+                    <span style={{ color: "#E83A3A" }}>♥</span> Favoritos
                   </a>
                 </nav>
               </div>
@@ -88,14 +91,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "90px" }} />
               </a>
               <UltimaAtualizacao />
-              <nav className="flex w-full overflow-x-auto text-xs text-blue-200 border-t border-blue-900 pt-2 pb-1 gap-4 px-1 scrollbar-none">
+              <nav className="flex w-full overflow-x-auto text-xs text-white/60 border-t border-white/10 pt-2 pb-1 gap-4 px-1 scrollbar-none">
                 <a href="/" className="hover:text-white transition-colors py-1 shrink-0">Buscar</a>
                 <a href="/mapa" className="hover:text-white transition-colors py-1 shrink-0">Mapa</a>
                 <a href="/estatisticas" className="hover:text-white transition-colors py-1 shrink-0">Estatísticas</a>
                 <a href="/corretores" className="hover:text-white transition-colors py-1 shrink-0">Corretores</a>
                 <a href="/ferramentas" className="hover:text-white transition-colors py-1 shrink-0">Ferramentas</a>
                 <a href="/blog" className="hover:text-white transition-colors py-1 shrink-0">Blog</a>
-                <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0 text-red-400">♥</a>
+                <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0" style={{ color: "#E83A3A" }}>♥</a>
               </nav>
             </div>
 
@@ -106,11 +109,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
 
-        <footer className="text-center text-xs text-white py-6 mt-10" style={{ backgroundColor: "#01112c" }}>
-          <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
-          <p className="mt-1">
+        <footer
+          className="text-center text-xs text-white py-6 mt-10"
+          style={{ backgroundColor: "#1a1a2e", borderTop: "3px solid #E83A3A" }}
+        >
+          <p className="text-white/60">Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
+          <p className="mt-1 text-white/60">
             Contato:{" "}
-            <a href={`mailto:${SITE_EMAIL}`} className="text-blue-300 hover:text-white transition-colors">
+            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-white transition-colors" style={{ color: "#E83A3A" }}>
               {SITE_EMAIL}
             </a>
           </p>

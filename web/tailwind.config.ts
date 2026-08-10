@@ -8,13 +8,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50:  "#eff6ff",
-          100: "#dbeafe",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          900: "#1e3a5f",
+        night: {
+          DEFAULT: "#1a1a2e",
+          hover:   "#252545",
+        },
+        coral: {
+          DEFAULT: "#E83A3A",
+          dark:    "#c92d2d",
+          light:   "#ff7043",
         },
       },
     },

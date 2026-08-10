@@ -131,13 +131,25 @@ async function queryImoveis(sp: SearchParams) {
   };
 }
 
+async function getTotalImoveis(): Promise<number> {
+  try {
+    const client = await clientPromise;
+    return client
+      .db(process.env.MONGODB_DB)
+      .collection(process.env.MONGODB_COLLECTION!)
+      .countDocuments({ ativo: true });
+  } catch {
+    return 0;
+  }
+}
+
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const sp   = await searchParams;
-  const data = await queryImoveis(sp);
+  const sp = await searchParams;
+  const [data, totalImoveis] = await Promise.all([queryImoveis(sp), getTotalImoveis()]);
 
   const faqLd = {
     "@context": "https://schema.org",
@@ -171,19 +183,100 @@ export default async function HomePage({
     ],
   };
 
+  const totalFormatado = totalImoveis.toLocaleString("pt-BR");
+
   return (
     <div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Imóveis Caixa</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Leilões, vendas online e venda direta em todo o Brasil. Atualizado diariamente.
-        </p>
-      </div>
 
+      {/* ── HERO ── full-bleed via viewport trick ── */}
+      <div
+        className="-mt-6"
+        style={{
+          position: "relative",
+          left: "50%",
+          marginLeft: "-50vw",
+          width: "100vw",
+          backgroundColor: "#1a1a2e",
+          borderBottom: "3px solid #E83A3A",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <p
+            className="text-xs font-bold tracking-widest uppercase mb-3"
+            style={{ color: "#E83A3A" }}
+          >
+            {totalFormatado} imóveis disponíveis agora
+          </p>
+
+          <h1
+            className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-3 max-w-xl"
+          >
+            Imóveis da Caixa com{" "}
+            <span style={{ color: "#ff7043" }}>até 50% de desconto</span>
+          </h1>
+
+          <p className="text-sm mb-7 max-w-md" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Busque entre os imóveis da Caixa Econômica Federal em todo o Brasil.
+            Atualizado 3× ao dia.
+          </p>
+
+          <div className="flex gap-6 mb-8">
+            <div>
+              <div className="text-2xl font-black text-white">{totalFormatado}</div>
+              <div
+                className="text-xs uppercase tracking-widest mt-0.5"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                imóveis
+              </div>
+            </div>
+            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+            <div>
+              <div className="text-2xl font-black text-white">27</div>
+              <div
+                className="text-xs uppercase tracking-widest mt-0.5"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                estados
+              </div>
+            </div>
+            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+            <div>
+              <div className="text-2xl font-black text-white">{data.total.toLocaleString("pt-BR")}</div>
+              <div
+                className="text-xs uppercase tracking-widest mt-0.5"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                {data.total === totalImoveis ? "na busca" : "filtrados"}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 flex-wrap">
+            <a
+              href="#busca"
+              className="px-6 py-3 text-white text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "#E83A3A" }}
+            >
+              Buscar Imóveis →
+            </a>
+            <a
+              href="/mapa"
+              className="px-6 py-3 bg-white text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
+              style={{ color: "#1a1a2e" }}
+            >
+              Ver no Mapa
+            </a>
+          </div>
+        </div>
+      </div>
+      {/* ── /HERO ── */}
+
+      <div id="busca" className="pt-8 -mb-8" />
       <Suspense>
         <Filtros />
       </Suspense>
@@ -212,14 +305,19 @@ export default async function HomePage({
       )}
 
       {/* Explorar por estado */}
-      <div className="mt-12 pt-6 border-t">
-        <h2 className="text-base font-semibold text-gray-700 mb-3">Explorar por estado</h2>
+      <div className="mt-12 pt-6 border-t border-gray-200">
+        <h2
+          className="text-xs font-bold uppercase tracking-widest mb-3"
+          style={{ color: "#E83A3A" }}
+        >
+          Explorar por estado
+        </h2>
         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2">
           {ALL_ESTADOS.map((uf) => (
             <a
               key={uf}
               href={`/imoveis/${uf.toLowerCase()}`}
-              className="flex flex-col items-center bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg px-2 py-2 transition-colors gap-1"
+              className="flex flex-col items-center bg-white hover:bg-gray-50 border border-gray-200 hover:border-[#E83A3A] rounded-lg px-2 py-2 transition-colors gap-1"
             >
               <BandeiraEstado
                 src={ESTADO_BANDEIRAS[uf]}

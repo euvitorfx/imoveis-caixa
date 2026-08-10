@@ -34,18 +34,24 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">🏠</div>
           )}
           {descPct && descPct > 0 && (
-            <span className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+            <span
+              className="absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full"
+              style={{ backgroundColor: "#E83A3A" }}
+            >
               -{descPct}%
             </span>
           )}
-          <span className="absolute bottom-2 left-2 bg-brand-900 text-white text-xs px-2 py-1 rounded-full">
+          <span
+            className="absolute bottom-2 left-2 text-white text-xs px-2 py-1 rounded-full"
+            style={{ backgroundColor: "#1a1a2e" }}
+          >
             {imovel.modalidade || "Venda"}
           </span>
         </div>
 
         {/* Conteúdo */}
         <div className="p-3 flex flex-col gap-1 flex-1">
-          <p className="font-bold text-brand-900 text-lg leading-tight">{fmt(imovel.preco)}</p>
+          <p className="font-bold text-gray-900 text-lg leading-tight">{fmt(imovel.preco)}</p>
           {imovel.precoAval && (
             <p className="text-xs text-gray-400 line-through">{fmt(imovel.precoAval)}</p>
           )}
