@@ -178,8 +178,25 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
           ))}
         </div>
 
-        {/* Indicadores (dots pilula) */}
-        <div className="flex items-center mt-8" style={{ gap: "0.5rem" }}>
+        {/* Navegação: setas + dots + barra */}
+        <div className="flex items-center mt-8" style={{ gap: "0.75rem" }}>
+
+          {/* Seta anterior */}
+          <button
+            onClick={() => setCurrent((c) => (c + slides.length - 1) % slides.length)}
+            aria-label="Slide anterior"
+            style={{
+              width: 32, height: 32, borderRadius: 99, border: "2px solid rgba(255,255,255,0.30)",
+              backgroundColor: "transparent", color: "white", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, transition: "border-color 0.2s, background-color 0.2s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = AMBER; (e.currentTarget as HTMLButtonElement).style.color = AMBER; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.30)"; (e.currentTarget as HTMLButtonElement).style.color = "white"; }}
+          >‹</button>
+
+          {/* Dots */}
           {slides.map((_, i) => (
             <button
               key={i}
@@ -197,23 +214,37 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
               }}
             />
           ))}
-          {/* Barra de progresso discreta */}
+
+          {/* Seta próximo */}
+          <button
+            onClick={() => setCurrent((c) => (c + 1) % slides.length)}
+            aria-label="Próximo slide"
+            style={{
+              width: 32, height: 32, borderRadius: 99, border: "2px solid rgba(255,255,255,0.30)",
+              backgroundColor: "transparent", color: "white", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, transition: "border-color 0.2s, background-color 0.2s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = AMBER; (e.currentTarget as HTMLButtonElement).style.color = AMBER; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.30)"; (e.currentTarget as HTMLButtonElement).style.color = "white"; }}
+          >›</button>
+
+          {/* Barra de progresso */}
           <div
-            className="ml-3"
             style={{ height: 2, flex: 1, maxWidth: 80, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 99, overflow: "hidden" }}
           >
             <div
               key={current}
               style={{
-                height: "100%",
-                width: "100%",
-                backgroundColor: AMBER,
-                borderRadius: 99,
+                height: "100%", width: "100%",
+                backgroundColor: AMBER, borderRadius: 99,
                 transformOrigin: "left",
                 animation: paused ? "none" : "hero-progress 15s linear forwards",
               }}
             />
           </div>
+
         </div>
 
       </div>
