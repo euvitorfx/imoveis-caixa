@@ -11,11 +11,12 @@ const DIV_COLOR  = "rgba(255,255,255,0.20)";
 interface Stat  { value: string; label: string; }
 interface Cta   { href: string;  label: string; primary: boolean; }
 interface Slide {
-  eyebrow: string;
-  title:   [string, string]; // [texto comum, trecho âmbar]
-  desc:    string;
-  stats:   Stat[];
-  ctas:    Cta[];
+  eyebrow:      string;
+  eyebrowLarge?: boolean;
+  title:        [string, string]; // [texto comum, trecho âmbar]
+  desc:         string;
+  stats:        Stat[];
+  ctas:         Cta[];
 }
 
 function fmtNum(n: number) {
@@ -50,9 +51,10 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
 
     /* ── 2: cashback BLC ── */
     {
-      eyebrow: "Clube de Benefícios BLC",
-      title:   ["Comprou um imóvel? Receba ", "até 1% de volta"],
-      desc:    "Compradores que finalizam em Venda Online ou Venda Direta pelo BLC podem receber cashback sobre o valor do imóvel — grátis, sem burocracia.",
+      eyebrow:      "Clube de Benefícios BLC",
+      eyebrowLarge: true,
+      title:        ["Comprou um imóvel? Receba ", "até 1% de volta"],
+      desc:         "Compradores que finalizam em Venda Online ou Venda Direta e indicam o assessor parceiro do BLC podem receber cashback sobre o valor do imóvel — grátis, sem burocracia.",
       stats:   [
         { value: "1%",   label: "cashback"    },
         { value: "2",    label: "modalidades" },
@@ -125,7 +127,10 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
               }}
             >
               {/* Eyebrow */}
-              <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: AMBER }}>
+              <p
+                className={`${slide.eyebrowLarge ? "text-base" : "text-sm"} font-bold tracking-widest uppercase mb-3`}
+                style={{ color: AMBER }}
+              >
                 {slide.eyebrow}
               </p>
 
