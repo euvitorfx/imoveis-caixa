@@ -27,26 +27,26 @@ export default function ContadorVisitas() {
 
   return (
     <div className="mt-4">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+      <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
         Total de visitas no site
       </p>
-      <div className="flex flex-wrap justify-center gap-6 text-xs text-slate-500">
+      <div className="flex flex-wrap justify-center gap-6 text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
         {diario !== null && (
           <span>
             👁 Hoje:{" "}
-            <strong className="text-slate-700">{fmtN(diario)}</strong>
+            <strong style={{ color: "rgba(255,255,255,0.90)" }}>{fmtN(diario)}</strong>
           </span>
         )}
         {mensal !== null && (
           <span>
             📅 Este mês:{" "}
-            <strong className="text-slate-700">{fmtN(mensal)}</strong>
+            <strong style={{ color: "rgba(255,255,255,0.90)" }}>{fmtN(mensal)}</strong>
           </span>
         )}
         {pageviews !== null && (
           <span>
             📄 Total de páginas carregadas:{" "}
-            <strong className="text-slate-700">{fmtN(pageviews)}</strong>
+            <strong style={{ color: "rgba(255,255,255,0.90)" }}>{fmtN(pageviews)}</strong>
           </span>
         )}
       </div>

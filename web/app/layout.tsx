@@ -110,13 +110,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
 
         <footer
-          className="text-center text-xs text-slate-500 py-6 mt-10"
-          style={{ backgroundColor: "#F8FAFC", borderTop: "3px solid #F59E0B" }}
+          className="text-center text-xs py-6 mt-10"
+          style={{ backgroundColor: "#01304D", borderTop: "3px solid #F59E0B", color: "rgba(255,255,255,0.60)" }}
         >
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
           <p className="mt-1">
             Contato:{" "}
-            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-slate-900 transition-colors" style={{ color: "#01304D" }}>
+            <a href={`mailto:${SITE_EMAIL}`} className="hover:opacity-80 transition-opacity" style={{ color: "#F59E0B" }}>
               {SITE_EMAIL}
             </a>
           </p>
