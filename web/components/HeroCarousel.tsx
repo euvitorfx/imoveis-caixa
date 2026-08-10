@@ -95,13 +95,13 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-7 pb-3 sm:pt-9 sm:pb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         {/*
           CSS-grid stack: todos os slides ficam na mesma célula (row 1 / col 1).
           A altura do container é ditada pelo slide mais alto — sem flickering.
         */}
-        <div style={{ display: "grid" }}>
+        <div style={{ display: "grid", alignItems: "center" }}>
           {slides.map((slide, i) => (
             <div
               key={i}
