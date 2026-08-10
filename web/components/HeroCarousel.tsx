@@ -95,7 +95,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
 
         {/*
           CSS-grid stack: todos os slides ficam na mesma célula (row 1 / col 1).
@@ -120,25 +120,25 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
 
                   {/* Eyebrow */}
                   <p
-                    className={`${slide.eyebrowLarge ? "text-sm" : "text-xs"} font-bold tracking-widest uppercase mb-3`}
+                    className={`${slide.eyebrowLarge ? "text-sm" : "text-xs"} font-bold tracking-widest uppercase mb-1.5`}
                     style={{ color: AMBER }}
                   >
                     {slide.eyebrow}
                   </p>
 
                   {/* Título */}
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-4 max-w-2xl">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-2 max-w-2xl">
                     {slide.title[0]}
                     <span style={{ color: AMBER }}>{slide.title[1]}</span>
                   </h1>
 
                   {/* Descrição */}
-                  <p className="text-sm mb-7 max-w-lg" style={{ color: MUTED }}>
+                  <p className="text-sm mb-3.5 max-w-lg" style={{ color: MUTED }}>
                     {slide.desc}
                   </p>
 
                   {/* Stats */}
-                  <div className="flex items-start mb-8" style={{ gap: "1.5rem" }}>
+                  <div className="flex items-start mb-4" style={{ gap: "1.5rem" }}>
                     {slide.stats.map((stat, j) => (
                       <Fragment key={j}>
                         {j > 0 && (
@@ -206,7 +206,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
         </div>
 
         {/* Navegação: setas + dots + barra */}
-        <div className="flex items-center mt-8" style={{ gap: "0.75rem" }}>
+        <div className="flex items-center mt-4" style={{ gap: "0.75rem" }}>
 
           {/* Seta anterior */}
           <button
