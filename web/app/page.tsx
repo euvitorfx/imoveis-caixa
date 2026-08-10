@@ -234,7 +234,7 @@ export default async function HomePage({
             <a
               key={uf}
               href={`/imoveis/${uf.toLowerCase()}`}
-              className="flex flex-col items-center bg-white hover:bg-amber-50 border border-gray-200 hover:border-[#01304D] rounded-lg px-2 py-2 transition-colors gap-1"
+              className="flex flex-col items-center bg-white hover:bg-sky-50 border border-gray-200 hover:border-[#01304D] rounded-lg px-2 py-2 transition-colors gap-1"
             >
               <BandeiraEstado
                 src={ESTADO_BANDEIRAS[uf]}
