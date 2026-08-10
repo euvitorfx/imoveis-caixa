@@ -120,20 +120,20 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
 
                   {/* Eyebrow */}
                   <p
-                    className={`${slide.eyebrowLarge ? "text-base" : "text-sm"} font-bold tracking-widest uppercase mb-3`}
+                    className={`${slide.eyebrowLarge ? "text-sm" : "text-xs"} font-bold tracking-widest uppercase mb-3`}
                     style={{ color: AMBER }}
                   >
                     {slide.eyebrow}
                   </p>
 
                   {/* Título */}
-                  <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-tight mb-4 max-w-2xl">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-4 max-w-2xl">
                     {slide.title[0]}
                     <span style={{ color: AMBER }}>{slide.title[1]}</span>
                   </h1>
 
                   {/* Descrição */}
-                  <p className="text-base mb-7 max-w-lg" style={{ color: MUTED }}>
+                  <p className="text-sm mb-7 max-w-lg" style={{ color: MUTED }}>
                     {slide.desc}
                   </p>
 
@@ -145,8 +145,8 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
                           <div className="w-px self-stretch" style={{ backgroundColor: DIV_COLOR }} />
                         )}
                         <div>
-                          <div className="text-3xl font-black text-white">{stat.value}</div>
-                          <div className="text-sm uppercase tracking-widest mt-0.5" style={{ color: STAT_LABEL }}>
+                          <div className="text-2xl font-black text-white">{stat.value}</div>
+                          <div className="text-xs uppercase tracking-widest mt-0.5" style={{ color: STAT_LABEL }}>
                             {stat.label}
                           </div>
                         </div>
@@ -160,7 +160,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
                       <a
                         key={cta.href + cta.label}
                         href={cta.href}
-                        className="px-7 py-3.5 text-base font-bold rounded-lg transition-opacity hover:opacity-90"
+                        className="px-6 py-3 text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
                         style={
                           cta.primary
                             ? { backgroundColor: AMBER, color: AMBER_TEXT }
