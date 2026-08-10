@@ -7,6 +7,7 @@ import { Sort } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { ALL_ESTADOS, ESTADO_NOMES, ESTADO_BANDEIRAS } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
+import HeroCarousel from "@/components/HeroCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -183,8 +184,6 @@ export default async function HomePage({
     ],
   };
 
-  const totalFormatado = totalImoveis.toLocaleString("pt-BR");
-
   return (
     <div>
       <script
@@ -192,80 +191,7 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
 
-      {/* ── HERO ── full-bleed via viewport trick ── */}
-      <div
-        className="-mt-6"
-        style={{
-          position: "relative",
-          left: "50%",
-          marginLeft: "-50vw",
-          width: "100vw",
-          backgroundColor: "#0C4A6E",
-          borderBottom: "3px solid #F59E0B",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <p
-            className="text-xs font-bold tracking-widest uppercase mb-3"
-            style={{ color: "#F59E0B" }}
-          >
-            {totalFormatado} imóveis disponíveis agora
-          </p>
-
-          <h1
-            className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-3 max-w-xl"
-          >
-            Imóveis da Caixa com{" "}
-            <span style={{ color: "#F59E0B" }}>até 50% de desconto</span>
-          </h1>
-
-          <p className="text-sm mb-7 max-w-md" style={{ color: "rgba(255,255,255,0.7)" }}>
-            Busque entre os imóveis da Caixa Econômica Federal em todo o Brasil.
-            Atualizado 3× ao dia.
-          </p>
-
-          <div className="flex gap-6 mb-8">
-            <div>
-              <div className="text-2xl font-black text-white">{totalFormatado}</div>
-              <div className="text-xs uppercase tracking-widest mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-                imóveis
-              </div>
-            </div>
-            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-            <div>
-              <div className="text-2xl font-black text-white">27</div>
-              <div className="text-xs uppercase tracking-widest mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-                estados
-              </div>
-            </div>
-            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.2)" }} />
-            <div>
-              <div className="text-2xl font-black text-white">{data.total.toLocaleString("pt-BR")}</div>
-              <div className="text-xs uppercase tracking-widest mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-                {data.total === totalImoveis ? "na busca" : "filtrados"}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 flex-wrap">
-            <a
-              href="#busca"
-              className="px-6 py-3 text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
-            >
-              Buscar Imóveis →
-            </a>
-            <a
-              href="/mapa"
-              className="px-6 py-3 text-sm font-bold rounded-lg transition-opacity hover:opacity-90 border-2"
-              style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", backgroundColor: "transparent" }}
-            >
-              Ver no Mapa
-            </a>
-          </div>
-        </div>
-      </div>
-      {/* ── /HERO ── */}
+      <HeroCarousel totalImoveis={totalImoveis} totalBusca={data.total} />
 
       <div id="busca" className="pt-8 -mb-8" />
       <Suspense>
