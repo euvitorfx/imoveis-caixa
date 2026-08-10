@@ -20,14 +20,14 @@ const STEPS = [
   },
   {
     num: "2",
-    title: "Indique o assessor parceiro BLC",
-    desc: "Ao finalizar a compra em Venda Online ou Venda Direta, informe que você chegou pelo BLC e indique o assessor parceiro.",
+    title: "Ao preencher a proposta de compra no site da Caixa, INDIQUE O ASSESSOR PARCEIRO BLC",
+    desc: "Ao finalizar a compra em Venda Online ou Venda Direta, retorne ao nosso site, REALIZE O SEU CADASTRO e preencha o formulário de NOVA COMPRA.",
     icon: "🤝",
   },
   {
     num: "3",
     title: "Receba o cashback",
-    desc: "Após a conclusão da compra, você pode receber até 1% do valor do imóvel de volta. Grátis, sem taxa de adesão.",
+    desc: "Após a conclusão da compra, você e o assessor terão acesso a todo o checklist de tarefas que você e o assessor devem realizar até o final do registro do imóvel, após a conclusão o cashback é processado para você.",
     icon: "💰",
   },
 ];
@@ -39,9 +39,9 @@ const MODALIDADES = [
 ];
 
 const BENEFICIOS = [
-  { label: "Até 1%",   desc: "de cashback sobre o valor do imóvel" },
-  { label: "R$ 0",     desc: "sem taxa de adesão ou mensalidade"   },
-  { label: "Simples",  desc: "sem burocracia, sem formulários complexos" },
+  { label: "de 0,5% até 1%", desc: "de cashback sobre o valor do imóvel" },
+  { label: "R$ 0",           desc: "sem taxa de adesão ou mensalidade, quanto mais compras você fizer, o seu cashback aumentará, podendo chegar até 1% sobre o valor da sua compra." },
+  { label: "Simples",        desc: "Você acompanha todo o passo à passo em nosso dashboard de compra, você terá um atendimento personalizado do nosso assessor parceiro." },
 ];
 
 export default function ClubePage() {
@@ -66,7 +66,7 @@ export default function ClubePage() {
           </h1>
           <p className="text-base sm:text-lg max-w-xl mb-8" style={{ color: "rgba(255,255,255,0.70)" }}>
             O Clube BLC recompensa compradores que finalizam em Venda Online ou Venda Direta
-            e indicam o assessor parceiro. Grátis, sem burocracia.
+            indicando o assessor parceiro do site na proposta.
           </p>
           <a
             href="/#busca"
