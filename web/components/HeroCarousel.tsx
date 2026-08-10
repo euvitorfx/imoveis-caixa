@@ -88,7 +88,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
 
   useEffect(() => {
     if (paused) return;
-    const id = setInterval(advance, 6000);
+    const id = setInterval(advance, 15000);
     return () => clearInterval(id);
   }, [paused, advance]);
 
@@ -210,7 +210,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
                 backgroundColor: AMBER,
                 borderRadius: 99,
                 transformOrigin: "left",
-                animation: paused ? "none" : "hero-progress 6s linear forwards",
+                animation: paused ? "none" : "hero-progress 15s linear forwards",
               }}
             />
           </div>
