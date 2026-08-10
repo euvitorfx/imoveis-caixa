@@ -95,7 +95,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
 
         {/*
           CSS-grid stack: todos os slides ficam na mesma célula (row 1 / col 1).
