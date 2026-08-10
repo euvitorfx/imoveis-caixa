@@ -66,21 +66,6 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       ],
     },
 
-    /* ── 3: investidor / desconto ── */
-    {
-      eyebrow: "Para quem quer investir",
-      title:   ["Compre com desconto de ", "até 90% sobre a avaliação"],
-      desc:    "Filtre por desconto mínimo, use o FGTS ou financiamento pela própria Caixa. Mapa interativo e dados atualizados 3× ao dia.",
-      stats:   [
-        { value: "-90%",   label: "máx desconto" },
-        { value: "FGTS",   label: "aceito"       },
-        { value: "3×/dia", label: "atualizado"   },
-      ],
-      ctas: [
-        { href: "/?descontoMin=30&ordenar=desconto_desc", label: "Ver maiores descontos →", primary: true  },
-        { href: "/?fgts=sim",                             label: "Filtrar por FGTS",        primary: false },
-      ],
-    },
   ];
 
   const advance = useCallback(
