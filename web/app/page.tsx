@@ -200,57 +200,48 @@ export default async function HomePage({
           left: "50%",
           marginLeft: "-50vw",
           width: "100vw",
-          backgroundColor: "#1a1a2e",
-          borderBottom: "3px solid #E83A3A",
+          backgroundColor: "#EEF2FF",
+          borderBottom: "3px solid #4338CA",
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
           <p
             className="text-xs font-bold tracking-widest uppercase mb-3"
-            style={{ color: "#E83A3A" }}
+            style={{ color: "#4338CA" }}
           >
             {totalFormatado} imóveis disponíveis agora
           </p>
 
           <h1
-            className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight mb-3 max-w-xl"
+            className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-tight mb-3 max-w-xl"
           >
             Imóveis da Caixa com{" "}
-            <span style={{ color: "#ff7043" }}>até 50% de desconto</span>
+            <span style={{ color: "#4338CA" }}>até 50% de desconto</span>
           </h1>
 
-          <p className="text-sm mb-7 max-w-md" style={{ color: "rgba(255,255,255,0.5)" }}>
+          <p className="text-sm mb-7 max-w-md text-slate-500">
             Busque entre os imóveis da Caixa Econômica Federal em todo o Brasil.
             Atualizado 3× ao dia.
           </p>
 
           <div className="flex gap-6 mb-8">
             <div>
-              <div className="text-2xl font-black text-white">{totalFormatado}</div>
-              <div
-                className="text-xs uppercase tracking-widest mt-0.5"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-              >
+              <div className="text-2xl font-black text-slate-900">{totalFormatado}</div>
+              <div className="text-xs uppercase tracking-widest mt-0.5 text-slate-400">
                 imóveis
               </div>
             </div>
-            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+            <div className="w-px self-stretch bg-slate-200" />
             <div>
-              <div className="text-2xl font-black text-white">27</div>
-              <div
-                className="text-xs uppercase tracking-widest mt-0.5"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-              >
+              <div className="text-2xl font-black text-slate-900">27</div>
+              <div className="text-xs uppercase tracking-widest mt-0.5 text-slate-400">
                 estados
               </div>
             </div>
-            <div className="w-px self-stretch" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+            <div className="w-px self-stretch bg-slate-200" />
             <div>
-              <div className="text-2xl font-black text-white">{data.total.toLocaleString("pt-BR")}</div>
-              <div
-                className="text-xs uppercase tracking-widest mt-0.5"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-              >
+              <div className="text-2xl font-black text-slate-900">{data.total.toLocaleString("pt-BR")}</div>
+              <div className="text-xs uppercase tracking-widest mt-0.5 text-slate-400">
                 {data.total === totalImoveis ? "na busca" : "filtrados"}
               </div>
             </div>
@@ -260,14 +251,14 @@ export default async function HomePage({
             <a
               href="#busca"
               className="px-6 py-3 text-white text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#E83A3A" }}
+              style={{ backgroundColor: "#4338CA" }}
             >
               Buscar Imóveis →
             </a>
             <a
               href="/mapa"
-              className="px-6 py-3 bg-white text-sm font-bold rounded-lg transition-opacity hover:opacity-90"
-              style={{ color: "#1a1a2e" }}
+              className="px-6 py-3 text-sm font-bold rounded-lg transition-opacity hover:opacity-90 border-2"
+              style={{ borderColor: "#4338CA", color: "#4338CA", backgroundColor: "transparent" }}
             >
               Ver no Mapa
             </a>
@@ -308,7 +299,7 @@ export default async function HomePage({
       <div className="mt-12 pt-6 border-t border-gray-200">
         <h2
           className="text-xs font-bold uppercase tracking-widest mb-3"
-          style={{ color: "#E83A3A" }}
+          style={{ color: "#4338CA" }}
         >
           Explorar por estado
         </h2>
@@ -317,7 +308,7 @@ export default async function HomePage({
             <a
               key={uf}
               href={`/imoveis/${uf.toLowerCase()}`}
-              className="flex flex-col items-center bg-white hover:bg-gray-50 border border-gray-200 hover:border-[#E83A3A] rounded-lg px-2 py-2 transition-colors gap-1"
+              className="flex flex-col items-center bg-white hover:bg-indigo-50 border border-gray-200 hover:border-[#4338CA] rounded-lg px-2 py-2 transition-colors gap-1"
             >
               <BandeiraEstado
                 src={ESTADO_BANDEIRAS[uf]}

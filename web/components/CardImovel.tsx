@@ -36,14 +36,14 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
           {descPct && descPct > 0 && (
             <span
               className="absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full"
-              style={{ backgroundColor: "#E83A3A" }}
+              style={{ backgroundColor: "#4338CA" }}
             >
               -{descPct}%
             </span>
           )}
           <span
             className="absolute bottom-2 left-2 text-white text-xs px-2 py-1 rounded-full"
-            style={{ backgroundColor: "#1a1a2e" }}
+            style={{ backgroundColor: "#1E293B" }}
           >
             {imovel.modalidade || "Venda"}
           </span>
