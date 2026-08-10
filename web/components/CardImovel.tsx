@@ -43,7 +43,7 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
           )}
           <span
             className="absolute bottom-2 left-2 text-white text-xs px-2 py-1 rounded-full"
-            style={{ backgroundColor: "#0C4A6E" }}
+            style={{ backgroundColor: "#01304D" }}
           >
             {imovel.modalidade || "Venda"}
           </span>

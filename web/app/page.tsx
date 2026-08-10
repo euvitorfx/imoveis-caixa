@@ -225,7 +225,7 @@ export default async function HomePage({
       <div className="mt-12 pt-6 border-t border-gray-200">
         <h2
           className="text-xs font-bold uppercase tracking-widest mb-3"
-          style={{ color: "#0C4A6E" }}
+          style={{ color: "#01304D" }}
         >
           Explorar por estado
         </h2>
@@ -234,7 +234,7 @@ export default async function HomePage({
             <a
               key={uf}
               href={`/imoveis/${uf.toLowerCase()}`}
-              className="flex flex-col items-center bg-white hover:bg-amber-50 border border-gray-200 hover:border-[#0C4A6E] rounded-lg px-2 py-2 transition-colors gap-1"
+              className="flex flex-col items-center bg-white hover:bg-amber-50 border border-gray-200 hover:border-[#01304D] rounded-lg px-2 py-2 transition-colors gap-1"
             >
               <BandeiraEstado
                 src={ESTADO_BANDEIRAS[uf]}

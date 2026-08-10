@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header
           className="shadow-sm"
-          style={{ backgroundColor: "#0C4A6E", borderBottom: "3px solid #F59E0B" }}
+          style={{ backgroundColor: "#01304D", borderBottom: "3px solid #F59E0B" }}
         >
           <div className="max-w-7xl mx-auto px-4 pt-3 pb-2">
 
@@ -116,7 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <p>Dados obtidos diariamente do site oficial da Caixa Econômica Federal. Não somos afiliados à Caixa.</p>
           <p className="mt-1">
             Contato:{" "}
-            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-slate-900 transition-colors" style={{ color: "#0C4A6E" }}>
+            <a href={`mailto:${SITE_EMAIL}`} className="hover:text-slate-900 transition-colors" style={{ color: "#01304D" }}>
               {SITE_EMAIL}
             </a>
           </p>

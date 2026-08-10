@@ -153,7 +153,7 @@ export default async function CidadePage({
 
       {/* Voltar para o estado */}
       <div className="mt-8 pt-4 border-t">
-        <a href={`/imoveis/${estado}`} className="text-sm hover:underline" style={{ color: "#0C4A6E" }}>
+        <a href={`/imoveis/${estado}`} className="text-sm hover:underline" style={{ color: "#01304D" }}>
           ← Ver todos os imóveis em {nomeEstado}
         </a>
       </div>

@@ -9,7 +9,7 @@ const config: Config = {
     extend: {
       colors: {
         night: {
-          DEFAULT: "#0C4A6E",
+          DEFAULT: "#01304D",
           hover:   "#0A3D5C",
         },
         coral: {

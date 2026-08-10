@@ -149,7 +149,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <a href="/" className="hover:underline text-sm mb-4 inline-block" style={{ color: "#0C4A6E" }}>← Voltar à listagem</a>
+      <a href="/" className="hover:underline text-sm mb-4 inline-block" style={{ color: "#01304D" }}>← Voltar à listagem</a>
 
       <div className="bg-white rounded-xl shadow overflow-hidden mt-2">
         {/* Foto */}
@@ -161,7 +161,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">🏠</div>
           )}
           {descPct && descPct > 0 && (
-            <span className="absolute top-3 right-3 text-white font-bold px-3 py-1 rounded-full text-sm" style={{ backgroundColor: "#0C4A6E" }}>
+            <span className="absolute top-3 right-3 text-white font-bold px-3 py-1 rounded-full text-sm" style={{ backgroundColor: "#01304D" }}>
               -{descPct}% de desconto
             </span>
           )}
@@ -185,7 +185,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
               target="_blank"
               rel="noopener noreferrer"
               className="text-white font-medium px-5 py-2 rounded-lg transition-opacity hover:opacity-90 text-sm"
-              style={{ backgroundColor: "#0C4A6E" }}
+              style={{ backgroundColor: "#01304D" }}
             >
               Ver no site da Caixa →
             </a>
@@ -204,7 +204,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
           </div>
 
           {/* Informações */}
-          <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#0C4A6E" }}>Informações do imóvel</h2>
+          <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#01304D" }}>Informações do imóvel</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
             {info.map(([label, val]) => (
               <div key={label} className="flex justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
@@ -274,7 +274,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
           <div className="flex flex-col gap-3">
             {corretoresEstado.map((c: Corretor) => (
               <a key={c._id} href={`/corretores/${c.slug}`}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#0C4A6E] hover:bg-gray-50 transition-colors">
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#01304D] hover:bg-gray-50 transition-colors">
                 {c.foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.foto} alt={c.nome}
@@ -302,7 +302,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
                 </div>
               </a>
             ))}
-            <a href="/corretores" className="text-xs hover:underline mt-1" style={{ color: "#0C4A6E" }}>
+            <a href="/corretores" className="text-xs hover:underline mt-1" style={{ color: "#01304D" }}>
               Ver todos os corretores parceiros →
             </a>
           </div>
@@ -313,7 +313,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             </p>
             <a
               href={`mailto:${SITE_EMAIL}?subject=Indica%C3%A7%C3%A3o%20de%20corretor%20em%20${imovel.estado}&body=Ol%C3%A1%2C%20encontrei%20o%20im%C3%B3vel%20${imovel.hdnImovel}%20em%20${imovel.cidade}%2F${imovel.estado}%20e%20gostaria%20de%20indica%C3%A7%C3%A3o%20de%20corretor.`}
-              className="shrink-0 text-sm hover:underline" style={{ color: "#0C4A6E" }}>
+              className="shrink-0 text-sm hover:underline" style={{ color: "#01304D" }}>
               Solicitar indicação →
             </a>
           </div>

@@ -156,7 +156,7 @@ export default function CorretoresPage() {
       )}
 
       {/* CTA Parceria */}
-      <div className="text-white rounded-xl shadow p-6 mt-4" style={{ backgroundColor: "#0C4A6E", borderLeft: "4px solid #F59E0B" }}>
+      <div className="text-white rounded-xl shadow p-6 mt-4" style={{ backgroundColor: "#01304D", borderLeft: "4px solid #F59E0B" }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="text-3xl">🤝</div>
           <div className="flex-1">

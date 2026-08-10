@@ -25,7 +25,7 @@ function MapaContent() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "#0C4A6E" }}>Mapa de Imóveis</p>
+        <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "#01304D" }}>Mapa de Imóveis</p>
         <h1 className="text-2xl font-bold text-gray-800">Visualize os imóveis no mapa</h1>
         <p className="text-gray-500 text-sm mt-1">Use os filtros para refinar quais imóveis aparecem no mapa.</p>
       </div>

@@ -100,7 +100,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
         left:        "50%",
         marginLeft:  "-50vw",
         width:       "100vw",
-        backgroundColor: "#0C4A6E",
+        backgroundColor: "#01304D",
         borderBottom:    "3px solid #F59E0B",
       }}
       onMouseEnter={() => setPaused(true)}
