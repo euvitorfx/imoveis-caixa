@@ -166,14 +166,7 @@ Para que ambos cheguem ao teto de 1% individualmente, cada um precisa de no mín
 
 O comprador **não recebe cashback** nessas modalidades, mas tem direito a **atendimento especial** do corretor parceiro durante todo o processo.
 
-O site cobra uma **taxa fixa** que será definida conforme o valor da arrematação:
-
-| Valor da arrematação | Taxa do site |
-|---|---|
-| A definir (faixa 1) | R$ 60,00 |
-| A definir (faixa 2) | R$ 100,00 |
-
-> ⚠️ **Pendência:** definir as faixas de valor que determinam R$ 60 ou R$ 100.
+O site cobra uma **taxa fixa de R$ 85,00**, independente do valor da arrematação.
 
 ---
 
@@ -217,11 +210,28 @@ Cada operação possui um checklist com etapas divididas por responsável. Cada 
 - **Validação do admin** (aprovar ou solicitar revisão com comentário)
 - **Documentos anexados** (uploads opcionais ou obrigatórios por etapa)
 
+### Campos obrigatórios no registro da arrematação (etapa 1)
+
+O comprador deve informar obrigatoriamente ao registrar a operação:
+
+| Campo | Valores possíveis |
+|---|---|
+| **Número da proposta** | Texto livre (código fornecido pela Caixa) |
+| **Tipo de compra** | Leilão SFI / Licitação Aberta / Venda Online / Venda Direta Online |
+| **Código do corretor parceiro** | Slug do corretor exclusivo da cidade |
+| **Valor da arrematação** | Valor em R$ |
+| **Data da arrematação** | Data |
+| **Agência Caixa** | Texto livre |
+
+> Campos adicionais por etapa serão definidos durante os testes práticos.
+
+---
+
 ### Etapas — Versão Inicial
 
 | # | Responsável | Tarefa | Docs obrigatórios |
 |---|---|---|---|
-| 1 | **Comprador** | Registrar a arrematação/compra — informar valor, data, agência Caixa e código do corretor parceiro | Comprovante de arrematação ou contrato |
+| 1 | **Comprador** | Registrar a arrematação/compra — informar número da proposta, tipo de compra, valor, data, agência Caixa e código do corretor parceiro | Comprovante de arrematação ou contrato |
 | 2 | **Corretor** | Providenciar a minuta da arrematação/compra na agência Caixa informada | Minuta assinada |
 | 3 | **Comprador** | Preencher dados pessoais e fazer upload da documentação pessoal para o corretor anexar junto à minuta para envio ao cartório | RG, CPF, certidão de nascimento/casamento, comprovante de residência |
 | 4 | **Corretor** | Solicitar as guias de IPTU e encaminhar ao comprador para pagamento | Guias de IPTU |
@@ -229,12 +239,14 @@ Cada operação possui um checklist com etapas divididas por responsável. Cada 
 | 6 | **Corretor** | Solicitar a escritura no cartório | Protocolo de solicitação da escritura |
 | 7 | **Comprador** | Pagar a escritura e enviar o comprovante | Comprovante de pagamento da escritura |
 | 8 | **Corretor** | Solicitar e dar entrada no ITBI (Imposto de Transmissão de Bens Imóveis) | Protocolo de entrada do ITBI |
-| 9 | **Comprador** | Pagar dívidas de condomínio e anexar comprovante de quitação | Declaração de quitação condominial |
+| 9 | **Comprador** | Confirmar situação do condomínio — marcar "não há condomínio" ou pagar dívidas e anexar comprovante | Declaração de quitação condominial (se aplicável) |
 | 10 | **Corretor** | Dar entrada no registro do imóvel no cartório | Protocolo de registro |
 | 11 | **Comprador** | Pagar as custas do registro do imóvel | Comprovante de pagamento do registro |
 | 12 | **Admin** | *(etapa interna)* Validar conclusão total do processo e liberar cashback | — |
 
-> ⚠️ **Nota:** Este checklist é a versão inicial e será expandido. Campos, documentos obrigatórios e regras específicas por modalidade (leilão SFI, leilão judicial, venda direta) serão detalhados antes da implementação.
+> **Regra de etapas não aplicáveis (ex: etapa 9 sem condomínio):** nenhuma etapa pode ser pulada. O comprador marca "não aplicável" com justificativa e o assessor Caixa confirma. Somente com os dois confirmando a etapa é liberada como concluída.
+
+> **Checklists por modalidade:** os checklists específicos para cada tipo de compra serão mapeados durante os testes práticos com operações reais.
 
 ---
 
@@ -357,27 +369,30 @@ PUT  /api/admin/corretores/[id]/cidades
 
 ---
 
-## Decisões Técnicas a Definir
+## Decisões Técnicas
 
-| Decisão | Opções | Observação |
+| Decisão | Escolha | Observação |
 |---|---|---|
-| Autenticação | NextAuth.js / JWT próprio / Clerk | NextAuth é o mais integrado ao Next.js |
-| Sessões | JWT em cookie httpOnly / sessão no MongoDB | |
-| Upload de documentos | Cloudinary (já integrado) | Reutilizar infraestrutura existente |
-| Notificações | Resend / SendGrid / Nodemailer | |
-| Cashback — forma de pagamento | PIX manual pelo admin / integração automática | Começar com PIX manual |
+| Autenticação | **NextAuth.js** | Gratuito, open source, integrado ao Next.js 15. Clerk custa $0,02/MAU acima de 10k — inviável a escala. |
+| Sessões | JWT em cookie httpOnly | Via NextAuth — padrão seguro |
+| Upload de documentos | **Cloudinary** (já integrado) | Reutilizar infraestrutura existente |
+| Notificações | **Resend** (inicial) | 3.000 e-mails/mês gratuitos. Migrar para SendGrid quando volume exigir. |
+| Portal do corretor | **Mesmo login** | Usuário com `tipo: "corretor"` vê painel diferente após login único |
+| Cashback — pagamento | PIX manual pelo admin | Liberação manual após aprovação do checklist. Automação futura. |
+| Ordem das sprints | **Sprint 8 → Sprint 10** | Redesign primeiro para o painel de membros já nascer com o visual correto |
 
 ---
 
 ## Pendências antes de iniciar o desenvolvimento
 
-- [x] Definir valor/percentual do cashback — ✅ definido (progressivo 0,5% → 0,75% → 1%; taxa fixa R$60–100 para leilão)
-- [ ] Definir faixas de valor para a taxa fixa de leilão (quando cobra R$60 vs R$100)
-- [ ] Definir quais etapas do checklist são obrigatórias vs. opcionais
-- [ ] Definir se haverá diferença no checklist por modalidade (leilão vs. venda direta)
-- [ ] Decidir ferramenta de autenticação (NextAuth vs. outro)
-- [ ] Decidir ferramenta de e-mail transacional
-- [ ] Detalhar as etapas 1 a 11 com campos específicos de cada uma
-- [ ] Definir layout/UX do painel (integrar ao Redesign Sprint 8 ou fazer independente?)
-- [ ] Definir se corretor usa o mesmo login ou um portal separado
-- [ ] Revisar e expandir o checklist (possivelmente 15–20 etapas após revisão)
+- [x] Definir valor/percentual do cashback — progressivo 0,5% → 0,75% → 1%; leilão taxa fixa R$ 85,00
+- [x] Definir taxa fixa de leilão — **R$ 85,00 único, sem faixas por valor**
+- [x] Definir regra de etapas não aplicáveis — double check: comprador + assessor Caixa confirmam; sem pular etapas
+- [x] Decidir ferramenta de autenticação — **NextAuth.js** (gratuito; Clerk $0,02/MAU acima de 10k)
+- [x] Decidir ferramenta de e-mail transacional — **Resend** (inicial, migrar se necessário)
+- [x] Definir portal do corretor — **mesmo login**, painel diferente por `tipo`
+- [x] Definir ordem das sprints — **Sprint 8 (redesign) → Sprint 10 (membros)**
+- [x] Campos obrigatórios no registro — número da proposta + tipo de compra + corretor + valor + data + agência
+- [ ] Checklist por modalidade — mapear durante testes práticos com operações reais
+- [ ] Detalhar campos específicos de cada etapa — mapear durante testes práticos
+- [ ] Expandir checklist (possivelmente 15–20 etapas) — após primeiras operações reais

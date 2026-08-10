@@ -128,7 +128,7 @@ Registro de sprints concluídas e planejadas para o projeto.
 ## 📋 Backlog (futuras sprints)
 
 - **Sprint 9 — Alertas por e-mail**: notificar usuários quando imóvel favoritado mudar de preço ou tiver leilão próximo
-- **Sprint 10 — Área de membros**: cadastro, login, favoritos em nuvem + sistema de corretores exclusivos por cidade + acompanhamento de arrematação com cashback — ver [docs/SPRINT-10-AREA-MEMBROS.md](SPRINT-10-AREA-MEMBROS.md) para planejamento completo
+- **Sprint 10 — Área de membros**: cadastro, login, favoritos em nuvem + sistema de corretores exclusivos por cidade + acompanhamento de arrematação com cashback (Clube de Benefícios BLC) — ver [docs/SPRINT-10-AREA-MEMBROS.md](SPRINT-10-AREA-MEMBROS.md) para planejamento completo. **Decisões técnicas fechadas:** NextAuth.js, Resend, taxa fixa leilão R$85. Aguardando Sprint 8 (redesign) para iniciar.
 - **Sprint 11 — Blog/Conteúdo**: artigos sobre como comprar imóveis da Caixa, guias de leilão
 - **Sprint 12 — App mobile**: versão PWA ou React Native
 - **Sprint 13 — Análise IA por imóvel**: consulta jurídica e fiscal automatizada na página de detalhe
