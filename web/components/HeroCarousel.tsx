@@ -40,7 +40,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       stats:   [
         { value: fmtNum(totalImoveis), label: "imóveis"  },
         { value: "27",                 label: "estados"  },
-        { value: fmtNum(totalBusca),   label: "na busca" },
+        { value: "Grátis",              label: "acesso"   },
       ],
       ctas: [
         { href: "#busca", label: "Buscar Imóveis →", primary: true  },
