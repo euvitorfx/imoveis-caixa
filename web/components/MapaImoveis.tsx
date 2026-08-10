@@ -13,15 +13,17 @@ function fmt(v: number | null) {
 }
 
 export default function MapaImoveis({ imoveis }: Props) {
-  const mapRef    = useRef<HTMLDivElement>(null);
+  const mapRef      = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapObj    = useRef<any>(null);
+  const mapObj      = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const layerGroup  = useRef<any>(null);
 
+  // Inicializa o mapa uma única vez
   useEffect(() => {
     if (!mapRef.current || mapObj.current) return;
 
     import("leaflet").then((L) => {
-      // Fix missing marker icon in Next.js
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -38,10 +40,29 @@ export default function MapaImoveis({ imoveis }: Props) {
         maxZoom: 18,
       }).addTo(map);
 
+      layerGroup.current = L.layerGroup().addTo(map);
+    });
+
+    return () => {
+      if (mapObj.current) {
+        mapObj.current.remove();
+        mapObj.current = null;
+        layerGroup.current = null;
+      }
+    };
+  }, []);
+
+  // Atualiza marcadores sempre que imoveis mudar
+  useEffect(() => {
+    if (!mapObj.current || !layerGroup.current) return;
+
+    import("leaflet").then((L) => {
+      layerGroup.current.clearLayers();
+
       const withCoords = imoveis.filter((im) => im.lat && im.lng);
       withCoords.forEach((im) => {
         L.marker([im.lat!, im.lng!])
-          .addTo(map)
+          .addTo(layerGroup.current)
           .bindPopup(`
             <div style="min-width:160px">
               <strong>${fmt(im.preco)}</strong><br/>
@@ -51,22 +72,14 @@ export default function MapaImoveis({ imoveis }: Props) {
           `);
       });
 
-      // Fit bounds if we have points
       if (withCoords.length > 0) {
         const bounds = L.latLngBounds(withCoords.map((im) => [im.lat!, im.lng!]));
-        map.fitBounds(bounds, { padding: [30, 30] });
+        mapObj.current.fitBounds(bounds, { padding: [30, 30] });
       }
     });
-
-    return () => {
-      if (mapObj.current) {
-        mapObj.current.remove();
-        mapObj.current = null;
-      }
-    };
   }, [imoveis]);
 
-  // Leaflet CSS
+  // CSS do Leaflet
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "stylesheet";

@@ -15,7 +15,7 @@ function MapaContent() {
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("limit", "200");
+    params.set("limit", "2000");
     fetch(`/api/imoveis?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setImoveis(d.imoveis || []))
