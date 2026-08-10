@@ -95,7 +95,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-7 pb-3 sm:pt-9 sm:pb-4">
 
         {/*
           CSS-grid stack: todos os slides ficam na mesma célula (row 1 / col 1).
@@ -120,7 +120,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
 
                   {/* Eyebrow */}
                   <p
-                    className={`${slide.eyebrowLarge ? "text-sm" : "text-xs"} font-bold tracking-widest uppercase mb-1.5`}
+                    className={`${slide.eyebrowLarge ? "text-sm" : "text-xs"} font-bold tracking-widest uppercase mb-3`}
                     style={{ color: AMBER }}
                   >
                     {slide.eyebrow}
