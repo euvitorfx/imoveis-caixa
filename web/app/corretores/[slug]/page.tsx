@@ -125,7 +125,7 @@ export default async function CorretorPerfilPage(
           )}
           {c.email && (
             <a href={`mailto:${c.email}?subject=Interesse%20em%20imóveis%20Caixa&body=Olá%20${encodeURIComponent(c.nome)},%20te%20encontrei%20no%20Busca%20Leilões%20Caixa%20e%20gostaria%20de%20mais%20informações.`}
-              className="flex items-center gap-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium px-5 py-3 rounded-lg transition-colors border border-blue-200">
+              className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium px-5 py-3 rounded-lg transition-colors border border-gray-200">
               <span className="text-xl">✉️</span>
               <span>{c.email}</span>
             </a>
@@ -152,7 +152,7 @@ export default async function CorretorPerfilPage(
       </div>
 
       <div className="mt-4">
-        <a href="/corretores" className="text-sm text-blue-600 hover:underline">← Ver todos os corretores</a>
+        <a href="/corretores" className="text-sm hover:underline" style={{ color: "#E83A3A" }}>← Ver todos os corretores</a>
       </div>
     </div>
   );

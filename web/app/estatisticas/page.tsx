@@ -206,7 +206,7 @@ export default async function EstatisticasPage() {
       {/* Cards resumo — linha 1 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-3xl font-bold text-brand-900">{fmtN(s.total)}</p>
+          <p className="text-3xl font-bold" style={{ color: "#E83A3A" }}>{fmtN(s.total)}</p>
           <p className="text-xs text-gray-500 mt-1">Imóveis ativos</p>
         </div>
         <div className="bg-white rounded-xl shadow p-4 text-center">
@@ -292,8 +292,8 @@ export default async function EstatisticasPage() {
                 <div key={`${item._id.ano}-${item._id.mes}`}
                   className="flex flex-col items-center gap-1 flex-1 min-w-0">
                   <span className="text-xs text-gray-500 font-medium">{fmtN(item.total)}</span>
-                  <div className="w-full bg-brand-900 rounded-t transition-all"
-                    style={{ height: `${Math.max(pct, 4)}%`, minHeight: "4px" }} />
+                  <div className="w-full rounded-t transition-all"
+                    style={{ height: `${Math.max(pct, 4)}%`, minHeight: "4px", backgroundColor: "#1a1a2e" }} />
                   <span className="text-xs text-gray-400 truncate w-full text-center">{label}</span>
                 </div>
               );
@@ -311,8 +311,8 @@ export default async function EstatisticasPage() {
               <div key={t._id} className="flex items-center gap-2 text-sm">
                 <span className="w-40 truncate text-gray-600">{t._id || "—"}</span>
                 <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-brand-900 h-2 rounded-full"
-                    style={{ width: `${Math.round((t.total / s.total) * 100)}%` }} />
+                  <div className="h-2 rounded-full"
+                    style={{ width: `${Math.round((t.total / s.total) * 100)}%`, backgroundColor: "#E83A3A" }} />
                 </div>
                 <span className="w-12 text-right font-medium text-gray-700">{fmtN(t.total)}</span>
               </div>
@@ -347,12 +347,12 @@ export default async function EstatisticasPage() {
             {s.precoPorM2PorEstado.map((e) => (
               <div key={e._id} className="flex items-center gap-2 text-sm">
                 <a href={`/imoveis/${e._id.toLowerCase()}`}
-                  className="w-8 font-semibold text-brand-900 hover:underline shrink-0">
+                  className="w-8 font-semibold hover:underline shrink-0" style={{ color: "#E83A3A" }}>
                   {e._id}
                 </a>
                 <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-blue-400 h-2 rounded-full"
-                    style={{ width: `${Math.round((e.precoPorM2Medio / maxM2) * 100)}%` }} />
+                  <div className="h-2 rounded-full"
+                    style={{ width: `${Math.round((e.precoPorM2Medio / maxM2) * 100)}%`, backgroundColor: "#1a1a2e" }} />
                 </div>
                 <span className="w-28 text-right font-medium text-gray-700 shrink-0">
                   {fmtM2(e.precoPorM2Medio)}
@@ -384,8 +384,8 @@ export default async function EstatisticasPage() {
             <tbody>
               {s.porEstado.map((e) => (
                 <tr key={e._id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="py-2 font-semibold text-brand-900">
-                    <a href={`/imoveis/${e._id.toLowerCase()}`} className="hover:underline">{e._id}</a>
+                  <td className="py-2 font-semibold">
+                    <a href={`/imoveis/${e._id.toLowerCase()}`} className="hover:underline" style={{ color: "#E83A3A" }}>{e._id}</a>
                   </td>
                   <td className="py-2 text-right">{fmtN(e.total)}</td>
                   <td className="py-2 text-right">{fmt(e.precoMedio)}</td>
@@ -393,8 +393,8 @@ export default async function EstatisticasPage() {
                   <td className="py-2 text-right text-gray-500">{fmt(e.precoMax)}</td>
                   <td className="py-2 pl-4 w-32">
                     <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-brand-900 h-2 rounded-full"
-                        style={{ width: `${Math.round((e.total / maxEstado) * 100)}%` }} />
+                      <div className="h-2 rounded-full"
+                        style={{ width: `${Math.round((e.total / maxEstado) * 100)}%`, backgroundColor: "#1a1a2e" }} />
                     </div>
                   </td>
                 </tr>

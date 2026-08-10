@@ -150,13 +150,13 @@ export default async function EstadoPage({
       {/* Cidades */}
       {data.cidades.length > 0 && (
         <div className="bg-white rounded-xl shadow p-4 mb-6">
-          <h2 className="font-semibold text-gray-700 text-sm mb-3">Cidades com mais imóveis</h2>
+          <h2 className="font-semibold text-xs uppercase tracking-widest mb-3" style={{ color: "#E83A3A" }}>Cidades com mais imóveis</h2>
           <div className="flex flex-wrap gap-2">
             {data.cidades.map((c) => (
               <a
                 key={c._id}
                 href={`/imoveis/${estado}/${slugify(c._id)}`}
-                className="flex items-center gap-1.5 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 text-sm px-3 py-1.5 rounded-full transition-colors"
+                className="flex items-center gap-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-[#E83A3A] text-sm px-3 py-1.5 rounded-full transition-colors"
               >
                 <span className="text-gray-700">{c._id}</span>
                 <span className="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full">{c.total}</span>
@@ -185,13 +185,13 @@ export default async function EstadoPage({
 
       {/* Link outros estados */}
       <div className="mt-10 pt-6 border-t">
-        <p className="text-sm text-gray-500 mb-3">Explorar outros estados:</p>
+        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#E83A3A" }}>Explorar outros estados</p>
         <div className="flex flex-wrap gap-2">
           {ALL_ESTADOS.filter((uf2) => uf2 !== uf).map((uf2) => (
             <a
               key={uf2}
               href={`/imoveis/${uf2.toLowerCase()}`}
-              className="text-xs bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 px-3 py-1.5 rounded-full transition-colors"
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-full transition-colors"
             >
               {uf2}
             </a>

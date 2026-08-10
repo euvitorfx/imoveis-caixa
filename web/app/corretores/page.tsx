@@ -156,12 +156,12 @@ export default function CorretoresPage() {
       )}
 
       {/* CTA Parceria */}
-      <div className="bg-brand-900 text-white rounded-xl shadow p-6 mt-4">
+      <div className="text-white rounded-xl shadow p-6 mt-4" style={{ backgroundColor: "#1a1a2e", borderLeft: "4px solid #E83A3A" }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="text-3xl">🤝</div>
           <div className="flex-1">
             <h2 className="font-bold text-lg mb-1">Quer ser um corretor parceiro?</h2>
-            <p className="text-blue-200 text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
               Nossos parceiros são selecionados individualmente. Se você é corretor especializado
               em imóveis da Caixa e quer aparecer para milhares de compradores, entre em contato
               para conhecer as condições de parceria.
@@ -169,7 +169,8 @@ export default function CorretoresPage() {
           </div>
           <a
             href={`mailto:${SITE_EMAIL}?subject=Quero%20ser%20corretor%20parceiro&body=Olá,%20sou%20corretor%20e%20gostaria%20de%20conhecer%20as%20condições%20de%20parceria%20para%20aparecer%20no%20Busca%20Leilões%20Caixa.%0A%0ANome:%0ACRECI:%0AEstado:%0ATelefone:`}
-            className="shrink-0 bg-white text-brand-900 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-blue-50 transition-colors whitespace-nowrap">
+            className="shrink-0 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-opacity hover:opacity-90 whitespace-nowrap"
+            style={{ backgroundColor: "#E83A3A" }}>
             Entrar em contato
           </a>
         </div>

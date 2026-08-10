@@ -149,7 +149,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <a href="/" className="text-blue-600 hover:underline text-sm mb-4 inline-block">← Voltar à listagem</a>
+      <a href="/" className="hover:underline text-sm mb-4 inline-block" style={{ color: "#E83A3A" }}>← Voltar à listagem</a>
 
       <div className="bg-white rounded-xl shadow overflow-hidden mt-2">
         {/* Foto */}
@@ -161,7 +161,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">🏠</div>
           )}
           {descPct && descPct > 0 && (
-            <span className="absolute top-3 right-3 bg-green-500 text-white font-bold px-3 py-1 rounded-full text-sm">
+            <span className="absolute top-3 right-3 text-white font-bold px-3 py-1 rounded-full text-sm" style={{ backgroundColor: "#E83A3A" }}>
               -{descPct}% de desconto
             </span>
           )}
@@ -172,7 +172,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
 
           <div className="flex flex-wrap items-end gap-4 mb-4">
             <div>
-              <p className="text-3xl font-bold text-brand-900">{precoFmt}</p>
+              <p className="text-3xl font-bold text-gray-900">{precoFmt}</p>
               {imovel.precoAval && (
                 <p className="text-sm text-gray-400 line-through">Avaliação: {fmt(imovel.precoAval)}</p>
               )}
@@ -184,7 +184,8 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
               href={imovel.urlDetalhe}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm"
+              className="text-white font-medium px-5 py-2 rounded-lg transition-opacity hover:opacity-90 text-sm"
+              style={{ backgroundColor: "#E83A3A" }}
             >
               Ver no site da Caixa →
             </a>
@@ -203,7 +204,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
           </div>
 
           {/* Informações */}
-          <h2 className="font-semibold text-gray-700 mb-3">Informações do imóvel</h2>
+          <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#E83A3A" }}>Informações do imóvel</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
             {info.map(([label, val]) => (
               <div key={label} className="flex justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
@@ -273,7 +274,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
           <div className="flex flex-col gap-3">
             {corretoresEstado.map((c: Corretor) => (
               <a key={c._id} href={`/corretores/${c.slug}`}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#E83A3A] hover:bg-gray-50 transition-colors">
                 {c.foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.foto} alt={c.nome}
@@ -301,7 +302,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
                 </div>
               </a>
             ))}
-            <a href="/corretores" className="text-xs text-blue-600 hover:underline mt-1">
+            <a href="/corretores" className="text-xs hover:underline mt-1" style={{ color: "#E83A3A" }}>
               Ver todos os corretores parceiros →
             </a>
           </div>
@@ -312,7 +313,7 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             </p>
             <a
               href={`mailto:${SITE_EMAIL}?subject=Indica%C3%A7%C3%A3o%20de%20corretor%20em%20${imovel.estado}&body=Ol%C3%A1%2C%20encontrei%20o%20im%C3%B3vel%20${imovel.hdnImovel}%20em%20${imovel.cidade}%2F${imovel.estado}%20e%20gostaria%20de%20indica%C3%A7%C3%A3o%20de%20corretor.`}
-              className="shrink-0 text-sm text-blue-600 hover:underline">
+              className="shrink-0 text-sm hover:underline" style={{ color: "#E83A3A" }}>
               Solicitar indicação →
             </a>
           </div>
