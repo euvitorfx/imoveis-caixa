@@ -11,12 +11,13 @@ const DIV_COLOR  = "rgba(255,255,255,0.20)";
 interface Stat  { value: string; label: string; }
 interface Cta   { href: string;  label: string; primary: boolean; }
 interface Slide {
-  eyebrow:      string;
+  eyebrow:       string;
   eyebrowLarge?: boolean;
-  title:        [string, string]; // [texto comum, trecho âmbar]
-  desc:         string;
-  stats:        Stat[];
-  ctas:         Cta[];
+  title:         [string, string]; // [texto comum, trecho âmbar]
+  desc:          string;
+  stats:         Stat[];
+  ctas:          Cta[];
+  hasVideo?:     boolean;
 }
 
 function fmtNum(n: number) {
@@ -61,9 +62,10 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
         { value: "R$ 0", label: "sem taxa"    },
       ],
       ctas: [
-        { href: "#busca",       label: "Buscar Imóveis →", primary: true  },
-        { href: "/ferramentas", label: "Saiba mais →",     primary: false },
+        { href: "#busca", label: "Buscar Imóveis →", primary: true  },
+        { href: "/clube", label: "Saiba mais →",     primary: false },
       ],
+      hasVideo: true,
     },
 
   ];
@@ -111,58 +113,93 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
                 pointerEvents: current === i ? "auto" : "none",
               }}
             >
-              {/* Eyebrow */}
-              <p
-                className={`${slide.eyebrowLarge ? "text-base" : "text-sm"} font-bold tracking-widest uppercase mb-3`}
-                style={{ color: AMBER }}
-              >
-                {slide.eyebrow}
-              </p>
+              <div className={slide.hasVideo ? "flex items-center gap-10" : ""}>
 
-              {/* Título */}
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-tight mb-4 max-w-2xl">
-                {slide.title[0]}
-                <span style={{ color: AMBER }}>{slide.title[1]}</span>
-              </h1>
+                {/* Coluna de texto */}
+                <div className={slide.hasVideo ? "flex-1 min-w-0" : ""}>
 
-              {/* Descrição */}
-              <p className="text-base mb-7 max-w-lg" style={{ color: MUTED }}>
-                {slide.desc}
-              </p>
-
-              {/* Stats */}
-              <div className="flex items-start mb-8" style={{ gap: "1.5rem" }}>
-                {slide.stats.map((stat, j) => (
-                  <Fragment key={j}>
-                    {j > 0 && (
-                      <div className="w-px self-stretch" style={{ backgroundColor: DIV_COLOR }} />
-                    )}
-                    <div>
-                      <div className="text-3xl font-black text-white">{stat.value}</div>
-                      <div className="text-sm uppercase tracking-widest mt-0.5" style={{ color: STAT_LABEL }}>
-                        {stat.label}
-                      </div>
-                    </div>
-                  </Fragment>
-                ))}
-              </div>
-
-              {/* CTAs */}
-              <div className="flex gap-3 flex-wrap">
-                {slide.ctas.map((cta) => (
-                  <a
-                    key={cta.href + cta.label}
-                    href={cta.href}
-                    className="px-7 py-3.5 text-base font-bold rounded-lg transition-opacity hover:opacity-90"
-                    style={
-                      cta.primary
-                        ? { backgroundColor: AMBER, color: AMBER_TEXT }
-                        : { border: "2px solid rgba(255,255,255,0.4)", color: "white" }
-                    }
+                  {/* Eyebrow */}
+                  <p
+                    className={`${slide.eyebrowLarge ? "text-base" : "text-sm"} font-bold tracking-widest uppercase mb-3`}
+                    style={{ color: AMBER }}
                   >
-                    {cta.label}
-                  </a>
-                ))}
+                    {slide.eyebrow}
+                  </p>
+
+                  {/* Título */}
+                  <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-tight mb-4 max-w-2xl">
+                    {slide.title[0]}
+                    <span style={{ color: AMBER }}>{slide.title[1]}</span>
+                  </h1>
+
+                  {/* Descrição */}
+                  <p className="text-base mb-7 max-w-lg" style={{ color: MUTED }}>
+                    {slide.desc}
+                  </p>
+
+                  {/* Stats */}
+                  <div className="flex items-start mb-8" style={{ gap: "1.5rem" }}>
+                    {slide.stats.map((stat, j) => (
+                      <Fragment key={j}>
+                        {j > 0 && (
+                          <div className="w-px self-stretch" style={{ backgroundColor: DIV_COLOR }} />
+                        )}
+                        <div>
+                          <div className="text-3xl font-black text-white">{stat.value}</div>
+                          <div className="text-sm uppercase tracking-widest mt-0.5" style={{ color: STAT_LABEL }}>
+                            {stat.label}
+                          </div>
+                        </div>
+                      </Fragment>
+                    ))}
+                  </div>
+
+                  {/* CTAs */}
+                  <div className="flex gap-3 flex-wrap">
+                    {slide.ctas.map((cta) => (
+                      <a
+                        key={cta.href + cta.label}
+                        href={cta.href}
+                        className="px-7 py-3.5 text-base font-bold rounded-lg transition-opacity hover:opacity-90"
+                        style={
+                          cta.primary
+                            ? { backgroundColor: AMBER, color: AMBER_TEXT }
+                            : { border: "2px solid rgba(255,255,255,0.4)", color: "white" }
+                        }
+                      >
+                        {cta.label}
+                      </a>
+                    ))}
+                  </div>
+
+                </div>
+
+                {/* Placeholder de vídeo */}
+                {slide.hasVideo && (
+                  <div className="hidden lg:flex flex-col items-center justify-center rounded-2xl"
+                    style={{
+                      width: 380, flexShrink: 0, aspectRatio: "16/9",
+                      border: "2px dashed rgba(255,255,255,0.25)",
+                      backgroundColor: "rgba(0,0,0,0.18)",
+                    }}
+                  >
+                    <div style={{
+                      width: 56, height: 56, borderRadius: "50%",
+                      border: "2px solid rgba(255,255,255,0.35)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      marginBottom: 14,
+                    }}>
+                      <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 22, paddingLeft: 4 }}>▶</span>
+                    </div>
+                    <p style={{ color: "rgba(255,255,255,0.80)", fontWeight: 700, fontSize: 15 }}>
+                      Vídeo explicativo
+                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.40)", fontSize: 13, marginTop: 6, textAlign: "center", padding: "0 24px" }}>
+                      será carregado em breve
+                    </p>
+                  </div>
+                )}
+
               </div>
             </div>
           ))}
