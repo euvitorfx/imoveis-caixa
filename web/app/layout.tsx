@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="hidden sm:flex items-center justify-between">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "65px" }} />
+                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "80px" }} />
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
@@ -88,7 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="sm:hidden flex flex-col items-center gap-2">
               <a href="/">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "65px" }} />
+                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "80px" }} />
               </a>
               <UltimaAtualizacao />
               <nav className="flex w-full overflow-x-auto text-xs border-t pt-2 pb-1 gap-4 px-1 scrollbar-none" style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.75)" }}>
