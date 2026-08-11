@@ -70,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </a>
               <div className="flex flex-col items-end gap-2">
                 <UltimaAtualizacao />
-                <nav className="text-sm flex gap-4" style={{ color: "rgba(255,255,255,0.75)" }}>
+                <nav className="text-sm flex items-center gap-4" style={{ color: "rgba(255,255,255,0.75)" }}>
                   <a href="/" className="hover:text-white transition-colors">Buscar</a>
                   <a href="/mapa" className="hover:text-white transition-colors">Mapa</a>
                   <a href="/estatisticas" className="hover:text-white transition-colors">Estatísticas</a>
@@ -79,6 +79,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <a href="/blog" className="hover:text-white transition-colors">Blog</a>
                   <a href="/favoritos" className="hover:text-white transition-colors flex items-center gap-1">
                     <span style={{ color: "#F59E0B" }}>♥</span> Favoritos
+                  </a>
+                  <a
+                    href="/clube"
+                    className="font-bold hover:opacity-90 transition-opacity px-3 py-1 rounded-full"
+                    style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
+                  >
+                    Clube BLC
                   </a>
                 </nav>
               </div>
@@ -91,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "100px" }} />
               </a>
               <UltimaAtualizacao />
-              <nav className="flex w-full overflow-x-auto text-xs border-t pt-2 pb-1 gap-4 px-1 scrollbar-none" style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.75)" }}>
+              <nav className="flex w-full overflow-x-auto items-center text-xs border-t pt-2 pb-1 gap-4 px-1 scrollbar-none" style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.75)" }}>
                 <a href="/" className="hover:text-white transition-colors py-1 shrink-0">Buscar</a>
                 <a href="/mapa" className="hover:text-white transition-colors py-1 shrink-0">Mapa</a>
                 <a href="/estatisticas" className="hover:text-white transition-colors py-1 shrink-0">Estatísticas</a>
@@ -99,6 +106,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="/ferramentas" className="hover:text-white transition-colors py-1 shrink-0">Ferramentas</a>
                 <a href="/blog" className="hover:text-white transition-colors py-1 shrink-0">Blog</a>
                 <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0" style={{ color: "#F59E0B" }}>♥</a>
+                <a
+                  href="/clube"
+                  className="font-bold hover:opacity-90 transition-opacity px-2.5 py-0.5 rounded-full shrink-0"
+                  style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
+                >
+                  Clube BLC
+                </a>
               </nav>
             </div>
 
