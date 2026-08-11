@@ -24,6 +24,8 @@ export default function MapaImoveis({ imoveis }: Props) {
     if (!mapRef.current || mapObj.current) return;
 
     import("leaflet").then((L) => {
+      if (!mapRef.current || mapObj.current) return;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -32,7 +34,12 @@ export default function MapaImoveis({ imoveis }: Props) {
         shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      const map = L.map(mapRef.current!).setView([-15.78, -47.93], 5);
+      let map;
+      try {
+        map = L.map(mapRef.current).setView([-15.78, -47.93], 5);
+      } catch {
+        return;
+      }
       mapObj.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -41,7 +48,7 @@ export default function MapaImoveis({ imoveis }: Props) {
       }).addTo(map);
 
       layerGroup.current = L.layerGroup().addTo(map);
-    });
+    }).catch(() => {});
 
     return () => {
       if (mapObj.current) {

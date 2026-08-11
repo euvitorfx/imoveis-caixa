@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Props {
   titulo: string;
@@ -9,11 +9,18 @@ interface Props {
 }
 
 export default function BotaoCompartilhar({ titulo, preco, endereco }: Props) {
-  const [copiado, setCopiado] = useState(false);
+  const [copiado,  setCopiado]  = useState(false);
+  const [url,      setUrl]      = useState("");
+  const [waLink,   setWaLink]   = useState("https://wa.me/");
+  const [temShare, setTemShare] = useState(false);
 
-  const url     = typeof window !== "undefined" ? window.location.href : "";
-  const texto   = `🏠 ${titulo} — ${preco}\n📍 ${endereco}\n🔗 ${url}`;
-  const waLink  = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  useEffect(() => {
+    const href = window.location.href;
+    setUrl(href);
+    const texto = `🏠 ${titulo} — ${preco}\n📍 ${endereco}\n🔗 ${href}`;
+    setWaLink(`https://wa.me/?text=${encodeURIComponent(texto)}`);
+    setTemShare(!!navigator.share);
+  }, [titulo, preco, endereco]);
 
   const copiar = async () => {
     try {
@@ -21,7 +28,6 @@ export default function BotaoCompartilhar({ titulo, preco, endereco }: Props) {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     } catch {
-      // fallback para browsers antigos
       const el = document.createElement("textarea");
       el.value = url;
       document.body.appendChild(el);
@@ -76,8 +82,8 @@ export default function BotaoCompartilhar({ titulo, preco, endereco }: Props) {
         )}
       </button>
 
-      {/* Share nativo (mobile) */}
-      {typeof navigator !== "undefined" && "share" in navigator && (
+      {/* Share nativo (mobile) — só aparece após hydration */}
+      {temShare && (
         <button
           onClick={nativeShare}
           className="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"

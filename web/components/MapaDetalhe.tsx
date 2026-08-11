@@ -17,6 +17,10 @@ export default function MapaDetalhe({ lat, lng, label }: Props) {
     if (!mapRef.current || mapObj.current) return;
 
     import("leaflet").then((L) => {
+      if (!mapRef.current || mapObj.current) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((mapRef.current as any)._leaflet_id != null) return;
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -25,7 +29,12 @@ export default function MapaDetalhe({ lat, lng, label }: Props) {
         shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      const map = L.map(mapRef.current!).setView([lat, lng], 15);
+      let map;
+      try {
+        map = L.map(mapRef.current).setView([lat, lng], 15);
+      } catch {
+        return;
+      }
       mapObj.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -34,7 +43,7 @@ export default function MapaDetalhe({ lat, lng, label }: Props) {
       }).addTo(map);
 
       L.marker([lat, lng]).addTo(map).bindPopup(label).openPopup();
-    });
+    }).catch(() => {});
 
     return () => {
       if (mapObj.current) { mapObj.current.remove(); mapObj.current = null; }
