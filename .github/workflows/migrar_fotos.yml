@@ -1,19 +1,20 @@
-name: Migração de Fotos → Cloudinary
+name: Migração de Fotos → R2
 
 on:
   workflow_dispatch:
     inputs:
       estado:
-        description: "Filtrar por estado (ex: SP). Deixe vazio para todos."
+        description: "Estado a processar (ex: SP). Obrigatório para evitar timeout."
+        required: true
         default: ""
       limite:
-        description: "Máximo de imóveis a processar (0 = todos)"
+        description: "Máximo de imóveis (0 = todos do estado)"
         default: "0"
 
 jobs:
   migrar:
     runs-on: ubuntu-22.04
-    timeout-minutes: 360   # 6h — ~24k fotos a 0.5s/req ≈ 3.5h
+    timeout-minutes: 300   # 5h por estado — mais que suficiente para qualquer UF
 
     steps:
       - name: Checkout
@@ -37,12 +38,14 @@ jobs:
       - name: Run migration
         working-directory: scraper
         env:
-          MONGODB_URI:            ${{ secrets.MONGODB_URI }}
-          MONGODB_DB:             ${{ secrets.MONGODB_DB }}
-          MONGODB_COLLECTION:     ${{ secrets.MONGODB_COLLECTION }}
-          CLOUDINARY_CLOUD_NAME:  ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY:     ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET:  ${{ secrets.CLOUDINARY_API_SECRET }}
+          MONGODB_URI:        ${{ secrets.MONGODB_URI }}
+          MONGODB_DB:         ${{ secrets.MONGODB_DB }}
+          MONGODB_COLLECTION: ${{ secrets.MONGODB_COLLECTION }}
+          R2_ACCOUNT_ID:      ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:   ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME:     ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_URL:      ${{ secrets.R2_PUBLIC_URL }}
         run: |
           ARGS=""
           if [ -n "${{ github.event.inputs.estado }}" ]; then

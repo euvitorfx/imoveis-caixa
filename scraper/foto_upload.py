@@ -1,26 +1,18 @@
 """
-Upload de fotos de imóveis para o Cloudinary.
-Baixa a imagem localmente com requests (para contornar CORS da Caixa)
-e envia os bytes ao Cloudinary.
-Retorna a URL segura do Cloudinary ou None em caso de falha.
+Upload de fotos de imóveis para o Cloudflare R2.
+Baixa a imagem da Caixa com requests e envia ao R2 via API S3-compatível.
+Retorna a URL pública do R2 ou None em caso de falha.
 """
 
 import os
 import io
 from typing import Optional
 import requests
-import cloudinary
-import cloudinary.uploader
+import boto3
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
 load_dotenv()
-
-cloudinary.config(
-    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
-    api_key=os.environ.get("CLOUDINARY_API_KEY", ""),
-    api_secret=os.environ.get("CLOUDINARY_API_SECRET", ""),
-    secure=True,
-)
 
 _HEADERS = {
     "User-Agent": (
@@ -31,25 +23,55 @@ _HEADERS = {
 }
 
 
+def _s3_client():
+    account_id = os.environ["R2_ACCOUNT_ID"]
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+        aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+        region_name="auto",
+    )
+
+
 def upload_foto(hdn_imovel: str, foto_url: str) -> Optional[str]:
     """
-    Baixa a foto da Caixa e faz upload para o Cloudinary.
-    O public_id é baseado no hdnImovel (idempotente — não reprocessa se já existe).
+    Faz upload da foto para o R2.
+    Idempotente: se a foto já existe no R2, retorna a URL sem re-upload.
     """
+    bucket     = os.environ["R2_BUCKET_NAME"]
+    public_url = os.environ["R2_PUBLIC_URL"].rstrip("/")
+    key        = f"imoveis-caixa/{hdn_imovel}"
+    s3         = _s3_client()
+
+    # Verifica se já existe — evita re-upload desnecessário
     try:
-        # Baixa a imagem com headers que a Caixa aceita
+        s3.head_object(Bucket=bucket, Key=key)
+        return f"{public_url}/{key}"
+    except ClientError as e:
+        if e.response["Error"]["Code"] not in ("404", "NoSuchKey"):
+            print(f"    [r2] erro ao checar {hdn_imovel}: {e}")
+            return None
+
+    # Baixa da Caixa
+    try:
         resp = requests.get(foto_url, headers=_HEADERS, timeout=20)
         if not resp.ok or not resp.content:
             return None
-
-        result = cloudinary.uploader.upload(
-            io.BytesIO(resp.content),
-            public_id=f"imoveis-caixa/{hdn_imovel}",
-            overwrite=False,
-            resource_type="image",
-            timeout=30,
-        )
-        return result.get("secure_url")
     except Exception as e:
-        print(f"    [cloudinary] erro ao fazer upload de {hdn_imovel}: {e}")
+        print(f"    [r2] erro ao baixar {hdn_imovel}: {e}")
+        return None
+
+    # Faz upload para o R2
+    try:
+        content_type = resp.headers.get("content-type", "image/jpeg").split(";")[0]
+        s3.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=resp.content,
+            ContentType=content_type,
+        )
+        return f"{public_url}/{key}"
+    except Exception as e:
+        print(f"    [r2] erro ao fazer upload de {hdn_imovel}: {e}")
         return None
