@@ -65,6 +65,21 @@ async function getImovel(id: string): Promise<Imovel | null> {
   }
 }
 
+async function getMediaPrecoPorM2(estado: string, tipo?: string): Promise<number | null> {
+  try {
+    const client = await clientPromise;
+    const col    = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
+    const result = await col.aggregate([
+      { $match: { ativo: true, estado, ...(tipo ? { tipo } : {}), preco: { $gt: 0 }, areaTotal: { $gt: 0 } } },
+      { $project: { _id: 0, ppm2: { $divide: ["$preco", "$areaTotal"] } } },
+      { $group: { _id: null, media: { $avg: "$ppm2" } } },
+    ]).toArray();
+    return result[0]?.media ? Math.round(result[0].media) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function getImovelSimilares(imovel: Imovel): Promise<SimilarImovel[]> {
   if (!imovel.preco || !imovel.cidade) return [];
   try {
@@ -144,7 +159,12 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
   ]);
   if (!imovel) notFound();
 
-  const similares = await getImovelSimilares(imovel);
+  const [similares, mediaEstadoM2] = await Promise.all([
+    getImovelSimilares(imovel),
+    (imovel.preco && imovel.areaTotal && imovel.areaTotal > 0)
+      ? getMediaPrecoPorM2(imovel.estado, imovel.tipo)
+      : Promise.resolve(null),
+  ]);
 
   const corretoresEstado = todosCorretores
     .filter((c) => c.estado === imovel.estado)
@@ -160,6 +180,10 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
 
   const precoPorM2 = imovel.areaTotal && imovel.preco && imovel.areaTotal > 0
     ? Math.round(imovel.preco / imovel.areaTotal)
+    : null;
+
+  const diffPct = precoPorM2 && mediaEstadoM2
+    ? Math.round((precoPorM2 - mediaEstadoM2) / mediaEstadoM2 * 100)
     : null;
 
   const leilaoFuturo = imovel.dataLeilao1Date
@@ -339,6 +363,45 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
               {imovel.vagas      && <Chip icon="🚗" label={`${imovel.vagas} ${imovel.vagas === 1 ? "vaga" : "vagas"}`} />}
               {imovel.modalidade && <Chip icon="🏢" label={imovel.modalidade} />}
               {precoPorM2        && <Chip icon="📍" label={`R$ ${precoPorM2.toLocaleString("pt-BR")}/m²`} />}
+            </div>
+          )}
+
+          {/* Comparação preço/m² vs média do estado */}
+          {precoPorM2 && mediaEstadoM2 && diffPct !== null && (
+            <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                  Preço/m² vs. média de {imovel.tipo ? `${imovel.tipo}s` : "imóveis"} em {imovel.estado}
+                </p>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-gray-800">
+                    R$&nbsp;{precoPorM2.toLocaleString("pt-BR")}/m²
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    diffPct <= 0
+                      ? "bg-green-50 text-green-700"
+                      : "bg-red-50 text-red-600"
+                  }`}>
+                    {diffPct <= 0
+                      ? `${Math.abs(diffPct)}% abaixo da média`
+                      : `${diffPct}% acima da média`}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    (média: R$&nbsp;{mediaEstadoM2.toLocaleString("pt-BR")}/m²)
+                  </span>
+                </div>
+              </div>
+              {/* Mini barra de posição */}
+              <div className="hidden sm:flex flex-col items-center gap-1 shrink-0 w-24">
+                <div className="w-full h-1.5 bg-gray-200 rounded-full relative">
+                  <div
+                    className={`absolute top-0 h-1.5 rounded-full ${diffPct <= 0 ? "bg-green-500" : "bg-red-400"}`}
+                    style={{ width: `${Math.min(100, Math.max(5, 50 + diffPct / 2))}%` }}
+                  />
+                  <div className="absolute top-0 left-1/2 w-px h-1.5 bg-gray-400 -translate-x-1/2" />
+                </div>
+                <span className="text-[10px] text-gray-400 text-center leading-tight">média</span>
+              </div>
             </div>
           )}
 
