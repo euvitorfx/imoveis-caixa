@@ -23,7 +23,7 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
           );
           if (res.ok) {
             const json = await res.json();
-            fotoUrl = json.cloudinaryUrl ?? undefined;
+            fotoUrl = json.cloudinaryUrl ?? json.base64 ?? undefined;
           }
         } catch {
           // sem foto no PDF
