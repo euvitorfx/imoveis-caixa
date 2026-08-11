@@ -14,16 +14,22 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
         import("@/components/PdfImovelDoc"),
       ]);
 
-      // Garante que a foto esteja no Cloudinary (CORS ok para @react-pdf/renderer)
+      // Busca a imagem via proxy same-origin e converte para base64 no browser
+      // (evita CORS: react-pdf usa fetch() internamente, que bloqueia URLs cross-origin)
       let fotoUrl: string | undefined;
       if (imovel.fotoUrl) {
         try {
           const res = await fetch(
-            `/api/proxy-imagem-b64?url=${encodeURIComponent(imovel.fotoUrl)}`
+            `/api/proxy-imagem?url=${encodeURIComponent(imovel.fotoUrl)}`
           );
           if (res.ok) {
-            const json = await res.json();
-            fotoUrl = json.cloudinaryUrl ?? json.base64 ?? undefined;
+            const blob = await res.blob();
+            fotoUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload  = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
           }
         } catch {
           // sem foto no PDF
