@@ -10,7 +10,7 @@ async function getUserData(id: string) {
     .collection("users")
     .findOne(
       { _id: new ObjectId(id) },
-      { projection: { name: 1, email: 1, plano: 1, criadoEm: 1, favoritos: 1 } }
+      { projection: { name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, favoritos: 1 } }
     );
 }
 
@@ -46,6 +46,9 @@ export default async function PerfilPage() {
           <div>
             <p className="font-semibold text-gray-800 text-lg">{user?.name ?? session.user.name}</p>
             <p className="text-sm text-gray-500">{user?.email ?? session.user.email}</p>
+            {user?.telefone && (
+              <p className="text-sm text-gray-400 mt-0.5">{user.telefone}</p>
+            )}
           </div>
         </div>
 

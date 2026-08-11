@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
-  const { nome, email, senha } = await req.json();
+  const { nome, email, telefone, senha } = await req.json();
 
   if (!nome || !email || !senha) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     email: email.toLowerCase(),
     emailVerified: null,
     senhaHash,
+    telefone: telefone ?? null,
     plano: "gratuito",
     favoritos: [],
     criadoEm: new Date(),

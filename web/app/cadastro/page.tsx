@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 export default function CadastroPage() {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState<string | undefined>();
   const [senha, setSenha] = useState("");
   const [confirma, setConfirma] = useState("");
   const [erro, setErro] = useState("");
@@ -17,6 +20,10 @@ export default function CadastroPage() {
     e.preventDefault();
     setErro("");
 
+    if (telefone && !isValidPhoneNumber(telefone)) {
+      setErro("Número de telefone inválido.");
+      return;
+    }
     if (senha !== confirma) {
       setErro("As senhas não coincidem.");
       return;
@@ -30,7 +37,7 @@ export default function CadastroPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, senha }),
+      body: JSON.stringify({ nome, email, telefone, senha }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -39,7 +46,6 @@ export default function CadastroPage() {
       return;
     }
 
-    // Login automático após cadastro
     const loginRes = await signIn("credentials", {
       email,
       password: senha,
@@ -105,6 +111,7 @@ export default function CadastroPage() {
                 placeholder="Seu nome"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
               <input
@@ -116,6 +123,22 @@ export default function CadastroPage() {
                 placeholder="seu@email.com"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                WhatsApp / Telefone
+                <span className="text-gray-400 font-normal ml-1">(opcional)</span>
+              </label>
+              <PhoneInput
+                international
+                defaultCountry="BR"
+                value={telefone}
+                onChange={setTelefone}
+                className="phone-input-wrapper"
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
               <input
@@ -127,6 +150,7 @@ export default function CadastroPage() {
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar senha</label>
               <input

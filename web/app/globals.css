@@ -6,6 +6,57 @@ body {
   overflow-x: hidden;
 }
 
+/* react-phone-number-input */
+.phone-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.phone-input-wrapper:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 2px #fbbf24;
+  border-color: #fbbf24;
+}
+.phone-input-wrapper .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  height: 100%;
+  gap: 0.375rem;
+}
+.phone-input-wrapper .PhoneInputCountrySelect {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  padding: 0;
+  max-width: 2rem;
+}
+.phone-input-wrapper .PhoneInputCountryIconImg {
+  width: 1.25rem;
+  height: auto;
+}
+.phone-input-wrapper .PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #111827;
+  background: transparent;
+}
+.phone-input-wrapper .PhoneInputInput::placeholder {
+  color: #9ca3af;
+}
+
 /* Leaflet overrides */
 .leaflet-container {
   height: 100%;

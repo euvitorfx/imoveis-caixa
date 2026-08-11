@@ -20,6 +20,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-leaflet": "^4.2.1",
+    "react-phone-number-input": "^3.4.17",
     "recharts": "^3.8.1"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-phone-number-input": "^3.0.17",
     "autoprefixer": "^10",
     "eslint": "^8",
     "eslint-config-next": "^15.3.2",
