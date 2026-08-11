@@ -56,8 +56,9 @@ async function getData(uf: string, cidadeReal: string, page: number) {
         _id: 1, hdnImovel: 1, estado: 1, cidade: 1, bairro: 1,
         endereco: 1, preco: 1, precoAval: 1, desconto: 1,
         modalidade: 1, financiamento: 1, tipo: 1,
-        areaTotal: 1, areaUtil: 1, quartos: 1, vagas: 1,
-        fotoUrl: 1, urlDetalhe: 1,
+        areaTotal: 1, areaUtil: 1, quartos: 1, vagas: 1, suites: 1,
+        fotoUrl: 1, urlDetalhe: 1, dataLeilao1: 1,
+        fgts: 1, ocupacao: 1,
       }).toArray(),
 
     col.countDocuments(filter),
