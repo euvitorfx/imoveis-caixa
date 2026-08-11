@@ -117,7 +117,8 @@ export async function generateMetadata(
   const preco   = imovel.preco
     ? imovel.preco.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })
     : null;
-  const desc    = [
+  // Usa descrição IA se disponível (mais rica para SEO); fallback estruturado
+  const descFallback = [
     titulo,
     preco ? `por ${preco}` : null,
     imovel.modalidade || null,
@@ -125,6 +126,13 @@ export async function generateMetadata(
     imovel.quartos   ? `${imovel.quartos} quartos` : null,
     `Imóvel da Caixa Econômica Federal.`,
   ].filter(Boolean).join(" · ");
+
+  const descIA      = imovel.descricao
+    ? imovel.descricao.split("\n\n")[0].trim()
+    : null;
+  const desc        = descIA
+    ? (descIA.length > 155 ? descIA.slice(0, 152) + "…" : descIA)
+    : descFallback;
 
   const pageUrl = `${SITE_URL}/imovel/${imovel.hdnImovel}`;
   const image   = imovel.fotoUrl ?? `${SITE_URL}/logo.png`;
@@ -223,12 +231,14 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
     "@context": "https://schema.org",
     "@type": "RealEstateListing",
     name: titulo,
-    description: [
-      imovel.tipo, imovel.modalidade,
-      imovel.areaTotal ? `${imovel.areaTotal}m²` : null,
-      imovel.quartos   ? `${imovel.quartos} quartos` : null,
-      "Imóvel da Caixa Econômica Federal",
-    ].filter(Boolean).join(" · "),
+    description: imovel.descricao
+      ? imovel.descricao.split("\n\n")[0].trim()
+      : [
+          imovel.tipo, imovel.modalidade,
+          imovel.areaTotal ? `${imovel.areaTotal}m²` : null,
+          imovel.quartos   ? `${imovel.quartos} quartos` : null,
+          "Imóvel da Caixa Econômica Federal",
+        ].filter(Boolean).join(" · "),
     url:   `${SITE_URL}/imovel/${imovel.hdnImovel}`,
     image: imovel.fotoUrl ?? `${SITE_URL}/logo.png`,
     offers: {
