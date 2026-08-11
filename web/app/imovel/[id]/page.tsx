@@ -7,10 +7,48 @@ import DetalheClient from "@/components/DetalheClient";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import { getCorretoresAprovados, Corretor } from "@/lib/corretores";
 
-function fmt(v: number | null) {
+function fmt(v: number | null | undefined) {
   if (v == null) return "—";
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
+
+function Chip({ icon, label }: { icon: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-gray-100 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700">
+      <span>{icon}</span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function InfoGroup({ title, items }: { title: string; items: [string, string][] }) {
+  if (!items.length) return null;
+  return (
+    <div>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{title}</h3>
+      <div className="space-y-1.5">
+        {items.map(([label, val]) => (
+          <div key={label} className="flex justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+            <span className="text-gray-500 shrink-0">{label}</span>
+            <span className="font-medium text-gray-800 text-right ml-2">{val}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type SimilarImovel = {
+  hdnImovel: string;
+  preco: number | null;
+  precoAval: number | null;
+  tipo?: string;
+  cidade: string;
+  estado: string;
+  areaTotal?: number;
+  quartos?: number;
+  fotoUrl?: string;
+};
 
 async function getImovel(id: string): Promise<Imovel | null> {
   try {
@@ -24,6 +62,32 @@ async function getImovel(id: string): Promise<Imovel | null> {
     return { ...doc, _id: doc._id.toString() } as Imovel;
   } catch {
     return null;
+  }
+}
+
+async function getImovelSimilares(imovel: Imovel): Promise<SimilarImovel[]> {
+  if (!imovel.preco || !imovel.cidade) return [];
+  try {
+    const client = await clientPromise;
+    const col    = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
+    const docs   = await col.find(
+      {
+        ativo: true,
+        hdnImovel: { $ne: imovel.hdnImovel },
+        cidade: imovel.cidade,
+        ...(imovel.tipo ? { tipo: imovel.tipo } : {}),
+        preco: { $gte: imovel.preco * 0.5, $lte: imovel.preco * 1.5 },
+      },
+      {
+        projection: {
+          _id: 0, hdnImovel: 1, preco: 1, precoAval: 1, tipo: 1,
+          cidade: 1, estado: 1, areaTotal: 1, quartos: 1, fotoUrl: 1,
+        }
+      }
+    ).limit(3).toArray();
+    return docs as unknown as SimilarImovel[];
+  } catch {
+    return [];
   }
 }
 
@@ -80,6 +144,8 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
   ]);
   if (!imovel) notFound();
 
+  const similares = await getImovelSimilares(imovel);
+
   const corretoresEstado = todosCorretores
     .filter((c) => c.estado === imovel.estado)
     .slice(0, 3);
@@ -88,27 +154,45 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
     ? Math.round((1 - imovel.preco / imovel.precoAval) * 100)
     : null;
 
+  const economia = imovel.precoAval && imovel.preco && imovel.precoAval > imovel.preco
+    ? imovel.precoAval - imovel.preco
+    : null;
+
+  const precoPorM2 = imovel.areaTotal && imovel.preco && imovel.areaTotal > 0
+    ? Math.round(imovel.preco / imovel.areaTotal)
+    : null;
+
+  const leilaoFuturo = imovel.dataLeilao1Date
+    ? new Date(imovel.dataLeilao1Date) > new Date()
+    : false;
+
   const precoFmt = fmt(imovel.preco);
   const titulo   = `${imovel.tipo || "Imóvel"} em ${imovel.cidade}/${imovel.estado}`;
 
-  const info: [string, string][] = [
-    ["Estado",         imovel.estado],
-    ["Cidade",         imovel.cidade],
-    ["Bairro",         imovel.bairro || "—"],
-    ["Endereço",       imovel.endereco || "—"],
-    ...(imovel.cep          ? [["CEP",             imovel.cep]                       as [string,string]] : []),
-    ["Tipo",           imovel.tipo || "—"],
-    ["Modalidade",     imovel.modalidade || "—"],
-    ["Financiamento",  imovel.financiamento || "—"],
-    ...(imovel.fgts !== undefined ? [["FGTS",       imovel.fgts ? "Sim" : "Não"]     as [string,string]] : []),
-    ...(imovel.ocupacao     ? [["Ocupação",         imovel.ocupacao]                 as [string,string]] : []),
-    ["Área total",     imovel.areaTotal   ? `${imovel.areaTotal} m²`   : "—"],
-    ["Área privativa", imovel.areaUtil    ? `${imovel.areaUtil} m²`    : "—"],
-    ["Área terreno",   imovel.areaTerreno ? `${imovel.areaTerreno} m²` : "—"],
-    ["Quartos",        imovel.quartos     ? String(imovel.quartos)      : "—"],
-    ...(imovel.suites       ? [["Suítes",           String(imovel.suites)]            as [string,string]] : []),
-    ["Vagas",          imovel.vagas       ? String(imovel.vagas)        : "—"],
-    ["N° do imóvel",   imovel.hdnImovel],
+  const grupoLocal: [string, string][] = [
+    ["Estado", imovel.estado],
+    ["Cidade", imovel.cidade],
+    ...(imovel.bairro   ? [["Bairro",   imovel.bairro]   as [string, string]] : []),
+    ...(imovel.endereco ? [["Endereço", imovel.endereco] as [string, string]] : []),
+    ...(imovel.cep      ? [["CEP",      imovel.cep]      as [string, string]] : []),
+  ];
+
+  const grupoCaract: [string, string][] = [
+    ...(imovel.tipo        ? [["Tipo",           imovel.tipo]                    as [string, string]] : []),
+    ...(imovel.areaTotal   ? [["Área total",     `${imovel.areaTotal} m²`]       as [string, string]] : []),
+    ...(imovel.areaUtil    ? [["Área privativa", `${imovel.areaUtil} m²`]        as [string, string]] : []),
+    ...(imovel.areaTerreno ? [["Área terreno",   `${imovel.areaTerreno} m²`]     as [string, string]] : []),
+    ...(imovel.quartos     ? [["Quartos",        String(imovel.quartos)]          as [string, string]] : []),
+    ...(imovel.suites      ? [["Suítes",         String(imovel.suites)]           as [string, string]] : []),
+    ...(imovel.vagas       ? [["Vagas",          String(imovel.vagas)]            as [string, string]] : []),
+    ...(imovel.ocupacao    ? [["Ocupação",       imovel.ocupacao]                 as [string, string]] : []),
+  ];
+
+  const grupoVenda: [string, string][] = [
+    ["Modalidade",    imovel.modalidade || "—"],
+    ["Financiamento", imovel.financiamento || "—"],
+    ...(imovel.fgts !== undefined ? [["FGTS", imovel.fgts ? "Sim" : "Não"] as [string, string]] : []),
+    ["N° do imóvel",  imovel.hdnImovel],
   ];
 
   const jsonLd = {
@@ -132,11 +216,11 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
       seller: { "@type": "Organization", name: "Caixa Econômica Federal" },
     },
     address: {
-      "@type":           "PostalAddress",
-      streetAddress:     imovel.endereco  || undefined,
-      addressLocality:   imovel.cidade,
-      addressRegion:     imovel.estado,
-      addressCountry:    "BR",
+      "@type":         "PostalAddress",
+      streetAddress:   imovel.endereco || undefined,
+      addressLocality: imovel.cidade,
+      addressRegion:   imovel.estado,
+      addressCountry:  "BR",
     },
     ...(imovel.lat && imovel.lng ? {
       geo: { "@type": "GeoCoordinates", latitude: imovel.lat, longitude: imovel.lng },
@@ -149,19 +233,78 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <a href="/" className="hover:underline text-sm mb-4 inline-block" style={{ color: "#01304D" }}>← Voltar à listagem</a>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden mt-2">
-        {/* Foto */}
-        <div className="h-72 bg-gray-200 relative overflow-hidden">
+      {/* Breadcrumb */}
+      <nav className="text-sm mb-3 flex items-center gap-1.5 flex-wrap">
+        <a href="/" className="hover:underline" style={{ color: "#01304D" }}>Início</a>
+        <span className="text-gray-400">/</span>
+        <a
+          href={`/imoveis/${imovel.estado.toLowerCase()}`}
+          className="hover:underline"
+          style={{ color: "#01304D" }}
+        >
+          {imovel.estado}
+        </a>
+        <span className="text-gray-400">/</span>
+        <a
+          href={`/imoveis/${imovel.estado.toLowerCase()}?cidade=${encodeURIComponent(imovel.cidade)}`}
+          className="hover:underline"
+          style={{ color: "#01304D" }}
+        >
+          {imovel.cidade}
+        </a>
+        {imovel.tipo && (
+          <>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-500">{imovel.tipo}</span>
+          </>
+        )}
+      </nav>
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        {/* Foto com badges */}
+        <div className="h-80 bg-gray-200 relative overflow-hidden">
           {imovel.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imovel.fotoUrl} alt={imovel.tipo || "Imóvel"} className="w-full h-full object-cover" />
+            <img
+              src={imovel.fotoUrl}
+              alt={imovel.tipo || "Imóvel"}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl text-gray-300">🏠</div>
           )}
+
+          {/* Badge strip — bottom-left */}
+          <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
+            {imovel.ocupacao === "Desocupado" && (
+              <span className="text-xs font-semibold bg-green-500 text-white px-2.5 py-1 rounded-full shadow-sm">
+                Desocupado
+              </span>
+            )}
+            {imovel.financiamento?.toLowerCase().includes("sim") && (
+              <span className="text-xs font-semibold bg-blue-500 text-white px-2.5 py-1 rounded-full shadow-sm">
+                Financiamento
+              </span>
+            )}
+            {imovel.fgts && (
+              <span className="text-xs font-semibold bg-amber-500 text-white px-2.5 py-1 rounded-full shadow-sm">
+                FGTS
+              </span>
+            )}
+            {leilaoFuturo && (
+              <span className="text-xs font-semibold bg-orange-600 text-white px-2.5 py-1 rounded-full shadow-sm">
+                🔨 Leilão {imovel.dataLeilao1}
+              </span>
+            )}
+          </div>
+
+          {/* Desconto — top-right */}
           {descPct && descPct > 0 && (
-            <span className="absolute top-3 right-3 text-white font-bold px-3 py-1 rounded-full text-sm" style={{ backgroundColor: "#01304D" }}>
+            <span
+              className="absolute top-3 right-3 text-white font-bold px-3 py-1 rounded-full text-sm shadow"
+              style={{ backgroundColor: "#01304D" }}
+            >
               -{descPct}% de desconto
             </span>
           )}
@@ -170,15 +313,36 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         <div className="p-6">
           <h1 className="text-xl font-bold text-gray-800 mb-3">{titulo}</h1>
 
-          <div className="flex flex-wrap items-end gap-4 mb-4">
+          {/* Preço + Economia */}
+          <div className="flex flex-wrap items-end gap-3 mb-4">
             <div>
               <p className="text-3xl font-bold text-gray-900">{precoFmt}</p>
               {imovel.precoAval && (
-                <p className="text-sm text-gray-400 line-through">Avaliação: {fmt(imovel.precoAval)}</p>
+                <p className="text-sm text-gray-400 line-through">
+                  Avaliação: {fmt(imovel.precoAval)}
+                </p>
               )}
             </div>
+            {economia && (
+              <span className="text-sm font-semibold bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-full">
+                Economia de {fmt(economia)}
+              </span>
+            )}
           </div>
 
+          {/* Chips de características */}
+          {(imovel.areaTotal || imovel.quartos || imovel.suites || imovel.vagas || imovel.modalidade || precoPorM2) && (
+            <div className="flex flex-wrap gap-2 mb-5">
+              {imovel.areaTotal  && <Chip icon="📐" label={`${imovel.areaTotal} m²`} />}
+              {imovel.quartos    && <Chip icon="🛏" label={`${imovel.quartos} ${imovel.quartos === 1 ? "quarto" : "quartos"}`} />}
+              {imovel.suites     && <Chip icon="🚿" label={`${imovel.suites} ${imovel.suites === 1 ? "suíte" : "suítes"}`} />}
+              {imovel.vagas      && <Chip icon="🚗" label={`${imovel.vagas} ${imovel.vagas === 1 ? "vaga" : "vagas"}`} />}
+              {imovel.modalidade && <Chip icon="🏢" label={imovel.modalidade} />}
+              {precoPorM2        && <Chip icon="📍" label={`R$ ${precoPorM2.toLocaleString("pt-BR")}/m²`} />}
+            </div>
+          )}
+
+          {/* Botões de ação */}
           <div className="mb-6 flex flex-wrap gap-2">
             <a
               href={imovel.urlDetalhe}
@@ -190,31 +354,52 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
               Ver no site da Caixa →
             </a>
             {imovel.editaiUrl && (
-              <a href={imovel.editaiUrl} target="_blank" rel="noopener noreferrer"
-                className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1">
-                📄 Baixar edital
+              <a
+                href={imovel.editaiUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1"
+              >
+                📄 Edital
               </a>
             )}
-            {imovel.matriculaUrl && (
-              <a href={imovel.matriculaUrl} target="_blank" rel="noopener noreferrer"
-                className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1">
+            {imovel.matriculaUrl ? (
+              <a
+                href={imovel.matriculaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1"
+              >
                 📋 Baixar matrícula
               </a>
+            ) : imovel.enriched ? (
+              <a
+                href={imovel.urlDetalhe}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="border border-gray-300 hover:bg-gray-50 text-gray-600 font-medium px-5 py-2 rounded-lg transition-colors text-sm flex items-center gap-1"
+                title="A matrícula pode estar disponível diretamente na página da Caixa"
+              >
+                📋 Ver matrícula na Caixa
+              </a>
+            ) : (
+              <span
+                className="border border-gray-200 text-gray-400 font-medium px-5 py-2 rounded-lg text-sm flex items-center gap-1 cursor-default"
+                title="Matrícula ainda não processada — será adicionada em breve"
+              >
+                📋 Matrícula (em breve)
+              </span>
             )}
           </div>
 
-          {/* Informações */}
-          <h2 className="font-semibold mb-3 text-xs uppercase tracking-widest" style={{ color: "#01304D" }}>Informações do imóvel</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
-            {info.map(([label, val]) => (
-              <div key={label} className="flex justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
-                <span className="text-gray-500">{label}</span>
-                <span className="font-medium text-gray-800 text-right max-w-[60%]">{val}</span>
-              </div>
-            ))}
+          {/* 3 colunas de informação */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+            <InfoGroup title="📍 Localização" items={grupoLocal} />
+            <InfoGroup title="🏠 Características" items={grupoCaract} />
+            <InfoGroup title="📋 Condições de venda" items={grupoVenda} />
           </div>
 
-          {/* Compartilhar + PDF + Mapa (client) */}
+          {/* Countdown + Histórico + Compartilhar + Mapa (client) */}
           <DetalheClient
             imovel={imovel}
             titulo={titulo}
@@ -225,7 +410,63 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      {/* Bloco leilão — aparece apenas quando há dados do leiloeiro ou datas */}
+      {/* Imóveis similares */}
+      {similares.length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow p-5">
+          <h2 className="font-semibold text-gray-700 mb-4">
+            Imóveis similares em {imovel.cidade}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {similares.map((s) => {
+              const simDesc = s.precoAval && s.preco
+                ? Math.round((1 - s.preco / s.precoAval) * 100)
+                : null;
+              return (
+                <a
+                  key={s.hdnImovel}
+                  href={`/imovel/${s.hdnImovel}`}
+                  className="border border-gray-100 rounded-xl overflow-hidden hover:border-[#01304D] hover:shadow-md transition-all block"
+                >
+                  <div className="relative h-36 bg-gray-100">
+                    {s.fotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={s.fotoUrl}
+                        alt={s.tipo || "Imóvel"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl text-gray-300">🏠</div>
+                    )}
+                    {simDesc && simDesc > 0 && (
+                      <span
+                        className="absolute top-2 right-2 text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "#01304D" }}
+                      >
+                        -{simDesc}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-xs text-gray-500">{s.tipo || "Imóvel"}</p>
+                    <p className="font-semibold text-gray-900 text-sm mt-0.5">{fmt(s.preco)}</p>
+                    {(s.areaTotal || s.quartos) && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {[
+                          s.areaTotal ? `${s.areaTotal} m²` : null,
+                          s.quartos   ? `${s.quartos} ${s.quartos === 1 ? "quarto" : "quartos"}` : null,
+                        ].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Bloco leilão */}
       {(imovel.leiloeiro || imovel.dataLeilao1 || imovel.edital) && (
         <div className="mt-6 bg-white rounded-xl shadow p-5">
           <h2 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -273,12 +514,18 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         {corretoresEstado.length > 0 ? (
           <div className="flex flex-col gap-3">
             {corretoresEstado.map((c: Corretor) => (
-              <a key={c._id} href={`/corretores/${c.slug}`}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#01304D] hover:bg-gray-50 transition-colors">
+              <a
+                key={c._id}
+                href={`/corretores/${c.slug}`}
+                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#01304D] hover:bg-gray-50 transition-colors"
+              >
                 {c.foto ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.foto} alt={c.nome}
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200" />
+                  <img
+                    src={c.foto}
+                    alt={c.nome}
+                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200"
+                  />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-lg">
                     👤
@@ -313,7 +560,9 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             </p>
             <a
               href={`mailto:${SITE_EMAIL}?subject=Indica%C3%A7%C3%A3o%20de%20corretor%20em%20${imovel.estado}&body=Ol%C3%A1%2C%20encontrei%20o%20im%C3%B3vel%20${imovel.hdnImovel}%20em%20${imovel.cidade}%2F${imovel.estado}%20e%20gostaria%20de%20indica%C3%A7%C3%A3o%20de%20corretor.`}
-              className="shrink-0 text-sm hover:underline" style={{ color: "#01304D" }}>
+              className="shrink-0 text-sm hover:underline"
+              style={{ color: "#01304D" }}
+            >
               Solicitar indicação →
             </a>
           </div>
