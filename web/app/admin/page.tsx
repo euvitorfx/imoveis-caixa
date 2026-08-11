@@ -272,7 +272,12 @@ export default function AdminPage() {
             )}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap justify-end">
+          <a href="/admin/social"
+            className="text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}>
+            📱 Social Média
+          </a>
           <a href="/blog" target="_blank" className="text-sm text-blue-600 hover:underline px-3 py-2">
             Ver blog →
           </a>
