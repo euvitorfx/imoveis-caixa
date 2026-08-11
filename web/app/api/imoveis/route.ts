@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
           modalidade: 1, financiamento: 1, tipo: 1,
           areaTotal: 1, areaUtil: 1, quartos: 1, vagas: 1,
           fotoUrl: 1, urlDetalhe: 1, lat: 1, lng: 1,
+          descricao: 1,
         })
         .toArray(),
       col.countDocuments(filter),

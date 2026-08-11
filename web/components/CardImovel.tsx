@@ -104,6 +104,13 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
             </div>
           )}
 
+          {/* Prévia da descrição IA */}
+          {imovel.descricao && (
+            <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mt-1">
+              {imovel.descricao}
+            </p>
+          )}
+
           {/* Badges de condição — empurra para o fundo com mt-auto */}
           {(imovel.dataLeilao1 || imovel.financiamento?.toLowerCase().includes("sim")) && (
             <div className="flex flex-wrap gap-1 mt-auto pt-2">
