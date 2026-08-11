@@ -399,6 +399,23 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
             <InfoGroup title="📋 Condições de venda" items={grupoVenda} />
           </div>
 
+          {/* Descrição gerada por IA */}
+          {imovel.descricao && (
+            <div className="bg-gray-50 rounded-xl p-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-700 text-sm">Sobre o imóvel</h2>
+                <span className="text-xs text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                  ✦ gerado por IA
+                </span>
+              </div>
+              <div className="text-sm text-gray-600 leading-relaxed space-y-3">
+                {imovel.descricao.split("\n\n").map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Countdown + Histórico + Compartilhar + Mapa (client) */}
           <DetalheClient
             imovel={imovel}

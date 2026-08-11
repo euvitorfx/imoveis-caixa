@@ -36,6 +36,8 @@ export interface Imovel {
   dataLeilao1Date?: string;
   dataLeilao2Date?: string;
   enriched?: boolean;
+  descricao?: string;
+  descricaoGeradaEm?: string;
 }
 
 export interface FiltrosImovel {
