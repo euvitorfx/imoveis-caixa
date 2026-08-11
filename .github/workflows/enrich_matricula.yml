@@ -1,0 +1,53 @@
+name: Re-enriquecimento — imóveis sem matrícula
+
+on:
+  workflow_dispatch:
+    inputs:
+      estado:
+        description: "Filtrar por estado (ex: SP). Deixe vazio para todos."
+        default: ""
+      limite:
+        description: "Máximo de imóveis a processar (0 = todos)"
+        default: "0"
+
+jobs:
+  enrich:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360   # 6h — ~14k imóveis a 0.8s/req ≈ 3.5h
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('scraper/requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r scraper/requirements.txt
+
+      - name: Install Playwright Chromium
+        run: playwright install chromium --with-deps
+
+      - name: Re-enriquecer imóveis sem matriculaUrl
+        env:
+          MONGODB_URI:        ${{ secrets.MONGODB_URI }}
+          MONGODB_DB:         ${{ secrets.MONGODB_DB }}
+          MONGODB_COLLECTION: ${{ secrets.MONGODB_COLLECTION }}
+        run: |
+          cd scraper
+          ARGS="--sem-matricula --headless"
+          if [ -n "${{ github.event.inputs.estado }}" ]; then
+            ARGS="$ARGS --estado ${{ github.event.inputs.estado }}"
+          fi
+          if [ "${{ github.event.inputs.limite }}" != "0" ]; then
+            ARGS="$ARGS --limite ${{ github.event.inputs.limite }}"
+          fi
+          python enrich.py $ARGS

@@ -29,11 +29,12 @@ BATCH_SIZE = 100
 
 
 def parse_args():
-    args         = sys.argv[1:]
-    headless     = "--headless"    in args
-    reprocessar  = "--reprocessar" in args
-    limite       = None
-    estado       = None
+    args          = sys.argv[1:]
+    headless      = "--headless"      in args
+    reprocessar   = "--reprocessar"   in args
+    sem_matricula = "--sem-matricula" in args
+    limite        = None
+    estado        = None
 
     if "--limite" in args:
         idx = args.index("--limite")
@@ -49,17 +50,21 @@ def parse_args():
         except IndexError:
             pass
 
-    return headless, reprocessar, limite, estado
+    return headless, reprocessar, sem_matricula, limite, estado
 
 
 def main():
-    headless, reprocessar, limite, estado = parse_args()
+    headless, reprocessar, sem_matricula, limite, estado = parse_args()
 
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
 
     # Filtro de busca
     filtro: dict = {"ativo": True}
-    if not reprocessar:
+    if sem_matricula:
+        # Re-processa apenas imóveis já enriquecidos mas sem matriculaUrl
+        filtro["enriched"] = True
+        filtro["matriculaUrl"] = {"$exists": False}
+    elif not reprocessar:
         filtro["enriched"] = {"$ne": True}
     if estado:
         filtro["estado"] = estado
@@ -67,10 +72,12 @@ def main():
     total_pendente = col.count_documents(filtro)
     a_processar    = min(total_pendente, limite) if limite else total_pendente
 
+    modo = "sem-matricula" if sem_matricula else ("reprocessar" if reprocessar else "novos")
     print()
     print("=" * 60)
     print("  Enriquecimento de Imóveis — Caixa Detalhes")
     print(f"  Início : {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M:%S')} UTC")
+    print(f"  Modo    : {modo}")
     print(f"  Pendentes : {total_pendente:,}")
     print(f"  A processar: {a_processar:,}")
     if estado:
