@@ -6,6 +6,8 @@ import ContadorVisitas from "@/components/ContadorVisitas";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MetaPixel from "@/components/MetaPixel";
 import RegistraVisita from "@/components/RegistraVisita";
+import NavAuth from "@/components/NavAuth";
+import Providers from "@/components/Providers";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import "./globals.css";
 
@@ -51,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+        <Providers>
         <RegistraVisita />
         <GoogleAnalytics />
         <MetaPixel />
@@ -87,6 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   >
                     Clube BLC
                   </a>
+                  <NavAuth />
                 </nav>
               </div>
             </div>
@@ -113,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 >
                   Clube BLC
                 </a>
+                <NavAuth />
               </nav>
             </div>
 
@@ -136,6 +141,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </p>
           <ContadorVisitas />
         </footer>
+        </Providers>
       </body>
     </html>
   );
