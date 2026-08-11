@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const descontoMin = searchParams.get("descontoMin");
   const ordenar    = searchParams.get("ordenar") || "preco_asc";
   const page  = Math.max(1, parseInt(searchParams.get("page")  || "1"));
-  const limit = Math.min(2000, parseInt(searchParams.get("limit") || "24"));
+  const limit = Math.min(30000, parseInt(searchParams.get("limit") || "24"));
   const skip  = (page - 1) * limit;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
