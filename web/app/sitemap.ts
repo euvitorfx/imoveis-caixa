@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/blog`,              changeFrequency: "daily",   priority: 0.8 },
     { url: `${SITE_URL}/corretores`,        changeFrequency: "weekly",  priority: 0.7 },
     { url: `${SITE_URL}/favoritos`,         changeFrequency: "never",   priority: 0.3 },
+    { url: `${SITE_URL}/clube`,            changeFrequency: "monthly", priority: 0.7 },
   ];
 
   try {
@@ -23,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const col = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
 
     const [imovelDocs, posts, corretores, cidadesPorEstado] = await Promise.all([
-      col.find({ ativo: true }).project({ hdnImovel: 1, dataAtualizacao: 1 }).toArray(),
+      col.find({ ativo: true }).project({ hdnImovel: 1, dataAtualizacao: 1, descricaoGeradaEm: 1 }).toArray(),
       getPostsPublicados(),
       getCorretoresAprovados(),
       Promise.all(
@@ -34,12 +35,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ),
     ]);
 
-    const imovelPages: MetadataRoute.Sitemap = imovelDocs.map((doc) => ({
-      url:              `${SITE_URL}/imovel/${doc.hdnImovel}`,
-      lastModified:     doc.dataAtualizacao ?? new Date(),
-      changeFrequency:  "weekly" as const,
-      priority:         0.6,
-    }));
+    const imovelPages: MetadataRoute.Sitemap = imovelDocs.map((doc) => {
+      // Usa a data mais recente entre atualização de dados e geração de descrição IA
+      const dates = [doc.dataAtualizacao, doc.descricaoGeradaEm].filter(Boolean);
+      const lastModified = dates.length
+        ? new Date(Math.max(...dates.map((d: Date) => new Date(d).getTime())))
+        : new Date();
+      return {
+        url:             `${SITE_URL}/imovel/${doc.hdnImovel}`,
+        lastModified,
+        changeFrequency: "weekly" as const,
+        priority:        0.6,
+      };
+    });
 
     const blogPages: MetadataRoute.Sitemap = posts.map((post) => ({
       url:              `${SITE_URL}/blog/${post.slug}`,
