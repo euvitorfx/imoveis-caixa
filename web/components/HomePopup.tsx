@@ -55,7 +55,7 @@ export default function HomePopup() {
 
     const agora = Date.now();
     const ultima = Number(localStorage.getItem(POPUP_KEY) ?? 0);
-    if (agora - ultima < 8 * 60 * 60 * 1000) return;
+    if (agora - ultima < 4 * 60 * 60 * 1000) return;
 
     const t = setTimeout(() => {
       localStorage.setItem(POPUP_KEY, String(agora));
