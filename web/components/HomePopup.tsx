@@ -8,7 +8,7 @@ const POPUP_KEY = "blc_popup_data";
 const RECURSOS = [
   {
     icone: "♥",
-    iconeCor: "#F59E0B",
+    iconeCor: "#01304D",
     titulo: "Favoritos",
     badge: "já disponível",
     badgeCor: "#16a34a",
@@ -25,8 +25,17 @@ const RECURSOS = [
     descricao: "Seja o primeiro a saber quando novos imóveis da sua região aparecerem.",
   },
   {
+    icone: "⚙",
+    iconeCor: "#01304D",
+    titulo: "Ferramentas",
+    badge: "em implantação",
+    badgeCor: "#92400e",
+    badgeBg: "#fef3c7",
+    descricao: "Diversas ferramentas novas chegando, inclusive a planilha de viabilidade financeira.",
+  },
+  {
     icone: "★",
-    iconeCor: "#F59E0B",
+    iconeCor: "#01304D",
     titulo: "Clube BLC",
     badge: "em implantação",
     badgeCor: "#92400e",
@@ -79,8 +88,8 @@ export default function HomePopup() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Barra amber no topo */}
-        <div style={{ backgroundColor: "#F59E0B", height: "4px" }} />
+        {/* Barra azul no topo */}
+        <div style={{ backgroundColor: "#01304D", height: "4px" }} />
 
         {/* Botão fechar */}
         <button
@@ -134,7 +143,7 @@ export default function HomePopup() {
           <a
             href="/cadastro"
             className="flex items-center justify-center w-full py-3 rounded-xl font-bold text-sm mb-3 transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
+            style={{ backgroundColor: "#01304D", color: "#fff" }}
           >
             Criar conta grátis
           </a>
