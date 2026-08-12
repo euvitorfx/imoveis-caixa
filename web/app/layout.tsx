@@ -7,6 +7,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MetaPixel from "@/components/MetaPixel";
 import RegistraVisita from "@/components/RegistraVisita";
 import NavAuth from "@/components/NavAuth";
+import MobileNav from "@/components/MobileNav";
 import Providers from "@/components/Providers";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
 import "./globals.css";
@@ -95,31 +96,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
 
-            {/* Mobile: logo centralizada + atualização + nav */}
-            <div className="sm:hidden flex flex-col items-center gap-2">
-              <a href="/">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt={SITE_NAME} className="w-auto object-contain" style={{ height: "100px" }} />
-              </a>
-              <UltimaAtualizacao />
-              <nav className="flex w-full overflow-x-auto items-center text-xs border-t pt-2 pb-1 gap-4 px-1 scrollbar-none" style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.75)" }}>
-                <a href="/" className="hover:text-white transition-colors py-1 shrink-0">Buscar</a>
-                <a href="/mapa" className="hover:text-white transition-colors py-1 shrink-0">Mapa</a>
-                <a href="/estatisticas" className="hover:text-white transition-colors py-1 shrink-0">Estatísticas</a>
-                <a href="/corretores" className="hover:text-white transition-colors py-1 shrink-0">Corretores</a>
-                <a href="/ferramentas" className="hover:text-white transition-colors py-1 shrink-0">Ferramentas</a>
-                <a href="/blog" className="hover:text-white transition-colors py-1 shrink-0">Blog</a>
-                <a href="/favoritos" className="hover:text-white transition-colors py-1 shrink-0" style={{ color: "#F59E0B" }}>♥</a>
-                <a
-                  href="/clube"
-                  className="font-bold hover:opacity-90 transition-opacity px-2.5 py-0.5 rounded-full shrink-0"
-                  style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
-                >
-                  Clube BLC
-                </a>
-                <NavAuth />
-              </nav>
-            </div>
+            {/* Mobile: hamburger menu */}
+            <MobileNav ultimaAtualizacao={<UltimaAtualizacao />} navAuth={<NavAuth />} />
 
           </div>
         </header>
