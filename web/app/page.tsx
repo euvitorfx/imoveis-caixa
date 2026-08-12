@@ -146,13 +146,32 @@ async function getTotalImoveis(): Promise<number> {
   }
 }
 
+async function getMaiorDesconto(): Promise<number> {
+  try {
+    const client = await clientPromise;
+    const [row] = await client
+      .db(process.env.MONGODB_DB)
+      .collection(process.env.MONGODB_COLLECTION!)
+      .aggregate([
+        { $match: { ativo: true, preco: { $gt: 0 }, precoAval: { $gt: 0 } } },
+        { $project: { d: { $multiply: [{ $subtract: [1, { $divide: ["$preco", "$precoAval"] }] }, 100] } } },
+        { $match: { d: { $gt: 0, $lte: 100 } } },
+        { $group: { _id: null, max: { $max: "$d" } } },
+      ])
+      .toArray();
+    return Math.floor(row?.max ?? 50);
+  } catch {
+    return 50;
+  }
+}
+
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const [data, totalImoveis] = await Promise.all([queryImoveis(sp), getTotalImoveis()]);
+  const [data, totalImoveis, maiorDesconto] = await Promise.all([queryImoveis(sp), getTotalImoveis(), getMaiorDesconto()]);
 
   const faqLd = {
     "@context": "https://schema.org",
@@ -193,7 +212,7 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
       />
 
-      <HeroCarousel totalImoveis={totalImoveis} totalBusca={data.total} />
+      <HeroCarousel totalImoveis={totalImoveis} totalBusca={data.total} maiorDesconto={maiorDesconto} />
 
       <div id="busca" className="pt-8 -mb-8" />
       <Suspense>
