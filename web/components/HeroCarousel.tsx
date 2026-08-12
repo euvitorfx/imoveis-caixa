@@ -25,12 +25,11 @@ function fmtNum(n: number) {
 }
 
 interface Props {
-  totalImoveis:  number;
-  totalBusca:    number;
-  maiorDesconto: number;
+  totalImoveis: number;
+  totalBusca:   number;
 }
 
-export default function HeroCarousel({ totalImoveis, totalBusca, maiorDesconto }: Props) {
+export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
   const [current, setCurrent] = useState(0);
   const [paused,  setPaused]  = useState(false);
 
@@ -38,7 +37,7 @@ export default function HeroCarousel({ totalImoveis, totalBusca, maiorDesconto }
     /* ── 1: busca principal ── */
     {
       eyebrow: `${fmtNum(totalImoveis)} imóveis disponíveis agora`,
-      title:   ["Imóveis da Caixa com ", `até ${maiorDesconto}% de desconto`],
+      title:   ["Imóveis da Caixa com ", "até 60% de desconto"],
       desc:    "Busque entre os imóveis da Caixa Econômica Federal em todo o Brasil. Atualizado 3× ao dia.",
       stats:   [
         { value: fmtNum(totalImoveis), label: "imóveis"  },
