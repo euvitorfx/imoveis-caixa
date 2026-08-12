@@ -7,9 +7,10 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     // Roda no middleware (edge): mapeia campos do JWT para req.auth.user
     session({ session, token }) {
-      if (token?.id) (session.user as Record<string, unknown>).id = token.id;
-      (session.user as Record<string, unknown>).plano = token.plano ?? "gratuito";
-      (session.user as Record<string, unknown>).temTelefone = token.temTelefone ?? false;
+      const user = session.user as unknown as Record<string, unknown>;
+      if (token?.id) user.id = token.id;
+      user.plano = token.plano ?? "gratuito";
+      user.temTelefone = token.temTelefone ?? false;
       return session;
     },
   },
