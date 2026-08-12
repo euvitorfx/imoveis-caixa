@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 
 function checkAdmin(req: NextRequest) {
@@ -29,4 +30,32 @@ export async function GET(req: NextRequest) {
     gratuito: total - premium,
     recentes: recentes.map((u) => ({ ...u, _id: u._id.toString() })),
   });
+}
+
+export async function POST(req: NextRequest) {
+  if (!checkAdmin(req)) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  const { nome, email, telefone, plano, senha } = await req.json();
+  if (!nome || !email || !senha)
+    return NextResponse.json({ error: "Nome, e-mail e senha são obrigatórios" }, { status: 400 });
+
+  const client = await clientPromise;
+  const col = client.db(process.env.MONGODB_DB).collection("users");
+
+  if (await col.findOne({ email: email.toLowerCase() }))
+    return NextResponse.json({ error: "E-mail já cadastrado" }, { status: 409 });
+
+  const senhaHash = await bcrypt.hash(senha, 12);
+  await col.insertOne({
+    name: nome,
+    email: email.toLowerCase(),
+    emailVerified: null,
+    senhaHash,
+    telefone: telefone || null,
+    plano: plano || "gratuito",
+    favoritos: [],
+    criadoEm: new Date(),
+  });
+
+  return NextResponse.json({ ok: true });
 }
