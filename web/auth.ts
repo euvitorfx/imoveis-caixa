@@ -41,7 +41,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.plano = (user as { plano?: string }).plano ?? "gratuito";
+        token.plano = (user as { plano?: "gratuito" | "premium" }).plano ?? "gratuito";
       }
       return token;
     },
