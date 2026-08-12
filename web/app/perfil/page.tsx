@@ -5,6 +5,7 @@ import clientPromise from "@/lib/mongodb";
 import FotoForm from "./FotoForm";
 import PreferenciasForm from "./PreferenciasForm";
 import EditarDadosForm from "./EditarDadosForm";
+import ExcluirContaForm from "./ExcluirContaForm";
 
 async function getUserData(id: string) {
   const client = await clientPromise;
@@ -129,11 +130,14 @@ export default async function PerfilPage({
       >
         <button
           type="submit"
-          className="w-full py-3 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
         >
           Sair da conta
         </button>
       </form>
+
+      {/* Excluir conta */}
+      <ExcluirContaForm />
     </div>
   );
 }
