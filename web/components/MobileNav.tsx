@@ -29,37 +29,47 @@ export default function MobileNav({
 
   return (
     <div className="sm:hidden">
-      {/* Topo: logo + botão hamburger */}
-      <div className="flex items-center justify-between py-1">
-        <a href="/">
+      {/* Header: logo | auth buttons | hamburger */}
+      <div className="flex items-center gap-2 py-1">
+        <a href="/" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt={SITE_NAME}
             className="w-auto object-contain"
-            style={{ height: "75px" }}
+            style={{ height: "65px" }}
           />
         </a>
+
+        <div className="flex-1" />
+
+        {/* Entrar / Cadastrar (ou perfil) */}
+        {navAuth}
+
+        {/* Botão hamburger com label */}
         <button
           onClick={() => setOpen(true)}
-          className="p-2 rounded-lg transition-colors hover:bg-white/10"
+          className="shrink-0 flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors hover:bg-white/10"
           style={{ color: "rgba(255,255,255,0.85)" }}
           aria-label="Abrir menu"
         >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
+          <span className="text-[10px] font-semibold tracking-wide leading-none">
+            Menu ›
+          </span>
         </button>
       </div>
 
-      {/* Última atualização centralizada */}
+      {/* Última atualização */}
       <div className="text-center pb-1">
         {ultimaAtualizacao}
       </div>
 
-      {/* Overlay de menu */}
+      {/* Overlay de navegação */}
       {open && (
         <div
           className="fixed inset-0 z-50 flex flex-col"
@@ -76,7 +86,7 @@ export default function MobileNav({
                 src="/logo.png"
                 alt={SITE_NAME}
                 className="w-auto object-contain"
-                style={{ height: "65px" }}
+                style={{ height: "60px" }}
               />
             </a>
             <button
@@ -90,14 +100,6 @@ export default function MobileNav({
                 <line x1="20" y1="4" x2="4" y2="20" />
               </svg>
             </button>
-          </div>
-
-          {/* Auth (entrar / criar conta / perfil) */}
-          <div
-            className="px-5 py-4 shrink-0 flex flex-col gap-2"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}
-          >
-            {navAuth}
           </div>
 
           {/* Links de navegação */}
@@ -114,7 +116,6 @@ export default function MobileNav({
               </a>
             ))}
 
-            {/* Clube BLC em destaque */}
             <div className="px-5 pt-2 pb-4">
               <a
                 href="/clube"

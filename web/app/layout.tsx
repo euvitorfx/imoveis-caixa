@@ -7,6 +7,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MetaPixel from "@/components/MetaPixel";
 import RegistraVisita from "@/components/RegistraVisita";
 import NavAuth from "@/components/NavAuth";
+import NavAuthMobile from "@/components/NavAuthMobile";
 import MobileNav from "@/components/MobileNav";
 import Providers from "@/components/Providers";
 import { SITE_URL, SITE_NAME, SITE_EMAIL } from "@/lib/config";
@@ -97,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             {/* Mobile: hamburger menu */}
-            <MobileNav ultimaAtualizacao={<UltimaAtualizacao />} navAuth={<NavAuth />} />
+            <MobileNav ultimaAtualizacao={<UltimaAtualizacao />} navAuth={<NavAuthMobile />} />
 
           </div>
         </header>
