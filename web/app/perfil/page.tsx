@@ -2,6 +2,8 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
+import FotoForm from "./FotoForm";
+import PreferenciasForm from "./PreferenciasForm";
 
 async function getUserData(id: string) {
   const client = await clientPromise;
@@ -10,7 +12,7 @@ async function getUserData(id: string) {
     .collection("users")
     .findOne(
       { _id: new ObjectId(id) },
-      { projection: { name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, favoritos: 1 } }
+      { projection: { name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, favoritos: 1, foto: 1, preferencias: 1 } }
     );
 }
 
@@ -25,24 +27,19 @@ export default async function PerfilPage() {
     ? new Date(user.criadoEm).toLocaleDateString("pt-BR")
     : "—";
 
+  const fotoAtual: string | undefined = user?.foto ?? session.user.image ?? undefined;
+  const inicial = (user?.name ?? session.user.name ?? "U")[0].toUpperCase();
+
+  const prefsIniciais = user?.preferencias ?? { brasil: true, estados: [], cidades: [] };
+
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Minha conta</h1>
 
       {/* Card do usuário */}
-      <div className="bg-white rounded-2xl shadow p-6 mb-4">
-        <div className="flex items-center gap-4 mb-4">
-          {session.user.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={session.user.image} alt="" className="w-14 h-14 rounded-full" />
-          ) : (
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-bold text-white"
-              style={{ backgroundColor: "#01304D" }}
-            >
-              {(user?.name ?? session.user.name ?? "U")[0].toUpperCase()}
-            </div>
-          )}
+      <div className="bg-white rounded-2xl shadow p-6">
+        <div className="flex items-center gap-5 mb-5">
+          <FotoForm fotoAtual={fotoAtual} inicial={inicial} />
           <div>
             <p className="font-semibold text-gray-800 text-lg">{user?.name ?? session.user.name}</p>
             <p className="text-sm text-gray-500">{user?.email ?? session.user.email}</p>
@@ -77,8 +74,17 @@ export default async function PerfilPage() {
         </div>
       </div>
 
+      {/* Preferências de região */}
+      <div className="bg-white rounded-2xl shadow p-6">
+        <h2 className="font-semibold text-gray-800 mb-1">Regiões de interesse</h2>
+        <p className="text-xs text-gray-400 mb-4">
+          Usadas para filtrar alertas de novos imóveis. Você receberá notificações apenas das regiões selecionadas.
+        </p>
+        <PreferenciasForm inicial={prefsIniciais} />
+      </div>
+
       {/* Links */}
-      <div className="bg-white rounded-2xl shadow p-4 mb-4 flex flex-col gap-0.5">
+      <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-0.5">
         <a
           href="/favoritos"
           className="flex items-center justify-between px-2 py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"

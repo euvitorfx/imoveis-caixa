@@ -129,9 +129,13 @@ export default function AdminUsuarios({
   async function salvar() {
     setSaving(true); setErro("");
     if (modal === "novo") {
-      const res = await fetch("/api/admin/usuarios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano, senha: form.senha }) });
+      const senhaDigitada = form.senha;
+      const res = await fetch("/api/admin/usuarios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano, senha: senhaDigitada }) });
       const data = await res.json();
       if (!res.ok) { setErro(data.error || "Erro ao criar usuário."); setSaving(false); return; }
+      setSaving(false); fecharModal(); onRefresh();
+      setSenhaTemp(senhaDigitada); // exibe a senha para o admin copiar e enviar ao usuário
+      return;
     } else if (modal === "editar" && editando) {
       const res = await fetch(`/api/admin/usuarios/${editando._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano }) });
       const data = await res.json();
