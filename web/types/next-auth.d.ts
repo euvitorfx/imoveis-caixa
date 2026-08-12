@@ -6,6 +6,7 @@ declare module "next-auth" {
     user: {
       id: string;
       plano: "gratuito" | "premium";
+      temTelefone: boolean;
     } & DefaultSession["user"];
   }
 
@@ -18,5 +19,6 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id?: string;
     plano?: "gratuito" | "premium";
+    temTelefone?: boolean;
   }
 }

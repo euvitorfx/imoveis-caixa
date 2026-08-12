@@ -17,11 +17,20 @@ async function getUserData(id: string) {
     );
 }
 
-export default async function PerfilPage() {
+export default async function PerfilPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ obrigatorio?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const user = await getUserData(session.user.id);
+  const [user, params] = await Promise.all([
+    getUserData(session.user.id),
+    searchParams,
+  ]);
+
+  const obrigatorio = params.obrigatorio === "1";
   const totalFavoritos = user?.favoritos?.length ?? 0;
   const plano = user?.plano ?? "gratuito";
   const criadoEm = user?.criadoEm
@@ -37,9 +46,18 @@ export default async function PerfilPage() {
     <div className="max-w-xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Minha conta</h1>
 
+      {/* Banner de cadastro obrigatório */}
+      {obrigatorio && !user?.telefone && (
+        <div className="rounded-xl px-4 py-3 text-sm font-medium flex items-start gap-2"
+          style={{ backgroundColor: "#FEF3C7", color: "#92400E", border: "1px solid #F59E0B" }}>
+          <span className="text-base shrink-0">⚠️</span>
+          <span>Para continuar usando o sistema, preencha seu <strong>telefone / WhatsApp</strong> abaixo.</span>
+        </div>
+      )}
+
       {/* Card do usuário */}
       <div className="bg-white rounded-2xl shadow p-6">
-        <div className="flex items-center gap-5 mb-5">
+        <div className="flex items-center gap-5 mb-4">
           <FotoForm fotoAtual={fotoAtual} inicial={inicial} />
           <div>
             <p className="font-semibold text-gray-800 text-lg">{user?.name ?? session.user.name}</p>
@@ -49,12 +67,15 @@ export default async function PerfilPage() {
             )}
           </div>
         </div>
+
+        {/* Formulário sempre visível */}
         <EditarDadosForm
           nomeAtual={user?.name ?? session.user.name ?? ""}
           telefoneAtual={user?.telefone ?? undefined}
+          obrigatorio={obrigatorio && !user?.telefone}
         />
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm mt-4">
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-gray-500 text-xs mb-0.5">Plano</p>
             <p className="font-semibold capitalize" style={{ color: "#01304D" }}>

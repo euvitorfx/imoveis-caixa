@@ -38,16 +38,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.plano = (user as { plano?: "gratuito" | "premium" }).plano ?? "gratuito";
+        // Verifica telefone no banco ao fazer login
+        const client = await clientPromise;
+        const dbUser = await client
+          .db(process.env.MONGODB_DB)
+          .collection("users")
+          .findOne({ _id: new ObjectId(user.id!) }, { projection: { telefone: 1, plano: 1 } });
+        token.temTelefone = !!dbUser?.telefone;
+        token.plano = dbUser?.plano ?? "gratuito";
+      }
+      if (trigger === "update") {
+        // Chamado via useSession().update() após salvar telefone
+        const client = await clientPromise;
+        const dbUser = await client
+          .db(process.env.MONGODB_DB)
+          .collection("users")
+          .findOne({ _id: new ObjectId(token.id as string) }, { projection: { telefone: 1 } });
+        token.temTelefone = !!dbUser?.telefone;
       }
       return token;
     },
     async session({ session, token }) {
       if (token.id) session.user.id = token.id as string;
-      (session.user as { plano?: string }).plano = (token.plano as string) ?? "gratuito";
+      session.user.plano = (token.plano as "gratuito" | "premium") ?? "gratuito";
+      session.user.temTelefone = token.temTelefone ?? false;
       return session;
     },
   },

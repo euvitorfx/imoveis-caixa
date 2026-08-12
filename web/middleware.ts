@@ -5,7 +5,10 @@ import type { NextRequest } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req: NextRequest & { auth?: { user?: unknown } | null }) => {
+// Rotas que exigem login E telefone cadastrado
+const ROTAS_GATED = ["/favoritos", "/perfil/alertas"];
+
+export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolean } } | null }) => {
   const { pathname } = req.nextUrl;
 
   // Admin: proteção por cookie
@@ -17,9 +20,20 @@ export default auth((req: NextRequest & { auth?: { user?: unknown } | null }) =>
   }
 
   // Área do usuário: requer sessão NextAuth
-  if (pathname.startsWith("/perfil") && !req.auth?.user) {
+  const logado = !!req.auth?.user;
+
+  if (pathname.startsWith("/perfil") && !logado) {
     const url = new URL("/login", req.url);
     url.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Gate de telefone: redireciona para perfil se não tiver telefone cadastrado
+  const temTelefone = req.auth?.user?.temTelefone ?? true;
+  const precisaGate = logado && !temTelefone && ROTAS_GATED.some((r) => pathname.startsWith(r));
+  if (precisaGate) {
+    const url = new URL("/perfil", req.url);
+    url.searchParams.set("obrigatorio", "1");
     return NextResponse.redirect(url);
   }
 });
