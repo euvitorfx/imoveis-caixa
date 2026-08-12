@@ -14,8 +14,8 @@ const FERRAMENTAS = [
     tagColor: "bg-green-100 text-green-700",
     descricao:
       "Ferramenta completa para analisar a viabilidade financeira de imóveis em leilão. Calcule custos, retorno esperado e riscos antes de arrematar.",
-    cta: "Acesso para membros",
-    ctaHref: "#",
+    cta: "Abrir planilha",
+    ctaHref: "/ferramentas/viabilidade",
     ctaStyle: "bg-green-600 hover:bg-green-700 text-white",
     destaque: true,
     desabilitado: false,

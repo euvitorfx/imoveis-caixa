@@ -93,6 +93,17 @@ export default function DetalheClient({ imovel, titulo, preco, endereco, mapaLab
         </div>
       </div>
 
+      {/* Análise de viabilidade */}
+      <div className="mb-6">
+        <a
+          href={`/ferramentas/viabilidade/nova?hdnImovel=${encodeURIComponent(imovel.hdnImovel)}&preco=${imovel.preco ?? 0}&precoAval=${imovel.precoAval ?? 0}&endereco=${encodeURIComponent(imovel.endereco ?? "")}&cidade=${encodeURIComponent(imovel.cidade)}&estado=${encodeURIComponent(imovel.estado)}`}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors w-full justify-center"
+          style={{ backgroundColor: "#01304D" }}
+        >
+          📊 Criar Análise Financeira
+        </a>
+      </div>
+
       {/* Mapa */}
       {temMapa ? (
         <div>
