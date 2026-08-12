@@ -5,8 +5,8 @@ import type { NextRequest } from "next/server";
 
 const { auth } = NextAuth(authConfig);
 
-// Rotas que exigem login E telefone cadastrado
-const ROTAS_GATED = ["/favoritos", "/perfil/alertas"];
+// Rotas que ficam acessíveis mesmo sem telefone cadastrado
+const GATE_EXEMPT = ["/perfil", "/login", "/cadastro"];
 
 export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolean } } | null }) => {
   const { pathname } = req.nextUrl;
@@ -19,19 +19,20 @@ export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolea
     }
   }
 
-  // Área do usuário: requer sessão NextAuth
   const logado = !!req.auth?.user;
 
+  // Área do usuário: requer sessão NextAuth
   if (pathname.startsWith("/perfil") && !logado) {
     const url = new URL("/login", req.url);
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Gate de telefone: redireciona para perfil se não tiver telefone cadastrado
+  // Gate de telefone: usuário logado sem telefone é bloqueado em qualquer rota
+  // exceto /perfil (onde ele completa o cadastro), /login e /cadastro
   const temTelefone = req.auth?.user?.temTelefone ?? true;
-  const precisaGate = logado && !temTelefone && ROTAS_GATED.some((r) => pathname.startsWith(r));
-  if (precisaGate) {
+  const exempto = GATE_EXEMPT.some((r) => pathname.startsWith(r));
+  if (logado && !temTelefone && !exempto) {
     const url = new URL("/perfil", req.url);
     url.searchParams.set("obrigatorio", "1");
     return NextResponse.redirect(url);
