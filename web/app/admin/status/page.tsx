@@ -162,6 +162,20 @@ const ROADMAP = [
     ],
   },
   {
+    theme: "Admin & Infraestrutura",
+    color: "bg-slate-600",
+    items: [
+      {
+        title: "Roadmap dinâmico via MongoDB + Admin UI",
+        priority: "Média",
+        priorityColor: "bg-blue-100 text-blue-800",
+        desc: "Mover o roadmap e histórico de sprints do código para uma coleção no MongoDB, com interface no admin para marcar itens como concluídos sem precisar editar código.",
+        chips: ["MongoDB", "Admin UI", "Sem deploy para atualizar"],
+        dep: "",
+      },
+    ],
+  },
+  {
     theme: "Dados — Automático",
     color: "bg-emerald-500",
     items: [
