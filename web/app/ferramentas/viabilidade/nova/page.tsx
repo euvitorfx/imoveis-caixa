@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import AnaliseFormWrapper from "./AnaliseFormWrapper";
 
 export const metadata: Metadata = {
@@ -14,7 +15,9 @@ export default function NovaAnalisePage() {
         </a>
         <h1 className="text-2xl font-bold text-gray-800 mt-2">Nova Análise de Viabilidade</h1>
       </div>
-      <AnaliseFormWrapper />
+      <Suspense fallback={<div className="text-gray-400 text-sm py-8 text-center">Carregando...</div>}>
+        <AnaliseFormWrapper />
+      </Suspense>
     </div>
   );
 }
