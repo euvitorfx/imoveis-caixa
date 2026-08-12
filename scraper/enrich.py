@@ -121,10 +121,12 @@ def main():
             else:
                 erros += 1
 
-            # Upload da foto para o Cloudinary se ainda for URL da Caixa
-            foto_atual = doc.get("fotoUrl", "")
-            if foto_atual and "caixa.gov.br" in foto_atual:
-                nova_url = upload_foto(hdn, foto_atual)
+            # Migrar foto para R2 se a URL vier da Caixa.
+            # Usa update["fotoUrl"] (nova do scraper) com fallback para doc (banco).
+            # Isso evita que uma URL nova do scraper sobrescreva a URL R2 já migrada.
+            foto_para_migrar = update.get("fotoUrl") or doc.get("fotoUrl", "")
+            if foto_para_migrar and "caixa.gov.br" in foto_para_migrar:
+                nova_url = upload_foto(hdn, foto_para_migrar)
                 if nova_url:
                     update["fotoUrl"] = nova_url
                     update["fotoMigrada"] = True
