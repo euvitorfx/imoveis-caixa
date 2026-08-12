@@ -53,12 +53,12 @@ export default function HomePopup() {
     if (status === "loading") return;
     if (session?.user) return; // usuário logado não vê o popup
 
-    const hoje = new Date().toISOString().slice(0, 10);
-    const ultima = localStorage.getItem(POPUP_KEY);
-    if (ultima === hoje) return; // já mostrou hoje
+    const agora = Date.now();
+    const ultima = Number(localStorage.getItem(POPUP_KEY) ?? 0);
+    if (agora - ultima < 8 * 60 * 60 * 1000) return;
 
     const t = setTimeout(() => {
-      localStorage.setItem(POPUP_KEY, hoje);
+      localStorage.setItem(POPUP_KEY, String(agora));
       setVisivel(true);
       // Pequeno delay para a animação de entrada
       setTimeout(() => setMontado(true), 10);
