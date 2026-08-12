@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 type UserRow = {
   _id: string;
@@ -39,13 +39,11 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 function SenhaModal({ senha, onClose }: { senha: string; onClose: () => void }) {
   const [copiado, setCopiado] = useState(false);
-
   function copiar() {
     navigator.clipboard.writeText(senha);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
   }
-
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
@@ -53,24 +51,16 @@ function SenhaModal({ senha, onClose }: { senha: string; onClose: () => void }) 
           <h3 className="font-semibold text-gray-800">Senha temporária gerada</h3>
         </div>
         <div className="px-6 py-5 space-y-4">
-          <p className="text-sm text-gray-600">
-            Envie esta senha para o usuário. Ela não será exibida novamente.
-          </p>
+          <p className="text-sm text-gray-600">Envie esta senha para o usuário. Ela não será exibida novamente.</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-base font-mono tracking-widest text-gray-800 select-all">
               {senha}
             </code>
-            <button
-              onClick={copiar}
-              className="px-3 py-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium transition-colors whitespace-nowrap"
-            >
+            <button onClick={copiar} className="px-3 py-3 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-medium transition-colors whitespace-nowrap">
               {copiado ? "✓" : "Copiar"}
             </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-800 hover:bg-gray-900 text-white transition-colors"
-          >
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl text-sm font-medium bg-gray-800 hover:bg-gray-900 text-white transition-colors">
             Fechar
           </button>
         </div>
@@ -81,6 +71,7 @@ function SenhaModal({ senha, onClose }: { senha: string; onClose: () => void }) 
 
 const INPUT = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 const LABEL = "block text-xs font-medium text-gray-600 mb-1";
+const FINPUT = "w-full border-0 border-b border-gray-200 bg-gray-50 px-2 py-1.5 text-xs focus:outline-none focus:border-blue-400 placeholder:text-gray-300";
 
 export default function AdminUsuarios({
   stats,
@@ -97,58 +88,56 @@ export default function AdminUsuarios({
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState("");
 
-  const [form, setForm] = useState({
-    nome: "", email: "", telefone: "", plano: "gratuito", senha: "",
-  });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "" });
 
-  function set(field: string, value: string) {
-    setForm((p) => ({ ...p, [field]: value }));
+  // Filtros por coluna
+  const [filtros, setFiltros] = useState({ nome: "", email: "", telefone: "", plano: "", data: "" });
+  const temFiltro = Object.values(filtros).some(Boolean);
+
+  function setF(campo: string, valor: string) {
+    setFiltros((p) => ({ ...p, [campo]: valor }));
   }
 
-  function abrirNovo() {
-    setForm({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "" });
-    setErro("");
-    setModal("novo");
+  function limparFiltros() {
+    setFiltros({ nome: "", email: "", telefone: "", plano: "", data: "" });
   }
 
-  function abrirEditar(u: UserRow) {
-    setEditando(u);
-    setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "" });
-    setErro("");
-    setModal("editar");
-  }
+  const filtrados = useMemo(() => {
+    if (!stats) return [];
+    return stats.recentes.filter((u) => {
+      const nome = filtros.nome.toLowerCase();
+      const email = filtros.email.toLowerCase();
+      const tel = filtros.telefone.toLowerCase();
+      const data = filtros.data.toLowerCase();
+      if (nome && !(u.name ?? "").toLowerCase().includes(nome)) return false;
+      if (email && !u.email.toLowerCase().includes(email)) return false;
+      if (tel && !(u.telefone ?? "").toLowerCase().includes(tel)) return false;
+      if (filtros.plano && u.plano !== filtros.plano) return false;
+      if (data) {
+        const d = u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "";
+        if (!d.includes(data)) return false;
+      }
+      return true;
+    });
+  }, [stats, filtros]);
 
-  function fecharModal() {
-    setModal(null);
-    setEditando(null);
-    setErro("");
-  }
+  function set(field: string, value: string) { setForm((p) => ({ ...p, [field]: value })); }
+  function abrirNovo() { setForm({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "" }); setErro(""); setModal("novo"); }
+  function abrirEditar(u: UserRow) { setEditando(u); setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "" }); setErro(""); setModal("editar"); }
+  function fecharModal() { setModal(null); setEditando(null); setErro(""); }
 
   async function salvar() {
-    setSaving(true);
-    setErro("");
-
+    setSaving(true); setErro("");
     if (modal === "novo") {
-      const res = await fetch("/api/admin/usuarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano, senha: form.senha }),
-      });
+      const res = await fetch("/api/admin/usuarios", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano, senha: form.senha }) });
       const data = await res.json();
       if (!res.ok) { setErro(data.error || "Erro ao criar usuário."); setSaving(false); return; }
     } else if (modal === "editar" && editando) {
-      const res = await fetch(`/api/admin/usuarios/${editando._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano }),
-      });
+      const res = await fetch(`/api/admin/usuarios/${editando._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano }) });
       const data = await res.json();
       if (!res.ok) { setErro(data.error || "Erro ao salvar."); setSaving(false); return; }
     }
-
-    setSaving(false);
-    fecharModal();
-    onRefresh();
+    setSaving(false); fecharModal(); onRefresh();
   }
 
   async function excluir(u: UserRow) {
@@ -167,8 +156,9 @@ export default function AdminUsuarios({
   function exportarCSV() {
     if (!stats) return;
     const rows = [
-      ["Nome", "E-mail", "Telefone", "Plano", "Cadastrado em"],
-      ...stats.recentes.map((u) => [
+      ["#", "Nome", "E-mail", "Telefone", "Plano", "Cadastrado em"],
+      ...filtrados.map((u, i) => [
+        String(filtrados.length - i),
         u.name ?? "", u.email ?? "", u.telefone ?? "", u.plano ?? "",
         u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "",
       ]),
@@ -188,50 +178,25 @@ export default function AdminUsuarios({
 
   return (
     <>
-      {/* Modais */}
       {senhaTemp && <SenhaModal senha={senhaTemp} onClose={() => setSenhaTemp(null)} />}
 
       {modal && (
-        <Modal
-          title={modal === "novo" ? "Novo usuário" : `Editar — ${editando?.name}`}
-          onClose={fecharModal}
-        >
+        <Modal title={modal === "novo" ? "Novo usuário" : `Editar — ${editando?.name}`} onClose={fecharModal}>
           <div className="space-y-3">
-            <div>
-              <label className={LABEL}>Nome completo *</label>
-              <input value={form.nome} onChange={(e) => set("nome", e.target.value)} required className={INPUT} placeholder="Nome completo" />
-            </div>
-            <div>
-              <label className={LABEL}>E-mail *</label>
-              <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required className={INPUT} placeholder="email@exemplo.com" />
-            </div>
-            <div>
-              <label className={LABEL}>Telefone / WhatsApp <span className="text-gray-400 font-normal">(opcional)</span></label>
-              <input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} className={INPUT} placeholder="+55 11 99999-9999" />
-            </div>
-            <div>
-              <label className={LABEL}>Plano</label>
+            <div><label className={LABEL}>Nome completo *</label><input value={form.nome} onChange={(e) => set("nome", e.target.value)} required className={INPUT} placeholder="Nome completo" /></div>
+            <div><label className={LABEL}>E-mail *</label><input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required className={INPUT} placeholder="email@exemplo.com" /></div>
+            <div><label className={LABEL}>Telefone / WhatsApp <span className="text-gray-400 font-normal">(opcional)</span></label><input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} className={INPUT} placeholder="+55 11 99999-9999" /></div>
+            <div><label className={LABEL}>Plano</label>
               <select value={form.plano} onChange={(e) => set("plano", e.target.value)} className={INPUT}>
                 <option value="gratuito">Gratuito</option>
                 <option value="premium">Premium</option>
               </select>
             </div>
-            {modal === "novo" && (
-              <div>
-                <label className={LABEL}>Senha *</label>
-                <input type="password" value={form.senha} onChange={(e) => set("senha", e.target.value)} required className={INPUT} placeholder="Mínimo 6 caracteres" />
-              </div>
-            )}
-            {modal === "editar" && (
-              <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
-                Para redefinir a senha use o botão "Reset senha" na tabela.
-              </p>
-            )}
+            {modal === "novo" && <div><label className={LABEL}>Senha *</label><input type="password" value={form.senha} onChange={(e) => set("senha", e.target.value)} required className={INPUT} placeholder="Mínimo 6 caracteres" /></div>}
+            {modal === "editar" && <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">Para redefinir a senha use o botão "Reset senha" na tabela.</p>}
             {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{erro}</p>}
             <div className="flex gap-2 pt-1">
-              <button onClick={fecharModal} className="flex-1 py-2.5 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
+              <button onClick={fecharModal} className="flex-1 py-2.5 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
               <button onClick={salvar} disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors">
                 {saving ? "Salvando..." : modal === "novo" ? "Criar usuário" : "Salvar alterações"}
               </button>
@@ -262,16 +227,24 @@ export default function AdminUsuarios({
 
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-          Usuários ({stats.recentes.length}{stats.recentes.length === 200 ? "+" : ""})
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+            Usuários
+          </h2>
+          <span className="text-xs text-gray-400">
+            {temFiltro ? `${filtrados.length} de ${stats.recentes.length}` : stats.recentes.length}{stats.recentes.length === 200 ? "+" : ""}
+          </span>
+          {temFiltro && (
+            <button onClick={limparFiltros} className="text-xs text-red-500 hover:underline">
+              limpar filtros
+            </button>
+          )}
+        </div>
         <div className="flex gap-2">
-          <button onClick={exportarCSV}
-            className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg transition-colors">
+          <button onClick={exportarCSV} className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg transition-colors">
             ↓ Exportar CSV
           </button>
-          <button onClick={abrirNovo}
-            className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          <button onClick={abrirNovo} className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
             + Novo usuário
           </button>
         </div>
@@ -285,7 +258,9 @@ export default function AdminUsuarios({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
+                {/* Cabeçalho */}
                 <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide bg-gray-50">
+                  <th className="px-4 py-3 font-medium w-10">#</th>
                   <th className="px-4 py-3 font-medium">Nome</th>
                   <th className="px-4 py-3 font-medium">E-mail</th>
                   <th className="px-4 py-3 font-medium">Telefone</th>
@@ -293,10 +268,37 @@ export default function AdminUsuarios({
                   <th className="px-4 py-3 font-medium">Cadastrado</th>
                   <th className="px-4 py-3 font-medium"></th>
                 </tr>
+                {/* Linha de filtros */}
+                <tr className="border-b bg-gray-50/60">
+                  <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5">
+                    <input value={filtros.nome} onChange={(e) => setF("nome", e.target.value)} className={FINPUT} placeholder="Buscar nome..." />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input value={filtros.email} onChange={(e) => setF("email", e.target.value)} className={FINPUT} placeholder="Buscar e-mail..." />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input value={filtros.telefone} onChange={(e) => setF("telefone", e.target.value)} className={FINPUT} placeholder="Buscar..." />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <select value={filtros.plano} onChange={(e) => setF("plano", e.target.value)} className={FINPUT}>
+                      <option value="">Todos</option>
+                      <option value="gratuito">Gratuito</option>
+                      <option value="premium">Premium</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input value={filtros.data} onChange={(e) => setF("data", e.target.value)} className={FINPUT} placeholder="dd/mm/aaaa" />
+                  </td>
+                  <td className="px-2 py-1.5"></td>
+                </tr>
               </thead>
               <tbody>
-                {stats.recentes.map((u) => (
+                {filtrados.length === 0 ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum resultado para os filtros aplicados.</td></tr>
+                ) : filtrados.map((u, i) => (
                   <tr key={u._id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-400 text-xs tabular-nums">{filtrados.length - i}</td>
                     <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{u.name ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{u.telefone || <span className="text-gray-300">—</span>}</td>
@@ -311,15 +313,9 @@ export default function AdminUsuarios({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-3 justify-end items-center">
-                        <button onClick={() => abrirEditar(u)} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
-                          Editar
-                        </button>
-                        <button onClick={() => resetarSenha(u)} className="text-xs text-amber-600 hover:underline whitespace-nowrap">
-                          Reset senha
-                        </button>
-                        <button onClick={() => excluir(u)} className="text-xs text-red-500 hover:underline whitespace-nowrap">
-                          Excluir
-                        </button>
+                        <button onClick={() => abrirEditar(u)} className="text-xs text-blue-600 hover:underline whitespace-nowrap">Editar</button>
+                        <button onClick={() => resetarSenha(u)} className="text-xs text-amber-600 hover:underline whitespace-nowrap">Reset senha</button>
+                        <button onClick={() => excluir(u)} className="text-xs text-red-500 hover:underline whitespace-nowrap">Excluir</button>
                       </div>
                     </td>
                   </tr>
