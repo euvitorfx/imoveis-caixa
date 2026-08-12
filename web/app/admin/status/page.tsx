@@ -48,6 +48,7 @@ const SPRINTS = [
   { num: "8", title: "Redesign Visual — Petróleo & Âmbar", items: ["Nova paleta #01304D", "Header + footer", "Cards + filtros", "Carousel hero"] },
   { num: "9", title: "Auth + Usuários + Mobile", items: ["Cadastro / login", "Plano freemium", "Google OAuth", "Admin usuários", "Menu mobile", "Phone mask + flag"] },
   { num: "10", title: "Clube BLC (base) + IA + R2", items: ["Página /clube", "Descrições IA (Haiku)", "Export PDF + auth gate", "Fotos → R2 (24k+)", "Popup de cadastro", "Admin social/copy IA"] },
+  { num: "11", title: "Planilha de Análise de Viabilidade", items: ["Calculadora online completa", "Import de favoritos", "Export XLS", "Salvar/editar análises", "Botão no detalhe do imóvel", "API CRUD (GET/POST/PUT/DELETE)", "Gráfico ROI (Recharts)"] },
 ];
 
 const ROADMAP = [
@@ -115,14 +116,6 @@ const ROADMAP = [
     theme: "Área de Membros",
     color: "bg-green-600",
     items: [
-      {
-        title: "Planilha de Viabilidade Financeira",
-        priority: "Média",
-        priorityColor: "bg-blue-100 text-blue-800",
-        desc: "Calculadora interativa de custos, retorno e riscos. Card já existe em /ferramentas, falta a implementação.",
-        chips: ["Calculadora no browser", "Exclusivo membros"],
-        dep: "",
-      },
       {
         title: "Feature Gating Gratuito vs Premium",
         priority: "Média",
@@ -333,7 +326,7 @@ export default function StatusPage() {
         {/* Stats strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { num: "10", label: "Sprints concluídas", color: "border-green-400" },
+            { num: "11", label: "Sprints concluídas", color: "border-green-400" },
             { num: String(totalPending), label: "Itens pendentes", color: "border-amber-400" },
             { num: "25k+", label: "Imóveis no banco", color: "border-blue-400" },
             { num: "9.855", label: "Matrículas enriquecidas", color: "border-violet-400" },
@@ -468,7 +461,7 @@ export default function StatusPage() {
 
       {/* ── Sprint History ── */}
       <div>
-        <SectionLabel>Histórico — 10 Sprints Concluídas</SectionLabel>
+        <SectionLabel>Histórico — 11 Sprints Concluídas</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {SPRINTS.map((s) => (
             <div key={s.num} className="bg-white rounded-xl shadow-sm border border-l-4 border-l-green-400 p-4 flex gap-3">
