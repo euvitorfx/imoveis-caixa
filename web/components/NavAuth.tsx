@@ -18,12 +18,21 @@ export default async function NavAuth() {
   }
 
   return (
-    <a
-      href="/login"
-      className="flex items-center gap-1 text-sm font-medium hover:opacity-90 transition-opacity px-3 py-1 rounded-full border"
-      style={{ borderColor: "rgba(255,255,255,0.4)", color: "rgba(255,255,255,0.85)" }}
-    >
-      Entrar
-    </a>
+    <div className="flex items-center gap-2">
+      <a
+        href="/login"
+        className="flex items-center gap-1 text-sm font-medium hover:opacity-90 transition-opacity px-3 py-1 rounded-full border"
+        style={{ borderColor: "rgba(255,255,255,0.4)", color: "rgba(255,255,255,0.85)" }}
+      >
+        Entrar
+      </a>
+      <a
+        href="/cadastro"
+        className="flex items-center gap-1 text-sm font-semibold hover:opacity-90 transition-opacity px-3 py-1.5 rounded-full"
+        style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}
+      >
+        Criar conta grátis
+      </a>
+    </div>
   );
 }
