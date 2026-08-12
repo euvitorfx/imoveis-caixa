@@ -14,7 +14,7 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
         import("@/components/PdfImovelDoc"),
       ]);
 
-      // Garante que a foto esteja no Cloudinary (CORS ok para @react-pdf/renderer)
+      // Busca a foto via proxy server-side (retorna base64 — sem CORS)
       let fotoUrl: string | undefined;
       if (imovel.fotoUrl) {
         try {
@@ -23,7 +23,7 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
           );
           if (res.ok) {
             const json = await res.json();
-            fotoUrl = json.cloudinaryUrl ?? undefined;
+            fotoUrl = json.base64 ?? json.cloudinaryUrl ?? undefined;
           }
         } catch {
           // sem foto no PDF

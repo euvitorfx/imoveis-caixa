@@ -10,6 +10,21 @@ function hdnDaUrl(url: string): string | null {
   return m ? m[1] : null;
 }
 
+async function fetchAsBase64(url: string, headers?: Record<string, string>): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers,
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const buffer      = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const fotoUrl = req.nextUrl.searchParams.get("url");
   if (!fotoUrl) return new NextResponse("Missing url", { status: 400 });
@@ -17,38 +32,26 @@ export async function GET(req: NextRequest) {
   const r2Base = process.env.R2_PUBLIC_URL?.replace(/\/$/, "") ?? "";
 
   try {
-    // Já é URL do R2 — retorna direto (CORS ok, bucket público)
+    // URL do R2 — busca server-side e retorna base64 (evita CORS no browser)
     if (r2Base && fotoUrl.startsWith(r2Base)) {
-      return NextResponse.json({ cloudinaryUrl: fotoUrl });
-    }
-
-    // URL da Caixa — tenta encontrar no R2 pelo hdnImovel
-    const hdn = hdnDaUrl(fotoUrl);
-    if (hdn && r2Base) {
-      const r2Url = `${r2Base}/imoveis-caixa/${hdn}`;
-      const check = await fetch(r2Url, {
-        method: "HEAD",
-        signal: AbortSignal.timeout(4000),
-      });
-      if (check.ok) {
-        return NextResponse.json({ cloudinaryUrl: r2Url });
-      }
-    }
-
-    // Fallback: busca da Caixa server-side e retorna base64
-    const imgRes = await fetch(fotoUrl, {
-      headers: CAIXA_HEADERS,
-      signal:  AbortSignal.timeout(8000),
-    });
-    if (!imgRes.ok) {
+      const base64 = await fetchAsBase64(fotoUrl);
+      if (base64) return NextResponse.json({ base64 });
       return new NextResponse("Image not available", { status: 404 });
     }
 
-    const buffer      = Buffer.from(await imgRes.arrayBuffer());
-    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-    return NextResponse.json({
-      base64: `data:${contentType};base64,${buffer.toString("base64")}`,
-    });
+    // URL da Caixa — tenta encontrar no R2 primeiro
+    const hdn = hdnDaUrl(fotoUrl);
+    if (hdn && r2Base) {
+      const r2Url = `${r2Base}/imoveis-caixa/${hdn}`;
+      const base64 = await fetchAsBase64(r2Url);
+      if (base64) return NextResponse.json({ base64 });
+    }
+
+    // Fallback: busca da Caixa server-side
+    const base64 = await fetchAsBase64(fotoUrl, CAIXA_HEADERS);
+    if (base64) return NextResponse.json({ base64 });
+
+    return new NextResponse("Image not available", { status: 404 });
   } catch (err) {
     console.error("[proxy-imagem-b64]", err);
     return new NextResponse("Error", { status: 500 });
