@@ -301,6 +301,10 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex gap-3 flex-wrap justify-end">
+          <a href="/admin/status"
+            className="text-sm font-semibold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+            ⚡ Status
+          </a>
           <a href="/admin/social"
             className="text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
             style={{ backgroundColor: "#F59E0B", color: "#1C1917" }}>
