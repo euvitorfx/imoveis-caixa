@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import FotoForm from "./FotoForm";
 import PreferenciasForm from "./PreferenciasForm";
+import EditarDadosForm from "./EditarDadosForm";
 
 async function getUserData(id: string) {
   const client = await clientPromise;
@@ -30,7 +31,7 @@ export default async function PerfilPage() {
   const fotoAtual: string | undefined = user?.foto ?? session.user.image ?? undefined;
   const inicial = (user?.name ?? session.user.name ?? "U")[0].toUpperCase();
 
-  const prefsIniciais = user?.preferencias ?? { brasil: true, estados: [], cidades: [] };
+  const prefsIniciais = user?.preferencias ?? { brasil: false, estados: [], cidades: [] };
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -48,6 +49,10 @@ export default async function PerfilPage() {
             )}
           </div>
         </div>
+        <EditarDadosForm
+          nomeAtual={user?.name ?? session.user.name ?? ""}
+          telefoneAtual={user?.telefone ?? undefined}
+        />
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="bg-gray-50 rounded-xl p-3">

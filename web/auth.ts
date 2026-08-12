@@ -9,7 +9,7 @@ import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(clientPromise, { databaseName: process.env.MONGODB_DB }),
   session: { strategy: "jwt" },
   providers: [
     Google({
