@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
+import { ObjectId, Document } from "mongodb";
 import { auth } from "@/auth";
 import clientPromise from "@/lib/mongodb";
 
@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
   await client
     .db(process.env.MONGODB_DB)
     .collection("users")
-    .updateOne({ _id: new ObjectId(session.user.id) }, { $pull: { favoritos: hdnImovel } });
+    .updateOne({ _id: new ObjectId(session.user.id) }, { $pull: { favoritos: hdnImovel } } as Document);
 
   return NextResponse.json({ ok: true });
 }

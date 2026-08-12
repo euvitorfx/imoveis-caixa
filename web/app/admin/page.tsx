@@ -160,7 +160,15 @@ function fmtDataISO(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 
-type Tab = "blog" | "corretores";
+type Tab = "blog" | "corretores" | "usuarios";
+
+type UserStats = {
+  total: number;
+  premium: number;
+  gratuito: number;
+  comTelefone: number;
+  recentes: { _id: string; name: string; email: string; telefone?: string; plano: string; criadoEm?: string }[];
+};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -178,6 +186,10 @@ export default function AdminPage() {
   const [showFormCorr,  setShowFormCorr]  = useState(false);
   const [cadastroMsg,   setCadastroMsg]   = useState("");
 
+  // Usuários state
+  const [userStats,      setUserStats]      = useState<UserStats | null>(null);
+  const [loadingUsers,   setLoadingUsers]   = useState(true);
+
   async function loadPosts() {
     const res = await fetch("/api/admin/posts");
     if (!res.ok) { router.push("/admin/login"); return; }
@@ -192,10 +204,40 @@ export default function AdminPage() {
     setLoadingCorr(false);
   }
 
+  async function loadUsuarios() {
+    const res = await fetch("/api/admin/usuarios");
+    if (!res.ok) return;
+    setUserStats(await res.json());
+    setLoadingUsers(false);
+  }
+
   useEffect(() => {
     loadPosts();
     loadCorretores();
+    loadUsuarios();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function exportarCSV() {
+    if (!userStats) return;
+    const rows = [
+      ["Nome", "E-mail", "Telefone", "Plano", "Cadastrado em"],
+      ...userStats.recentes.map((u) => [
+        u.name ?? "",
+        u.email ?? "",
+        u.telefone ?? "",
+        u.plano ?? "",
+        u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Blog actions
   async function togglePublicado(post: BlogPost) {
@@ -270,6 +312,11 @@ export default function AdminPage() {
             {pendentes > 0 && (
               <span className="ml-2 text-amber-600 font-medium">· {pendentes} corretor{pendentes !== 1 ? "es" : ""} aguardando aprovação</span>
             )}
+            {userStats && (
+              <span className="ml-2 text-blue-700 font-medium">
+                · {userStats.total} usuário{userStats.total !== 1 ? "s" : ""} ({userStats.premium} premium)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-3 flex-wrap justify-end">
@@ -313,6 +360,14 @@ export default function AdminPage() {
               {pendentes}
             </span>
           )}
+        </button>
+        <button onClick={() => setTab("usuarios")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "usuarios"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          Usuários
         </button>
       </div>
 
@@ -387,6 +442,88 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </>
+      )}
+
+      {/* Usuários Tab */}
+      {tab === "usuarios" && (
+        <>
+          {loadingUsers ? (
+            <p className="text-gray-400 text-center py-10">Carregando...</p>
+          ) : !userStats ? (
+            <p className="text-gray-400 text-center py-10">Erro ao carregar dados.</p>
+          ) : (
+            <>
+              {/* Stats cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl shadow p-4 text-center">
+                  <p className="text-3xl font-bold text-gray-800">{userStats.total}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total cadastrados</p>
+                </div>
+                <div className="bg-white rounded-xl shadow p-4 text-center">
+                  <p className="text-3xl font-bold text-blue-600">{userStats.premium}</p>
+                  <p className="text-xs text-gray-500 mt-1">Premium ativos</p>
+                </div>
+                <div className="bg-white rounded-xl shadow p-4 text-center">
+                  <p className="text-3xl font-bold text-gray-600">{userStats.gratuito}</p>
+                  <p className="text-xs text-gray-500 mt-1">Plano gratuito</p>
+                </div>
+                <div className="bg-white rounded-xl shadow p-4 text-center">
+                  <p className="text-3xl font-bold text-green-600">{userStats.comTelefone}</p>
+                  <p className="text-xs text-gray-500 mt-1">Com WhatsApp</p>
+                </div>
+              </div>
+
+              {/* Export + table */}
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                  Usuários recentes ({userStats.recentes.length})
+                </h2>
+                <button onClick={exportarCSV}
+                  className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                  ↓ Exportar CSV
+                </button>
+              </div>
+
+              {userStats.recentes.length === 0 ? (
+                <p className="text-gray-400 text-center py-10">Nenhum usuário cadastrado ainda.</p>
+              ) : (
+                <div className="bg-white rounded-xl shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide">
+                          <th className="px-4 py-3 font-medium">Nome</th>
+                          <th className="px-4 py-3 font-medium">E-mail</th>
+                          <th className="px-4 py-3 font-medium">Telefone</th>
+                          <th className="px-4 py-3 font-medium">Plano</th>
+                          <th className="px-4 py-3 font-medium">Cadastrado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userStats.recentes.map((u) => (
+                          <tr key={u._id} className="border-b last:border-0 hover:bg-gray-50">
+                            <td className="px-4 py-3 font-medium text-gray-800">{u.name ?? "—"}</td>
+                            <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                            <td className="px-4 py-3 text-gray-500">{u.telefone ?? <span className="text-gray-300">—</span>}</td>
+                            <td className="px-4 py-3">
+                              {u.plano === "premium"
+                                ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Premium</span>
+                                : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Gratuito</span>
+                              }
+                            </td>
+                            <td className="px-4 py-3 text-gray-500">
+                              {u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
