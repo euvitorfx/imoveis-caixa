@@ -8,6 +8,7 @@ import clientPromise from "@/lib/mongodb";
 import { ALL_ESTADOS, ESTADO_NOMES, ESTADO_BANDEIRAS } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
 import HeroCarousel from "@/components/HeroCarousel";
+import HomePopup from "@/components/HomePopup";
 
 export const dynamic = "force-dynamic";
 
@@ -221,6 +222,8 @@ export default async function HomePage({
           </Suspense>
         </>
       )}
+
+      <HomePopup />
 
       {/* Explorar por estado */}
       <div className="mt-12 pt-6 border-t border-gray-200">
