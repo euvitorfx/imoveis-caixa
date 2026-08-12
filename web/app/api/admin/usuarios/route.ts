@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     col.find({})
       .sort({ criadoEm: -1 })
       .limit(200)
-      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1 })
+      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, preferencias: 1 })
       .toArray(),
   ]);
 

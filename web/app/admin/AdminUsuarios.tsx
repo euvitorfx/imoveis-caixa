@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+
+type Preferencias = { brasil: boolean; estados: string[]; cidades: string[] };
 
 type UserRow = {
   _id: string;
@@ -9,6 +13,7 @@ type UserRow = {
   telefone?: string;
   plano: string;
   criadoEm?: string;
+  preferencias?: Preferencias;
 };
 
 type UserStats = {
@@ -21,10 +26,10 @@ type UserStats = {
 
 type ModalMode = "novo" | "editar" | null;
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, wide, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className={`bg-white rounded-2xl shadow-2xl w-full my-4 ${wide ? "max-w-xl" : "max-w-md"}`}>
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b">
           <h3 className="font-semibold text-gray-800">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
@@ -88,7 +93,7 @@ export default function AdminUsuarios({
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState("");
 
-  const [form, setForm] = useState({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "" });
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "", estados: [] as string[], cidades: [] as string[] });
 
   // Filtros por coluna
   const [filtros, setFiltros] = useState({ nome: "", email: "", telefone: "", plano: "", data: "" });
@@ -122,8 +127,10 @@ export default function AdminUsuarios({
   }, [stats, filtros]);
 
   function set(field: string, value: string) { setForm((p) => ({ ...p, [field]: value })); }
-  function abrirNovo() { setForm({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "" }); setErro(""); setModal("novo"); }
-  function abrirEditar(u: UserRow) { setEditando(u); setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "" }); setErro(""); setModal("editar"); }
+  function abrirNovo() { setForm({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "", estados: [], cidades: [] }); setErro(""); setModal("novo"); }
+  function abrirEditar(u: UserRow) { setEditando(u); setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "", estados: u.preferencias?.estados ?? [], cidades: u.preferencias?.cidades ?? [] }); setErro(""); setModal("editar"); }
+  function removerEstado(uf: string) { setForm((p) => ({ ...p, estados: p.estados.filter((e) => e !== uf) })); }
+  function removerCidade(c: string) { setForm((p) => ({ ...p, cidades: p.cidades.filter((x) => x !== c) })); }
   function fecharModal() { setModal(null); setEditando(null); setErro(""); }
 
   async function salvar() {
@@ -137,7 +144,7 @@ export default function AdminUsuarios({
       setSenhaTemp(senhaDigitada); // exibe a senha para o admin copiar e enviar ao usuário
       return;
     } else if (modal === "editar" && editando) {
-      const res = await fetch(`/api/admin/usuarios/${editando._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano }) });
+      const res = await fetch(`/api/admin/usuarios/${editando._id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nome: form.nome, email: form.email, telefone: form.telefone, plano: form.plano, preferencias: { brasil: false, estados: form.estados, cidades: form.cidades } }) });
       const data = await res.json();
       if (!res.ok) { setErro(data.error || "Erro ao salvar."); setSaving(false); return; }
     }
@@ -185,11 +192,21 @@ export default function AdminUsuarios({
       {senhaTemp && <SenhaModal senha={senhaTemp} onClose={() => setSenhaTemp(null)} />}
 
       {modal && (
-        <Modal title={modal === "novo" ? "Novo usuário" : `Editar — ${editando?.name}`} onClose={fecharModal}>
+        <Modal title={modal === "novo" ? "Novo usuário" : `Editar — ${editando?.name}`} onClose={fecharModal} wide={modal === "editar"}>
           <div className="space-y-3">
             <div><label className={LABEL}>Nome completo *</label><input value={form.nome} onChange={(e) => set("nome", e.target.value)} required className={INPUT} placeholder="Nome completo" /></div>
             <div><label className={LABEL}>E-mail *</label><input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required className={INPUT} placeholder="email@exemplo.com" /></div>
-            <div><label className={LABEL}>Telefone / WhatsApp <span className="text-gray-400 font-normal">(opcional)</span></label><input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} className={INPUT} placeholder="+55 11 99999-9999" /></div>
+            <div>
+              <label className={LABEL}>Telefone / WhatsApp <span className="text-gray-400 font-normal">(opcional)</span></label>
+              <PhoneInput
+                international
+                defaultCountry="BR"
+                value={form.telefone || undefined}
+                onChange={(v) => set("telefone", v ?? "")}
+                className="phone-input-wrapper phone-input-perfil"
+                placeholder="+55 (11) 99999-9999"
+              />
+            </div>
             <div><label className={LABEL}>Plano</label>
               <select value={form.plano} onChange={(e) => set("plano", e.target.value)} className={INPUT}>
                 <option value="gratuito">Gratuito</option>
@@ -197,7 +214,45 @@ export default function AdminUsuarios({
               </select>
             </div>
             {modal === "novo" && <div><label className={LABEL}>Senha *</label><input type="password" value={form.senha} onChange={(e) => set("senha", e.target.value)} required className={INPUT} placeholder="Mínimo 6 caracteres" /></div>}
-            {modal === "editar" && <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">Para redefinir a senha use o botão "Reset senha" na tabela.</p>}
+            {modal === "editar" && (
+              <>
+                <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">Para redefinir a senha use o botão &ldquo;Reset senha&rdquo; na tabela.</p>
+
+                {/* Estados de interesse */}
+                <div>
+                  <label className={LABEL}>Estados de interesse</label>
+                  {form.estados.length === 0 ? (
+                    <p className="text-xs text-gray-400 mt-1">Nenhum estado selecionado</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {form.estados.map((uf) => (
+                        <span key={uf} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {uf}
+                          <button type="button" onClick={() => removerEstado(uf)} className="hover:text-red-500 leading-none ml-0.5">✕</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Cidades de interesse */}
+                <div>
+                  <label className={LABEL}>Cidades de interesse</label>
+                  {form.cidades.length === 0 ? (
+                    <p className="text-xs text-gray-400 mt-1">Nenhuma cidade selecionada</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 mt-1 max-h-32 overflow-y-auto">
+                      {form.cidades.map((cidade) => (
+                        <span key={cidade} className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {cidade}
+                          <button type="button" onClick={() => removerCidade(cidade)} className="hover:text-red-500 leading-none ml-0.5">✕</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{erro}</p>}
             <div className="flex gap-2 pt-1">
               <button onClick={fecharModal} className="flex-1 py-2.5 rounded-xl text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>

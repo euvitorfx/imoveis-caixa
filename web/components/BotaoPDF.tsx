@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Imovel } from "@/lib/types";
 
 export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
   const [loading, setLoading] = useState(false);
+  const { status } = useSession();
+  const router = useRouter();
 
   const handleClick = async () => {
+    if (status !== "authenticated") {
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
     setLoading(true);
     try {
       const [renderer, { ImovelPDF }] = await Promise.all([

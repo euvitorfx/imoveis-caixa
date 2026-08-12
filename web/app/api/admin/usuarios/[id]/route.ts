@@ -10,13 +10,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!checkAdmin(req)) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const { id } = await params;
-  const { nome, email, telefone, plano } = await req.json();
+  const { nome, email, telefone, plano, preferencias } = await req.json();
 
   const update: Record<string, unknown> = {};
   if (nome) update.name = nome;
   if (email) update.email = email.toLowerCase();
   if (telefone !== undefined) update.telefone = telefone || null;
   if (plano) update.plano = plano;
+  if (preferencias !== undefined) update.preferencias = preferencias;
 
   const client = await clientPromise;
   await client
