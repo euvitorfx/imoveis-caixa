@@ -29,6 +29,7 @@ def ensure_indexes():
     col.create_index([("tipo", ASCENDING)])
     col.create_index([("ativo", ASCENDING)])
     col.create_index([("dataInsercao", ASCENDING)])
+    col.create_index([("dataInativacao", ASCENDING)])
     print("  Índices criados/verificados.")
 
 
@@ -86,13 +87,25 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
 
 
 def marcar_inativos(estado: str, hdnimoveis_ativos: list[str]):
-    """Marca como inativos imóveis do estado que não vieram na última raspagem."""
+    """Marca como inativos imóveis do estado que não vieram na última raspagem.
+    O filtro 'ativo: True' garante que dataInativacao seja gravado apenas uma vez,
+    na primeira transição ativo → inativo.
+    """
     if not hdnimoveis_ativos:
         return
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
+    now = datetime.now(timezone.utc)
     result = col.update_many(
-        {"estado": estado, "hdnImovel": {"$nin": hdnimoveis_ativos}},
-        {"$set": {"ativo": False, "dataAtualizacao": datetime.now(timezone.utc)}},
+        {
+            "estado": estado,
+            "hdnImovel": {"$nin": hdnimoveis_ativos},
+            "ativo": True,
+        },
+        {"$set": {
+            "ativo": False,
+            "dataAtualizacao": now,
+            "dataInativacao": now,
+        }},
     )
     return result.modified_count
 

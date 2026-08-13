@@ -137,15 +137,15 @@ async function getStats() {
 
     // Movimentações 7 dias
     col.countDocuments({ dataInsercao: { $gte: sete } }),
-    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: sete } }),
+    col.countDocuments({ ativo: false, dataInativacao: { $gte: sete } }),
     col.countDocuments({ ativo: true, dataAtualizacao: { $gte: sete }, dataInsercao: { $lt: sete } }),
     // Movimentações 15 dias
     col.countDocuments({ dataInsercao: { $gte: quinze } }),
-    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: quinze } }),
+    col.countDocuments({ ativo: false, dataInativacao: { $gte: quinze } }),
     col.countDocuments({ ativo: true, dataAtualizacao: { $gte: quinze }, dataInsercao: { $lt: quinze } }),
     // Movimentações 30 dias
     col.countDocuments({ dataInsercao: { $gte: trinta } }),
-    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: trinta } }),
+    col.countDocuments({ ativo: false, dataInativacao: { $gte: trinta } }),
     col.countDocuments({ ativo: true, dataAtualizacao: { $gte: trinta }, dataInsercao: { $lt: trinta } }),
 
     col.aggregate([
@@ -186,15 +186,15 @@ async function getStats() {
 
     // Valor de saídas do acervo por período
     col.aggregate([
-      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: sete } } },
+      { $match: { ativo: false, preco: { $gt: 0 }, dataInativacao: { $gte: sete } } },
       { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
     ]).toArray(),
     col.aggregate([
-      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: quinze } } },
+      { $match: { ativo: false, preco: { $gt: 0 }, dataInativacao: { $gte: quinze } } },
       { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
     ]).toArray(),
     col.aggregate([
-      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: trinta } } },
+      { $match: { ativo: false, preco: { $gt: 0 }, dataInativacao: { $gte: trinta } } },
       { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
     ]).toArray(),
   ]);
