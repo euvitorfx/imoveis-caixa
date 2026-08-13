@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
+import { resend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
+import { emailBoasVindas } from "@/emails/boasVindas";
 
 export async function POST(req: NextRequest) {
   const { nome, email, telefone, senha } = await req.json();
@@ -32,6 +34,16 @@ export async function POST(req: NextRequest) {
     favoritos: [],
     criadoEm: new Date(),
   });
+
+  // Dispara e-mail de boas-vindas (sem bloquear a resposta em caso de falha)
+  const { subject, html } = emailBoasVindas(nome);
+  resend.emails.send({
+    from: EMAIL_FROM,
+    reply_to: EMAIL_REPLY_TO,
+    to: email.toLowerCase(),
+    subject,
+    html,
+  }).catch((err) => console.error("[resend] boas-vindas:", err));
 
   return NextResponse.json({ ok: true });
 }
