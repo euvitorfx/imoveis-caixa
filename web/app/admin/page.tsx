@@ -161,7 +161,7 @@ function fmtDataISO(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 
-type Tab = "blog" | "corretores" | "usuarios";
+type Tab = "blog" | "corretores" | "usuarios" | "utm";
 
 type UserStats = {
   total: number;
@@ -172,6 +172,159 @@ type UserStats = {
 };
 
 // UserStats is kept here so the header can show totals; CRUD is handled in AdminUsuarios
+
+const BASE = "https://buscaleiloescaixa.com.br";
+
+const UTM_LINKS = [
+  {
+    titulo: "🏠 Link principal — Home",
+    desc: "Use em todos os vídeos como link padrão na descrição",
+    badge: "Principal",
+    badgeClass: "bg-blue-100 text-blue-700",
+    url: `${BASE}?utm_source=youtube&utm_medium=video&utm_campaign=canal`,
+  },
+  {
+    titulo: "🆓 Cadastro — CTA direto",
+    desc: "Para vídeos que falem sobre criar conta, favoritos ou ferramentas exclusivas",
+    badge: "CTA",
+    badgeClass: "bg-amber-100 text-amber-700",
+    url: `${BASE}/cadastro?utm_source=youtube&utm_medium=video&utm_campaign=canal`,
+  },
+  {
+    titulo: "📊 Ferramentas — Planilha de viabilidade",
+    desc: "Para vídeos sobre análise financeira, calcular ROI ou custos de arrematação",
+    badge: "Ferramenta",
+    badgeClass: "bg-violet-100 text-violet-700",
+    url: `${BASE}/ferramentas?utm_source=youtube&utm_medium=video&utm_campaign=ferramentas`,
+  },
+  {
+    titulo: "🗺️ Mapa de imóveis",
+    desc: "Para vídeos sobre como encontrar imóveis por localização",
+    badge: "Mapa",
+    badgeClass: "bg-green-100 text-green-700",
+    url: `${BASE}/mapa?utm_source=youtube&utm_medium=video&utm_campaign=canal`,
+  },
+];
+
+function UtmLinksTab() {
+  const [copiado, setCopiado] = useState<string | null>(null);
+  const [nomeVideo, setNomeVideo] = useState("");
+  const [destino, setDestino] = useState("");
+
+  function copiar(url: string, key: string) {
+    navigator.clipboard.writeText(url);
+    setCopiado(key);
+    setTimeout(() => setCopiado(null), 2000);
+  }
+
+  const campaign = nomeVideo.trim().replace(/\s+/g, "-").toLowerCase() || "canal";
+  const urlGerada = `${BASE}${destino}?utm_source=youtube&utm_medium=video&utm_campaign=${campaign}`;
+
+  return (
+    <div className="space-y-8">
+
+      {/* Info */}
+      <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl px-4 py-3 text-sm text-amber-800">
+        <strong>Como funciona:</strong> o GA4 já está configurado no site. Use esses links nas descrições dos vídeos — cada visita aparecerá separada em <em>Aquisição → Campanhas</em> no Google Analytics.
+      </div>
+
+      {/* Links prontos */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Links prontos para usar</h2>
+        <div className="space-y-3">
+          {UTM_LINKS.map((l) => (
+            <div key={l.url} className="bg-white rounded-xl shadow border p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{l.titulo}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{l.desc}</p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${l.badgeClass}`}>{l.badge}</span>
+              </div>
+              <div className="flex gap-2">
+                <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-700 overflow-x-auto whitespace-nowrap">
+                  {l.url}
+                </code>
+                <button
+                  onClick={() => copiar(l.url, l.url)}
+                  className={`shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    copiado === l.url ? "bg-green-600 text-white" : "bg-gray-800 hover:bg-gray-700 text-white"
+                  }`}
+                >
+                  {copiado === l.url ? "✓ Copiado" : "Copiar"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Gerador por vídeo */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Gerar link por vídeo</h2>
+        <div className="bg-white rounded-xl shadow border p-4 space-y-4">
+          <p className="text-xs text-gray-500">Cria um link único por vídeo — permite comparar no GA4 qual vídeo trouxe mais tráfego.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nome do vídeo</label>
+              <input
+                value={nomeVideo}
+                onChange={(e) => setNomeVideo(e.target.value)}
+                placeholder="ex: como arrematar imovel caixa"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Página de destino</label>
+              <select
+                value={destino}
+                onChange={(e) => setDestino(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">/ — Home (busca de imóveis)</option>
+                <option value="/cadastro">/cadastro — Criar conta grátis</option>
+                <option value="/ferramentas">/ferramentas — Ferramentas</option>
+                <option value="/mapa">/mapa — Mapa de imóveis</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <code className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-700 overflow-x-auto whitespace-nowrap">
+              {urlGerada}
+            </code>
+            <button
+              onClick={() => copiar(urlGerada, "gerado")}
+              className={`shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                copiado === "gerado" ? "bg-green-600 text-white" : "bg-gray-800 hover:bg-gray-700 text-white"
+              }`}
+            >
+              {copiado === "gerado" ? "✓ Copiado" : "Copiar"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Como ver no GA4 */}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Como ver no Google Analytics</h2>
+        <div className="bg-white rounded-xl shadow border divide-y">
+          {[
+            ["1", "Acesse analytics.google.com e selecione a propriedade do site"],
+            ["2", "Relatórios → Aquisição → Aquisição de tráfego — procure youtube / video na tabela"],
+            ["3", "Para ver por vídeo: Relatórios → Aquisição → Campanhas — cada utm_campaign aparece separado"],
+            ["4", "Métricas disponíveis: sessões, usuários, taxa de engajamento e conversões (cadastros)"],
+          ].map(([n, txt]) => (
+            <div key={n} className="flex items-start gap-3 px-4 py-3">
+              <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: "#01304D" }}>{n}</span>
+              <p className="text-sm text-gray-600">{txt}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -354,6 +507,14 @@ export default function AdminPage() {
           }`}>
           Usuários
         </button>
+        <button onClick={() => setTab("utm")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "utm"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          🔗 Links UTM
+        </button>
       </div>
 
       {/* Blog Tab */}
@@ -435,6 +596,9 @@ export default function AdminPage() {
       {tab === "usuarios" && (
         <AdminUsuarios stats={userStats} loading={loadingUsers} onRefresh={loadUsuarios} />
       )}
+
+      {/* UTM Links Tab */}
+      {tab === "utm" && <UtmLinksTab />}
 
       {/* Corretores Tab */}
       {tab === "corretores" && (
