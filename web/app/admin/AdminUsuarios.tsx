@@ -14,6 +14,11 @@ type UserRow = {
   plano: string;
   criadoEm?: string;
   preferencias?: Preferencias;
+  totalFavoritos?: number;
+  totalAnalises?: number;
+  totalSessoes?: number;
+  totalPageviews?: number;
+  ultimoAcesso?: string;
 };
 
 type UserStats = {
@@ -325,6 +330,11 @@ export default function AdminUsuarios({
                   <th className="px-4 py-3 font-medium">Telefone</th>
                   <th className="px-4 py-3 font-medium">Plano</th>
                   <th className="px-4 py-3 font-medium">Cadastrado</th>
+                  <th className="px-4 py-3 font-medium text-center">♥ Fav</th>
+                  <th className="px-4 py-3 font-medium text-center">📊 Plan</th>
+                  <th className="px-4 py-3 font-medium">Último acesso</th>
+                  <th className="px-4 py-3 font-medium text-center">Sessões</th>
+                  <th className="px-4 py-3 font-medium text-center">Páginas</th>
                   <th className="px-4 py-3 font-medium"></th>
                 </tr>
                 {/* Linha de filtros */}
@@ -350,11 +360,16 @@ export default function AdminUsuarios({
                     <input value={filtros.data} onChange={(e) => setF("data", e.target.value)} className={FINPUT} placeholder="dd/mm/aaaa" />
                   </td>
                   <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5"></td>
+                  <td className="px-2 py-1.5"></td>
                 </tr>
               </thead>
               <tbody>
                 {filtrados.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum resultado para os filtros aplicados.</td></tr>
+                  <tr><td colSpan={12} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum resultado para os filtros aplicados.</td></tr>
                 ) : filtrados.map((u, i) => (
                   <tr key={u._id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-400 text-xs tabular-nums">{filtrados.length - i}</td>
@@ -369,6 +384,25 @@ export default function AdminUsuarios({
                     </td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
                       {u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {(u.totalFavoritos ?? 0) > 0
+                        ? <span className="text-xs font-semibold text-rose-600">{u.totalFavoritos}</span>
+                        : <span className="text-gray-300 text-xs">0</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {(u.totalAnalises ?? 0) > 0
+                        ? <span className="text-xs font-semibold text-blue-600">{u.totalAnalises}</span>
+                        : <span className="text-gray-300 text-xs">0</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
+                      {u.ultimoAcesso ? new Date(u.ultimoAcesso).toLocaleDateString("pt-BR") : <span className="text-gray-200">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs tabular-nums text-gray-500">
+                      {u.totalSessoes ?? <span className="text-gray-200">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs tabular-nums text-gray-500">
+                      {u.totalPageviews ?? <span className="text-gray-200">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-3 justify-end items-center">

@@ -12,23 +12,35 @@ export async function GET(req: NextRequest) {
   const client = await clientPromise;
   const col = client.db(process.env.MONGODB_DB).collection("users");
 
-  const [total, premium, comTelefone, recentes] = await Promise.all([
+  const analises = client.db(process.env.MONGODB_DB).collection("analises_viabilidade");
+
+  const [total, premium, comTelefone, recentes, contagemAnalises] = await Promise.all([
     col.countDocuments({}),
     col.countDocuments({ plano: "premium" }),
     col.countDocuments({ telefone: { $nin: [null, ""] } }),
     col.find({})
       .sort({ criadoEm: -1 })
       .limit(200)
-      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, preferencias: 1 })
+      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, preferencias: 1, favoritos: 1, totalSessoes: 1, totalPageviews: 1, ultimoAcesso: 1 })
       .toArray(),
+    analises.aggregate([
+      { $group: { _id: "$userId", count: { $sum: 1 } } },
+    ]).toArray(),
   ]);
+
+  const analisesPorUser = Object.fromEntries(contagemAnalises.map((r) => [r._id, r.count]));
 
   return NextResponse.json({
     total,
     premium,
     comTelefone,
     gratuito: total - premium,
-    recentes: recentes.map((u) => ({ ...u, _id: u._id.toString() })),
+    recentes: recentes.map((u) => ({
+      ...u,
+      _id: u._id.toString(),
+      totalFavoritos: Array.isArray(u.favoritos) ? u.favoritos.length : 0,
+      totalAnalises: analisesPorUser[u._id.toString()] ?? 0,
+    })),
   });
 }
 

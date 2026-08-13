@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { auth } from "@/auth";
 import clientPromise from "@/lib/mongodb";
 
 // UTC-3 (horário de Brasília)
@@ -82,6 +84,18 @@ export async function POST(req: NextRequest) {
       { $inc: incOp, $set: setOp },
       { upsert: true },
     );
+
+    // Rastrear atividade do usuário logado
+    const session = await auth();
+    if (session?.user?.id) {
+      const users = client.db(process.env.MONGODB_DB).collection("users");
+      const inc: Record<string, number> = { totalPageviews: 1 };
+      if (novaSessao) inc.totalSessoes = 1;
+      await users.updateOne(
+        { _id: new ObjectId(session.user.id) },
+        { $inc: inc, $set: { ultimoAcesso: new Date() } },
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
