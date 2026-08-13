@@ -47,6 +47,11 @@ export interface FaixaPreco {
   acima1M: number;
 }
 
+export interface SaidasValorPeriodo {
+  valor: number;
+  count: number;
+}
+
 export interface EstatisticasProps {
   total: number;
   porEstado: EstadoStat[];
@@ -62,6 +67,12 @@ export interface EstatisticasProps {
   maiorDesconto: DestaqueStat | null;
   precoPorM2PorEstado: M2Stat[];
   abaixo100k: number;
+  novos7d: number;
+  removidos7d: number;
+  atualizados7d: number;
+  novos15d: number;
+  removidos15d: number;
+  atualizados15d: number;
   novos30d: number;
   removidos30d: number;
   atualizados30d: number;
@@ -70,6 +81,8 @@ export interface EstatisticasProps {
   faixaPreco: FaixaPreco;
   topCidades: TopCidade[];
   visitas30d: number | null;
+  valorTotalAcervo: number;
+  saidasValor: { v7d: SaidasValorPeriodo; v15d: SaidasValorPeriodo; v30d: SaidasValorPeriodo };
 }
 
 const TABS = [
@@ -96,8 +109,11 @@ const DESCONTOS: [number, number | undefined, string][] = [
   [50, undefined, "#991b1b"],
 ];
 
+type Periodo = "7d" | "15d" | "30d";
+
 export default function EstatisticasUI(p: EstatisticasProps) {
   const [tab, setTab] = useState("geral");
+  const [periodo, setPeriodo] = useState<Periodo>("30d");
 
   const maxEstado   = Math.max(...p.porEstado.map(e => e.total), 1);
   const maxM2       = Math.max(...p.precoPorM2PorEstado.map(e => e.precoPorM2Medio), 1);
@@ -190,6 +206,45 @@ export default function EstatisticasUI(p: EstatisticasProps) {
             </div>
           </div>
 
+          {/* === Métricas financeiras === */}
+          <p className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2">Financeiro do acervo</p>
+          <div className="bg-white rounded-xl shadow p-5 mb-3" style={{ borderTop: `3px solid ${NIGHT}` }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
+              <div>
+                <h2 className="font-semibold text-gray-700">Valor total do acervo ativo</h2>
+                <p className="text-xs text-gray-400">Soma dos preços de lance de todos os imóveis disponíveis</p>
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold tabular-nums" style={{ color: NIGHT }}>
+              {fmt(p.valorTotalAcervo)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">{fmtN(p.total)} imóveis · média de {fmt(p.total > 0 ? Math.round(p.valorTotalAcervo / p.total) : 0)} por imóvel</p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-5 mb-6" style={{ borderTop: `3px solid #dc2626` }}>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="font-semibold text-gray-700">Saídas do acervo por período</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Valor e quantidade de imóveis vendidos ou retirados</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                ["7 dias",  p.saidasValor.v7d],
+                ["15 dias", p.saidasValor.v15d],
+                ["30 dias", p.saidasValor.v30d],
+              ] as [string, { valor: number; count: number }][]).map(([label, dados]) => (
+                <div key={label} className="text-center p-3 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">{label}</p>
+                  <p className="text-lg font-extrabold text-red-600 tabular-nums leading-tight">
+                    {fmt(dados.valor)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{fmtN(dados.count)} imóveis</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <p className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2">Destaques do acervo</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {p.maisBarato && (
@@ -218,32 +273,55 @@ export default function EstatisticasUI(p: EstatisticasProps) {
             )}
           </div>
 
+          {/* === Movimentações com toggle de período === */}
           <div className="bg-white rounded-xl shadow p-5 mb-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="font-semibold text-gray-700">Movimentações do acervo</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Últimos 30 dias</p>
+                <p className="text-xs text-gray-400 mt-0.5">Entradas, saídas e atualizações por período</p>
               </div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-100 px-3 py-1 rounded-full">
-                30 dias
-              </span>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-semibold">
+                {(["7d", "15d", "30d"] as Periodo[]).map((p_) => (
+                  <button
+                    key={p_}
+                    onClick={() => setPeriodo(p_)}
+                    className={`px-3 py-1.5 transition-colors ${
+                      periodo === p_
+                        ? "text-white"
+                        : "text-gray-500 hover:bg-gray-50"
+                    }`}
+                    style={periodo === p_ ? { backgroundColor: NIGHT } : {}}
+                  >
+                    {p_ === "7d" ? "7 dias" : p_ === "15d" ? "15 dias" : "30 dias"}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
-                <p className="text-2xl font-bold text-green-600">+{fmtN(p.novos30d)}</p>
-                <p className="text-xs text-green-700 font-medium mt-1">Novos imóveis</p>
-                <p className="text-xs text-gray-400 mt-0.5">adicionados</p>
-              </div>
-              <div className="text-center p-3 bg-red-50 rounded-lg border border-red-100">
-                <p className="text-2xl font-bold text-red-500">-{fmtN(p.removidos30d)}</p>
-                <p className="text-xs text-red-700 font-medium mt-1">Removidos</p>
-                <p className="text-xs text-gray-400 mt-0.5">vendidos ou retirados</p>
-              </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-2xl font-bold text-blue-500">{fmtN(p.atualizados30d)}</p>
-                <p className="text-xs text-blue-700 font-medium mt-1">Atualizados</p>
-                <p className="text-xs text-gray-400 mt-0.5">preço ou dados</p>
-              </div>
+              {(() => {
+                const novos    = periodo === "7d" ? p.novos7d    : periodo === "15d" ? p.novos15d    : p.novos30d;
+                const removidos = periodo === "7d" ? p.removidos7d : periodo === "15d" ? p.removidos15d : p.removidos30d;
+                const atualizados = periodo === "7d" ? p.atualizados7d : periodo === "15d" ? p.atualizados15d : p.atualizados30d;
+                return (
+                  <>
+                    <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
+                      <p className="text-2xl font-bold text-green-600">+{fmtN(novos)}</p>
+                      <p className="text-xs text-green-700 font-medium mt-1">Novos imóveis</p>
+                      <p className="text-xs text-gray-400 mt-0.5">adicionados</p>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg border border-red-100">
+                      <p className="text-2xl font-bold text-red-500">-{fmtN(removidos)}</p>
+                      <p className="text-xs text-red-700 font-medium mt-1">Removidos</p>
+                      <p className="text-xs text-gray-400 mt-0.5">vendidos ou retirados</p>
+                    </div>
+                    <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-2xl font-bold text-blue-500">{fmtN(atualizados)}</p>
+                      <p className="text-xs text-blue-700 font-medium mt-1">Atualizados</p>
+                      <p className="text-xs text-gray-400 mt-0.5">preço ou dados</p>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

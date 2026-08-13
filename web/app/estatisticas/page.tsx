@@ -39,6 +39,8 @@ async function getStats() {
   const col = db.collection(process.env.MONGODB_COLLECTION!);
   const meta = db.collection("_meta");
 
+  const sete   = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000);
+  const quinze = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000);
   const trinta = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const descontoExpr = (pct: number) => ({
@@ -52,11 +54,17 @@ async function getStats() {
     aceitaFinanciamento,
     maisBaratoArr, maiorDescontoArr,
     precoPorM2PorEstado, abaixo100k,
+    novos7d, removidos7d, atualizados7d,
+    novos15d, removidos15d, atualizados15d,
     novos30d, removidos30d, atualizados30d,
     evolucaoAcervo,
     faixaPrecoRaw,
     topCidadesRaw,
     visitasDoc,
+    valorAcervoRaw,
+    saidasValor7dRaw,
+    saidasValor15dRaw,
+    saidasValor30dRaw,
   ] = await Promise.all([
 
     col.countDocuments({ ativo: true }),
@@ -127,6 +135,15 @@ async function getStats() {
 
     col.countDocuments({ ativo: true, preco: { $gt: 0, $lt: 100000 } }),
 
+    // Movimentações 7 dias
+    col.countDocuments({ dataInsercao: { $gte: sete } }),
+    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: sete } }),
+    col.countDocuments({ ativo: true, dataAtualizacao: { $gte: sete }, dataInsercao: { $lt: sete } }),
+    // Movimentações 15 dias
+    col.countDocuments({ dataInsercao: { $gte: quinze } }),
+    col.countDocuments({ ativo: false, dataAtualizacao: { $gte: quinze } }),
+    col.countDocuments({ ativo: true, dataAtualizacao: { $gte: quinze }, dataInsercao: { $lt: quinze } }),
+    // Movimentações 30 dias
     col.countDocuments({ dataInsercao: { $gte: trinta } }),
     col.countDocuments({ ativo: false, dataAtualizacao: { $gte: trinta } }),
     col.countDocuments({ ativo: true, dataAtualizacao: { $gte: trinta }, dataInsercao: { $lt: trinta } }),
@@ -141,7 +158,6 @@ async function getStats() {
       { $limit: 24 },
     ]).toArray() as Promise<EvolucaoItem[]>,
 
-    // Faixa de preço — nova agregação
     col.aggregate([
       { $match: { ativo: true, preco: { $gt: 0 } } },
       { $facet: {
@@ -153,7 +169,6 @@ async function getStats() {
       }},
     ]).toArray() as Promise<FacetResult[]>,
 
-    // Top 10 cidades — nova agregação
     col.aggregate([
       { $match: { ativo: true, cidade: { $exists: true, $ne: null } } },
       { $group: { _id: { cidade: "$cidade", estado: "$estado" }, total: { $sum: 1 } } },
@@ -162,6 +177,26 @@ async function getStats() {
     ]).toArray() as Promise<TopCidade[]>,
 
     meta.findOne({ key: "visitas" }),
+
+    // Valor total do acervo ativo
+    col.aggregate([
+      { $match: { ativo: true, preco: { $gt: 0 } } },
+      { $group: { _id: null, total: { $sum: "$preco" } } },
+    ]).toArray(),
+
+    // Valor de saídas do acervo por período
+    col.aggregate([
+      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: sete } } },
+      { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
+    ]).toArray(),
+    col.aggregate([
+      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: quinze } } },
+      { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
+    ]).toArray(),
+    col.aggregate([
+      { $match: { ativo: false, preco: { $gt: 0 }, dataAtualizacao: { $gte: trinta } } },
+      { $group: { _id: null, total: { $sum: "$preco" }, count: { $sum: 1 } } },
+    ]).toArray(),
   ]);
 
   const fp = faixaPrecoRaw[0] as FacetResult | undefined;
@@ -178,6 +213,19 @@ async function getStats() {
   const topCidades    = topCidadesRaw as TopCidade[];
   const pageviewsTotal: number = (visitasDoc as Record<string, number> | null)?.pageviews ?? 0;
 
+  type ValorRow = { _id: null; total: number; count?: number };
+  const valorTotalAcervo = (valorAcervoRaw as ValorRow[])[0]?.total ?? 0;
+
+  const sv7  = (saidasValor7dRaw  as ValorRow[])[0];
+  const sv15 = (saidasValor15dRaw as ValorRow[])[0];
+  const sv30 = (saidasValor30dRaw as ValorRow[])[0];
+
+  const saidasValor = {
+    v7d:  { valor: sv7?.total  ?? 0, count: sv7?.count  ?? 0 },
+    v15d: { valor: sv15?.total ?? 0, count: sv15?.count ?? 0 },
+    v30d: { valor: sv30?.total ?? 0, count: sv30?.count ?? 0 },
+  };
+
   return {
     total, porEstado, porTipo, porModalidade,
     comDesconto10, comDesconto20, comDesconto30, comDesconto40, comDesconto50,
@@ -185,10 +233,14 @@ async function getStats() {
     maisBarato, maiorDesconto,
     precoPorM2PorEstado,
     abaixo100k,
+    novos7d, removidos7d, atualizados7d,
+    novos15d, removidos15d, atualizados15d,
     novos30d, removidos30d, atualizados30d,
     evolucaoAcervo,
     faixaPreco, topCidades,
     pageviewsTotal,
+    valorTotalAcervo,
+    saidasValor,
   };
 }
 
