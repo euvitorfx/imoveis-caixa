@@ -169,6 +169,36 @@ const ROADMAP = [
     ],
   },
   {
+    theme: "Melhorias Recentes (fora de sprint)",
+    color: "bg-teal-500",
+    items: [
+      {
+        title: "Admin: Atividade por Usuário",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Tabela de usuários agora exibe: favoritos salvos, planilhas criadas, último acesso, total de sessões e total de páginas visitadas. Rastreamento ativo em cada pageview de usuário logado.",
+        chips: ["Admin", "MongoDB", "Métricas"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Limites Freemium Ajustados",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Plano gratuito: 1 planilha de viabilidade e 10 favoritos. Premium: ilimitado. Lógica aplicada na API com mensagem de upgrade.",
+        chips: ["Freemium", "API"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Fix: callbackUrl no Login",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Links 'Entrar na conta' em páginas protegidas agora passam o callbackUrl correto — usuário retorna à página de origem após login, não à home.",
+        chips: ["UX", "NextAuth"],
+        dep: "✓ Em produção",
+      },
+    ],
+  },
+  {
     theme: "Dados — Automático",
     color: "bg-emerald-500",
     items: [
