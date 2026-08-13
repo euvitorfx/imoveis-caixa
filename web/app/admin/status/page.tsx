@@ -49,6 +49,7 @@ const SPRINTS = [
   { num: "9", title: "Auth + Usuários + Mobile", items: ["Cadastro / login", "Plano freemium", "Google OAuth", "Admin usuários", "Menu mobile", "Phone mask + flag"] },
   { num: "10", title: "Clube BLC (base) + IA + R2", items: ["Página /clube", "Descrições IA (Haiku)", "Export PDF + auth gate", "Fotos → R2 (24k+)", "Popup de cadastro", "Admin social/copy IA"] },
   { num: "11", title: "Planilha de Análise de Viabilidade", items: ["Calculadora online completa", "Import de favoritos", "Export XLS", "Salvar/editar análises", "Botão no detalhe do imóvel", "API CRUD (GET/POST/PUT/DELETE)", "Gráfico ROI (Recharts)"] },
+  { num: "12", title: "Qualidade, Métricas & Backup", items: ["Telefone obrigatório no cadastro", "Modal para usuários sem telefone", "Métricas financeiras no /estatísticas", "Toggle 7/15/30 dias movimentações", "Bug fix: dataInativacao scraper", "Backup semanal MongoDB → R2", "GitHub Action Backup (domingos 04h BRT)"] },
 ];
 
 const ROADMAP = [
@@ -194,6 +195,38 @@ const ROADMAP = [
         priorityColor: "bg-green-100 text-green-800",
         desc: "Links 'Entrar na conta' em páginas protegidas agora passam o callbackUrl correto — usuário retorna à página de origem após login, não à home.",
         chips: ["UX", "NextAuth"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Telefone Obrigatório + Modal de Cadastro Incompleto",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Cadastro agora exige WhatsApp/telefone. Usuários já cadastrados sem telefone veem um modal ao tentar favoritar, salvar planilha ou exportar PDF — redirecionando ao perfil para completar o dado.",
+        chips: ["Auth", "UX", "ModalCompletarCadastro"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Estatísticas: Métricas Financeiras do Acervo",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Página /estatísticas ganhou valor total do acervo ativo (~R$ 3,6 bi) e saídas de valor por 7/15/30 dias. Movimentações do Acervo agora tem toggle interativo de período (7/15/30 dias) — todos os dados pré-carregados no servidor.",
+        chips: ["Estatísticas", "MongoDB Aggregation", "ISR 1h"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Fix Scraper: dataInativacao para Saídas Precisas",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "marcar_inativos agora filtra ativo:true e grava dataInativacao apenas na primeira transição ativo→inativo. Antes, dataAtualizacao era reescrito a cada scrape, tornando as saídas por período incorretas.",
+        chips: ["Scraper", "Bug fix", "MongoDB Index"],
+        dep: "✓ Em produção",
+      },
+      {
+        title: "Backup Semanal MongoDB → Cloudflare R2",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "GitHub Action (backup.yml) exporta users, analises_viabilidade e imoveis em JSONL gzip toda domingo às 04h BRT. Retenção de 8 semanas com remoção automática de backups antigos. Manifesto JSON com totais por coleção.",
+        chips: ["GitHub Actions", "R2", "JSONL gzip", "Retenção 8 semanas"],
         dep: "✓ Em produção",
       },
     ],
@@ -356,7 +389,7 @@ export default function StatusPage() {
         {/* Stats strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { num: "11", label: "Sprints concluídas", color: "border-green-400" },
+            { num: "12", label: "Sprints concluídas", color: "border-green-400" },
             { num: String(totalPending), label: "Itens pendentes", color: "border-amber-400" },
             { num: "25k+", label: "Imóveis no banco", color: "border-blue-400" },
             { num: "9.855", label: "Matrículas enriquecidas", color: "border-violet-400" },
@@ -491,7 +524,7 @@ export default function StatusPage() {
 
       {/* ── Sprint History ── */}
       <div>
-        <SectionLabel>Histórico — 11 Sprints Concluídas</SectionLabel>
+        <SectionLabel>Histórico — 12 Sprints Concluídas</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {SPRINTS.map((s) => (
             <div key={s.num} className="bg-white rounded-xl shadow-sm border border-l-4 border-l-green-400 p-4 flex gap-3">
