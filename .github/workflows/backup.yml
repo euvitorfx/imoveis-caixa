@@ -1,0 +1,41 @@
+name: Backup MongoDB → R2
+
+on:
+  schedule:
+    - cron: "0 7 * * 0"   # Domingos às 04:00 BRT (07:00 UTC)
+  workflow_dispatch:       # disparo manual pelo painel do GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('scraper/requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r scraper/requirements.txt
+
+      - name: Run backup
+        env:
+          MONGODB_URI:            ${{ secrets.MONGODB_URI }}
+          MONGODB_DB:             ${{ secrets.MONGODB_DB }}
+          MONGODB_COLLECTION:     ${{ secrets.MONGODB_COLLECTION }}
+          R2_ACCOUNT_ID:          ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:       ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY:   ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME:         ${{ secrets.R2_BUCKET_NAME }}
+          BACKUP_RETENCAO_SEMANAS: "8"
+        run: python scraper/backup.py
