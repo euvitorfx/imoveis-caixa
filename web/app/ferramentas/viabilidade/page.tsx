@@ -57,7 +57,7 @@ export default function ViabilidadeListPage() {
           <p className="text-sm text-amber-800 mb-3">
             Faça login para salvar e acessar suas análises de viabilidade.
           </p>
-          <Link href="/login" className="text-sm font-semibold text-amber-700 underline">
+          <Link href="/login?callbackUrl=/ferramentas/viabilidade" className="text-sm font-semibold text-amber-700 underline">
             Entrar na conta →
           </Link>
         </div>
