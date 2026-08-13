@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       plano: "gratuito" | "premium";
       temTelefone: boolean;
+      popupFeaturesVisto: boolean;
     } & DefaultSession["user"];
   }
 
@@ -20,5 +21,6 @@ declare module "@auth/core/jwt" {
     id?: string;
     plano?: "gratuito" | "premium";
     temTelefone?: boolean;
+    popupFeaturesVisto?: boolean;
   }
 }

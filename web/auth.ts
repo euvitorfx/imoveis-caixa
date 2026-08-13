@@ -47,9 +47,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const dbUser = await client
           .db(process.env.MONGODB_DB)
           .collection("users")
-          .findOne({ _id: new ObjectId(user.id!) }, { projection: { telefone: 1, plano: 1 } });
+          .findOne({ _id: new ObjectId(user.id!) }, { projection: { telefone: 1, plano: 1, popupFeaturesVisto: 1 } });
         token.temTelefone = !!dbUser?.telefone;
         token.plano = dbUser?.plano ?? "gratuito";
+        token.popupFeaturesVisto = !!dbUser?.popupFeaturesVisto;
       }
       if (trigger === "update") {
         // Chamado via useSession().update() após salvar telefone
@@ -66,6 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.id) session.user.id = token.id as string;
       session.user.plano = (token.plano as "gratuito" | "premium") ?? "gratuito";
       session.user.temTelefone = token.temTelefone ?? false;
+      session.user.popupFeaturesVisto = token.popupFeaturesVisto ?? false;
       return session;
     },
   },
