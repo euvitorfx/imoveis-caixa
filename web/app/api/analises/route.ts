@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import clientPromise from "@/lib/mongodb";
 
-const LIMITE_GRATUITO = 2;
+const LIMITE_GRATUITO = 1;
 
 function col() {
   return clientPromise.then((c) =>
