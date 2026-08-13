@@ -7,6 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { DadosAnalise, ResultadoAnalise, AnaliseViabilidade, DADOS_PADRAO, calcular, brl } from "@/lib/analises";
+import ModalCompletarCadastro from "@/components/ModalCompletarCadastro";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function n(v: number | string): number {
@@ -226,6 +227,7 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
   const [nome, setNome] = useState(inicial?.nome ?? "");
   const [imovelRef, setImovelRef] = useState(inicial?.imovelRef ?? null as AnaliseViabilidade["imovelRef"] | null);
   const [showFav, setShowFav] = useState(false);
+  const [showModalTelefone, setShowModalTelefone] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
   const [erro, setErro] = useState("");
@@ -250,6 +252,10 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
   async function salvar() {
     if (status !== "authenticated") {
       router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!session?.user?.temTelefone) {
+      setShowModalTelefone(true);
       return;
     }
     setSalvando(true);
@@ -354,6 +360,7 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
 
   return (
     <div className="max-w-6xl mx-auto">
+      {showModalTelefone && <ModalCompletarCadastro onClose={() => setShowModalTelefone(false)} />}
       {/* Barra superior */}
       <div className="flex flex-wrap items-start gap-3 mb-6">
         <div className="flex-1 min-w-48">
@@ -405,7 +412,7 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
 
       {autenticado && plano === "gratuito" && !analiseId && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
-          Plano gratuito: até 2 análises salvas. <a href="/perfil" className="underline font-semibold">Upgrade para Premium</a> para ilimitadas.
+          Plano gratuito: até 1 análise salva. <a href="/perfil" className="underline font-semibold">Upgrade para Premium</a> para ilimitadas.
         </div>
       )}
 

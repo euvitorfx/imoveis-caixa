@@ -4,15 +4,21 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Imovel } from "@/lib/types";
+import ModalCompletarCadastro from "./ModalCompletarCadastro";
 
 export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
   const [loading, setLoading] = useState(false);
-  const { status } = useSession();
+  const [showModal, setShowModal] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   const handleClick = async () => {
     if (status !== "authenticated") {
       router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!session?.user?.temTelefone) {
+      setShowModal(true);
       return;
     }
     setLoading(true);
@@ -59,6 +65,8 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
   };
 
   return (
+    <>
+      {showModal && <ModalCompletarCadastro onClose={() => setShowModal(false)} />}
     <button
       onClick={handleClick}
       disabled={loading}
@@ -82,5 +90,6 @@ export default function BotaoPDF({ imovel }: { imovel: Imovel }) {
         </>
       )}
     </button>
+    </>
   );
 }

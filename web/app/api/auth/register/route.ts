@@ -5,7 +5,7 @@ import clientPromise from "@/lib/mongodb";
 export async function POST(req: NextRequest) {
   const { nome, email, telefone, senha } = await req.json();
 
-  if (!nome || !email || !senha) {
+  if (!nome || !email || !senha || !telefone) {
     return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 });
   }
   if (senha.length < 6) {

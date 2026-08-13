@@ -20,7 +20,11 @@ export default function CadastroPage() {
     e.preventDefault();
     setErro("");
 
-    if (telefone && !isValidPhoneNumber(telefone)) {
+    if (!telefone) {
+      setErro("Informe seu número de WhatsApp/telefone.");
+      return;
+    }
+    if (!isValidPhoneNumber(telefone)) {
       setErro("Número de telefone inválido.");
       return;
     }
@@ -127,7 +131,6 @@ export default function CadastroPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 WhatsApp / Telefone
-                <span className="text-gray-400 font-normal ml-1">(opcional)</span>
               </label>
               <PhoneInput
                 international
