@@ -3,7 +3,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Clube de Benefícios BLC",
-  description: "Compre um imóvel da Caixa e receba até 1% de cashback. Venda Online e Venda Direta. Grátis, sem burocracia.",
+  description: "Vai comprar um imóvel da Caixa? Indique um assessor parceiro do clube BLC na sua proposta e receba de 0,5% a 1% de cashback sobre o valor da compra.",
   openGraph: {
     title: `Clube de Benefícios BLC | ${SITE_NAME}`,
     url: `${SITE_URL}/clube`,
@@ -61,12 +61,12 @@ export default function ClubePage() {
             Clube de Benefícios BLC
           </p>
           <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-4 max-w-2xl">
-            Comprou um imóvel?{" "}
-            <span style={{ color: "#F59E0B" }}>Receba até 1% de volta.</span>
+            Vai comprar pela Caixa?{" "}
+            <span style={{ color: "#F59E0B" }}>Receba até 1% de cashback.</span>
           </h1>
           <p className="text-base sm:text-lg max-w-xl mb-8" style={{ color: "rgba(255,255,255,0.70)" }}>
-            O Clube BLC recompensa compradores que finalizam em Venda Online ou Venda Direta
-            indicando o assessor parceiro do site na proposta.
+            Indique um assessor parceiro do clube BLC na sua proposta e receba de 0,5% a 1%
+            sobre o valor de sua compra do imóvel.
           </p>
           <a
             href="/#busca"

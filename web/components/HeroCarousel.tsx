@@ -54,8 +54,8 @@ export default function HeroCarousel({ totalImoveis, totalBusca }: Props) {
     {
       eyebrow:      "Clube de Benefícios BLC",
       eyebrowLarge: true,
-      title:        ["Comprou um imóvel? Receba ", "até 1% de volta"],
-      desc:         "Compradores que finalizam em Venda Online ou Venda Direta e indicam o assessor parceiro do BLC podem receber cashback sobre o valor do imóvel — grátis, sem burocracia.",
+      title:        ["Vai comprar pela Caixa? Receba ", "até 1% de cashback"],
+      desc:         "Indique um assessor parceiro do clube BLC na sua proposta e receba de 0,5% a 1% sobre o valor de sua compra do imóvel.",
       stats:   [
         { value: "1%",   label: "cashback"    },
         { value: "2",    label: "modalidades" },
