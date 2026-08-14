@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const { subject, html } = emailBoasVindas(nome);
   resend.emails.send({
     from: EMAIL_FROM,
-    reply_to: EMAIL_REPLY_TO,
+    replyTo: EMAIL_REPLY_TO,
     to: email.toLowerCase(),
     subject,
     html,
