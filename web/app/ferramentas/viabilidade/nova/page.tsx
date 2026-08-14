@@ -1,12 +1,17 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import AnaliseFormWrapper from "./AnaliseFormWrapper";
 
 export const metadata: Metadata = {
   title: "Nova Análise de Viabilidade",
 };
 
-export default function NovaAnalisePage() {
+export default async function NovaAnalisePage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login?callbackUrl=/ferramentas/viabilidade/nova");
+
   return (
     <div className="max-w-6xl mx-auto py-2 px-0">
       <div className="mb-6">

@@ -44,7 +44,11 @@ export default function ViabilidadeListPage() {
           <p className="text-sm text-gray-500 mt-1">Calcule o ROI e a viabilidade financeira de imóveis em leilão.</p>
         </div>
         <Link
-          href="/ferramentas/viabilidade/nova"
+          href={
+            status === "unauthenticated"
+              ? "/login?callbackUrl=/ferramentas/viabilidade/nova"
+              : "/ferramentas/viabilidade/nova"
+          }
           className="px-4 py-2 rounded-lg text-white font-semibold text-sm transition-colors"
           style={{ backgroundColor: "#01304D" }}
         >
