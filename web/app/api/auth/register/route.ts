@@ -35,23 +35,26 @@ export async function POST(req: NextRequest) {
     criadoEm: new Date(),
   });
 
-  // Dispara e-mail de boas-vindas (sem bloquear a resposta em caso de falha)
+  // Envia e-mail de boas-vindas aguardando a conclusão (await garante que
+  // a função não é encerrada pelo Vercel antes do envio completar)
   const resend = getResend();
   if (!resend) {
-    console.warn("[resend] e-mail de boas-vindas NAO enviado — RESEND_API_KEY ausente");
+    console.warn("[resend] boas-vindas NAO enviado — RESEND_API_KEY ausente");
   } else {
-    const { subject, html } = emailBoasVindas(nome);
-    resend.emails.send({
-      from: EMAIL_FROM,
-      replyTo: EMAIL_REPLY_TO,
-      to: email.toLowerCase(),
-      subject,
-      html,
-    }).then((res) => {
-      console.log("[resend] boas-vindas enviado:", res.data?.id ?? JSON.stringify(res));
-    }).catch((err) => {
-      console.error("[resend] ERRO ao enviar boas-vindas:", err?.message ?? err);
-    });
+    try {
+      const { subject, html } = emailBoasVindas(nome);
+      const res = await resend.emails.send({
+        from: EMAIL_FROM,
+        replyTo: EMAIL_REPLY_TO,
+        to: email.toLowerCase(),
+        subject,
+        html,
+      });
+      console.log("[resend] boas-vindas enviado:", res.data?.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[resend] ERRO ao enviar boas-vindas:", msg);
+    }
   }
 
   return NextResponse.json({ ok: true });
