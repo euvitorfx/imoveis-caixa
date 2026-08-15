@@ -85,7 +85,12 @@ function LoginForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Senha</label>
+                <a href="/recuperar-senha" className="text-xs hover:underline" style={{ color: "#01304D" }}>
+                  Esqueceu sua senha?
+                </a>
+              </div>
               <input
                 type="password"
                 value={senha}
