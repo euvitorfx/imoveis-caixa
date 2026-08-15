@@ -37,7 +37,9 @@ export async function POST(req: NextRequest) {
 
   // Dispara e-mail de boas-vindas (sem bloquear a resposta em caso de falha)
   const resend = getResend();
-  if (resend) {
+  if (!resend) {
+    console.warn("[resend] e-mail de boas-vindas NAO enviado — RESEND_API_KEY ausente");
+  } else {
     const { subject, html } = emailBoasVindas(nome);
     resend.emails.send({
       from: EMAIL_FROM,
@@ -45,7 +47,11 @@ export async function POST(req: NextRequest) {
       to: email.toLowerCase(),
       subject,
       html,
-    }).catch((err) => console.error("[resend] boas-vindas:", err));
+    }).then((res) => {
+      console.log("[resend] boas-vindas enviado:", res.data?.id ?? JSON.stringify(res));
+    }).catch((err) => {
+      console.error("[resend] ERRO ao enviar boas-vindas:", err?.message ?? err);
+    });
   }
 
   return NextResponse.json({ ok: true });
