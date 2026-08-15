@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import clientPromise from "@/lib/mongodb";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailRecuperarSenha } from "@/emails/recuperarSenha";
+import { emailContaGoogle } from "@/emails/contaGoogle";
 import { SITE_URL } from "@/lib/config";
 const TTL_MS = 60 * 60 * 1000; // 1 hora
 
@@ -21,8 +22,28 @@ export async function POST(req: NextRequest) {
     { projection: { name: 1, senhaHash: 1 } },
   );
 
-  // Não revela se o e-mail existe ou não
-  if (!user || !user.senhaHash) {
+  if (!user) {
+    return NextResponse.json({ ok: true });
+  }
+
+  // Conta Google: não tem senhaHash — avisa para usar "Continuar com Google"
+  if (!user.senhaHash) {
+    const resend = getResend();
+    if (resend) {
+      try {
+        const { subject, html } = emailContaGoogle(user.name ?? "usuário");
+        await resend.emails.send({
+          from: EMAIL_FROM,
+          replyTo: EMAIL_REPLY_TO,
+          to: normalizedEmail,
+          subject,
+          html,
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[resend] ERRO conta-google:", msg);
+      }
+    }
     return NextResponse.json({ ok: true });
   }
 
