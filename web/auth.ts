@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { authConfig } from "./auth.config";
+import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
+import { emailBoasVindas } from "@/emails/boasVindas";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -73,7 +75,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      // Define plano padrão para novos usuários OAuth
       const client = await clientPromise;
       await client
         .db(process.env.MONGODB_DB)
@@ -82,6 +83,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           { _id: new ObjectId(user.id!) },
           { $set: { plano: "gratuito", criadoEm: new Date() } }
         );
+      if (user.email && user.name) {
+        const resend = getResend();
+        if (resend) {
+          try {
+            const { subject, html } = emailBoasVindas(user.name);
+            const res = await resend.emails.send({
+              from: EMAIL_FROM,
+              replyTo: EMAIL_REPLY_TO,
+              to: user.email,
+              subject,
+              html,
+            });
+            console.log("[resend] boas-vindas OAuth enviado:", res.data?.id);
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[resend] ERRO boas-vindas OAuth:", msg);
+          }
+        }
+      }
     },
   },
 });
