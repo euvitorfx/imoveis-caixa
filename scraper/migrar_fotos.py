@@ -24,9 +24,10 @@ DELAY = 0.5   # segundos entre uploads
 
 
 def parse_args():
-    args   = sys.argv[1:]
-    limite = None
-    estado = None
+    args     = sys.argv[1:]
+    limite   = None
+    estado   = None
+    recentes = "--recentes" in args  # prioriza imóveis mais recentes (desc dataInsercao)
 
     if "--limite" in args:
         idx = args.index("--limite")
@@ -42,11 +43,11 @@ def parse_args():
         except IndexError:
             pass
 
-    return limite, estado
+    return limite, estado, recentes
 
 
 def main():
-    limite, estado = parse_args()
+    limite, estado, recentes = parse_args()
 
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
 
@@ -62,19 +63,24 @@ def main():
 
     print()
     print("=" * 60)
-    print("  Migração de Fotos → Cloudinary")
+    print("  Migração de Fotos → R2")
     print(f"  Início   : {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M:%S')} UTC")
     print(f"  Pendentes: {total:,}")
     print(f"  A migrar : {a_migrar:,}")
     if estado:
         print(f"  Estado   : {estado}")
+    if recentes:
+        print(f"  Ordem    : mais recentes primeiro")
     print("=" * 60)
 
     if a_migrar == 0:
         print("\n  Nenhum imóvel pendente.")
         return
 
-    cursor = col.find(filtro, {"hdnImovel": 1, "fotoUrl": 1}).limit(a_migrar or 0)
+    cursor = col.find(filtro, {"hdnImovel": 1, "fotoUrl": 1})
+    if recentes:
+        cursor = cursor.sort("dataInsercao", -1)
+    cursor = cursor.limit(a_migrar or 0)
 
     processados = ok = erros = 0
 
