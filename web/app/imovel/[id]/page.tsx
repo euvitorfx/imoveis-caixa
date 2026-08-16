@@ -159,8 +159,17 @@ export async function generateMetadata(
   };
 }
 
-export default async function DetalheImovel({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function DetalheImovel({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ volta?: string }>;
+}) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  // Aceita apenas caminhos internos para evitar open redirect
+  const volta = sp.volta?.match(/^\/imoveis\/[a-z]{2}(\/[a-z0-9-]+)?$/) ? sp.volta : null;
+
   const [imovel, todosCorretores] = await Promise.all([
     getImovel(id),
     getCorretoresAprovados(),
@@ -267,6 +276,16 @@ export default async function DetalheImovel({ params }: { params: Promise<{ id: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* Botão de retorno ao filtro (quando vindo de alerta por e-mail) */}
+      {volta && (
+        <a
+          href={volta}
+          className="inline-flex items-center gap-1.5 mb-3 text-sm font-medium px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
+        >
+          ← Imóveis novos na sua região
+        </a>
+      )}
 
       {/* Breadcrumb */}
       <nav className="text-sm mb-3 flex items-center gap-1.5 flex-wrap">

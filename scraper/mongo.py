@@ -52,9 +52,14 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
             continue
         doc["dataAtualizacao"] = now
         preco = doc.get("preco")
+        # fotoUrl vai em $setOnInsert para não sobrescrever URL do R2 após migração
+        foto_url = doc.pop("fotoUrl", None)
+        set_on_insert: dict = {"dataInsercao": now}
+        if foto_url:
+            set_on_insert["fotoUrl"] = foto_url
         update: dict = {
             "$set": doc,
-            "$setOnInsert": {"dataInsercao": now},
+            "$setOnInsert": set_on_insert,
         }
         if preco is not None:
             update["$push"] = {

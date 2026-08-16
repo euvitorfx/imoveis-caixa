@@ -1,83 +1,74 @@
-const SITE_URL = "https://www.buscaleiloescaixa.com.br";
-const NAVY = "#01304D";
-const AMBER = "#F59E0B";
-const GRAY = "#6b7280";
-const WHITE = "#ffffff";
+/**
+ * Envia um e-mail de teste de alertas para um endereço específico.
+ * Uso: node web/scripts/enviar-alerta-teste.mjs
+ */
 
-export type ImovelPreview = {
-  hdnImovel: string;
-  tipo?: string;
-  cidade?: string;
-  estado?: string;
-  preco?: number;
-  areaTotal?: number;
-  bairro?: string;
-  modalidade?: string;
-  fotoUrl?: string;
-  filtroUrl?: string; // caminho do filtro do usuário, ex: "/imoveis/sp/sao-paulo"
-};
+import { MongoClient } from "mongodb";
+import { Resend } from "resend";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
-type Prefs = { brasil?: boolean; estados?: string[]; cidades?: string[] };
-
-function fmtBRL(n: number): string {
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+function loadEnv(filePath) {
+  try {
+    const lines = readFileSync(filePath, "utf-8").split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  } catch {}
 }
 
-function toTitleCase(s: string): string {
+loadEnv(resolve("web/.env.local"));
+
+const RESEND_KEY   = process.env.RESEND_API_KEY;
+const MONGODB_URI  = process.env.MONGODB_URI;
+const MONGODB_DB   = process.env.MONGODB_DB;
+const MONGODB_COL  = process.env.MONGODB_COLLECTION ?? "imoveis";
+
+if (!RESEND_KEY || !MONGODB_URI || !MONGODB_DB) {
+  console.error("Variáveis de ambiente ausentes.");
+  process.exit(1);
+}
+
+// ── Template (espelho do alertaNovosImoveis.ts) ───────────────────────────────
+
+const SITE_URL = "https://www.buscaleiloescaixa.com.br";
+const NAVY  = "#01304D";
+const AMBER = "#F59E0B";
+const GRAY  = "#6b7280";
+const WHITE = "#ffffff";
+
+function fmtBRL(n) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function toTitleCase(s) {
   const minors = new Set(["de", "da", "do", "das", "dos", "e", "a", "o"]);
-  return s
-    .toLowerCase()
-    .split(" ")
-    .map((w, i) => (i === 0 || !minors.has(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+  return s.toLowerCase().split(" ")
+    .map((w, i) => (i === 0 || !minors.has(w)) ? w.charAt(0).toUpperCase() + w.slice(1) : w)
     .join(" ");
 }
 
-function slugify(str: string): string {
-  return str
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+function slugify(str) {
+  return str.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-function buildVerMaisUrl(prefs: Prefs): string {
-  if (prefs.brasil) return SITE_URL;
-  const estados = prefs.estados ?? [];
-  const cidades = prefs.cidades ?? [];
-  if (cidades.length === 1) {
-    const [cidade, uf] = cidades[0].split("|");
-    return `${SITE_URL}/imoveis/${uf}/${slugify(cidade)}`;
-  }
-  if (estados.length === 1 && cidades.length === 0) {
-    return `${SITE_URL}/imoveis/${estados[0]}`;
-  }
-  return SITE_URL;
-}
-
-function cardHtml(imovel: ImovelPreview): string {
-  const volta = imovel.filtroUrl ? `?volta=${encodeURIComponent(imovel.filtroUrl)}` : "";
-  const url = `${SITE_URL}/imovel/${imovel.hdnImovel}${volta}`;
-  const label = [imovel.tipo, imovel.modalidade].filter(Boolean).join(" · ");
-  const localParts = [
-    imovel.cidade ? toTitleCase(imovel.cidade) : null,
-    imovel.estado,
-  ].filter(Boolean);
-  const local = localParts.join(", ");
+function cardHtml(imovel) {
+  const url    = `${SITE_URL}/imovel/${imovel.hdnImovel}`;
+  const label  = [imovel.tipo, imovel.modalidade].filter(Boolean).join(" · ");
+  const local  = [imovel.cidade ? toTitleCase(imovel.cidade) : null, imovel.estado].filter(Boolean).join(", ");
   const bairro = imovel.bairro ? ` — ${toTitleCase(imovel.bairro)}` : "";
-  const preco = imovel.preco ? fmtBRL(imovel.preco) : "Consultar";
-  const area = imovel.areaTotal ? `${imovel.areaTotal.toLocaleString("pt-BR")} m²` : "";
-
+  const preco  = imovel.preco ? fmtBRL(imovel.preco) : "Consultar";
+  const area   = imovel.areaTotal ? `${imovel.areaTotal.toLocaleString("pt-BR")} m²` : "";
   const fotoRow = imovel.fotoUrl
     ? `<tr><td style="padding:0;line-height:0;font-size:0;"><img src="${imovel.fotoUrl}" alt="${imovel.tipo || "Imóvel"}" width="560" style="display:block;width:100%;height:180px;object-fit:cover;border-radius:7px 7px 0 0;" /></td></tr>`
     : "";
-
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
   ${fotoRow}
@@ -92,25 +83,14 @@ function cardHtml(imovel: ImovelPreview): string {
 </table>`;
 }
 
-export function emailAlertaNovos({
-  nome,
-  imoveis,
-  total,
-  prefs,
-}: {
-  nome: string;
-  imoveis: ImovelPreview[];
-  total: number;
-  prefs: Prefs;
-}): { subject: string; html: string } {
+function emailAlertaNovos({ nome, imoveis, total, prefs }) {
   const primeiroNome = (nome ?? "").split(" ")[0] || "usuário";
   const n = imoveis.length;
-  const verMaisUrl = buildVerMaisUrl(prefs);
   const hasMore = total > 20;
+  const verMaisUrl = SITE_URL;
+  const cards = imoveis.map(cardHtml).join("");
 
   const subject = `${n} novo${n !== 1 ? "s" : ""} imóvel${n !== 1 ? "is" : ""} na sua região — Busca Leilões Caixa`;
-
-  const cards = imoveis.map(cardHtml).join("");
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -146,15 +126,12 @@ export function emailAlertaNovos({
   <table class="email-wrapper" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f3f4f6" style="background-color:#f3f4f6;padding:32px 16px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-        <!-- Header -->
         <tr>
           <td class="card-header" bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
             <img src="https://www.buscaleiloescaixa.com.br/logo.png" alt="Busca Leilões Caixa" width="180" style="display:block;margin:0 auto;max-width:180px;height:auto;border:0;"/>
           </td>
         </tr>
         <tr><td bgcolor="${AMBER}" height="4" style="background-color:${AMBER};height:4px;line-height:4px;font-size:1px;"></td></tr>
-
-        <!-- Body -->
         <tr>
           <td class="card-body" bgcolor="${WHITE}" style="background-color:${WHITE};padding:28px 32px;">
             <h1 class="title-text" style="margin:0 0 6px;font-size:22px;font-weight:700;color:${NAVY};line-height:1.3;">
@@ -163,10 +140,7 @@ export function emailAlertaNovos({
             <p class="body-text" style="margin:0 0 20px;font-size:14px;color:${GRAY};line-height:1.6;">
               Olá, <strong>${primeiroNome}</strong>. Encontramos imóveis novos que correspondem às suas preferências.
             </p>
-
-            <!-- Property cards -->
             ${cards}
-
             ${hasMore ? `
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;margin-bottom:20px;">
               <tr>
@@ -177,10 +151,7 @@ export function emailAlertaNovos({
                   </p>
                 </td>
               </tr>
-            </table>
-            ` : ""}
-
-            <!-- CTA -->
+            </table>` : ""}
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
               <tr>
                 <td align="center">
@@ -192,10 +163,7 @@ export function emailAlertaNovos({
             </table>
           </td>
         </tr>
-
         <tr><td bgcolor="${AMBER}" height="4" style="background-color:${AMBER};height:4px;line-height:4px;font-size:1px;"></td></tr>
-
-        <!-- Footer -->
         <tr>
           <td class="card-footer" bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:0 0 12px 12px;padding:20px 32px;text-align:center;">
             <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,0.55);">
@@ -214,4 +182,63 @@ export function emailAlertaNovos({
 </html>`;
 
   return { subject, html };
+}
+
+// ── Busca imóveis reais com foto no MongoDB ───────────────────────────────────
+
+const DEST = "vitorvalenca1@gmail.com";
+
+const mongo = new MongoClient(MONGODB_URI);
+await mongo.connect();
+
+const col = mongo.db(MONGODB_DB).collection(MONGODB_COL);
+
+const R2_BASE = process.env.R2_PUBLIC_URL ?? "https://pub-55673c9129354bcdad5bb571c2237b66.r2.dev";
+
+const rawImoveis = await mongo
+  .db(MONGODB_DB)
+  .collection(MONGODB_COL)
+  .find(
+    { fotoMigrada: true, ativo: true },
+    { projection: { hdnImovel: 1, tipo: 1, modalidade: 1, cidade: 1, estado: 1, bairro: 1, preco: 1, areaTotal: 1 } }
+  )
+  .limit(5)
+  .toArray();
+
+await mongo.close();
+
+const imoveisTeste = rawImoveis.map(im => ({
+  ...im,
+  fotoUrl: `${R2_BASE}/imoveis-caixa/${im.hdnImovel}`,
+  filtroUrl: im.cidade && im.estado
+    ? `/imoveis/${im.estado.toLowerCase()}/${slugify(im.cidade)}`
+    : im.estado ? `/imoveis/${im.estado.toLowerCase()}` : "/",
+}));
+
+console.log(`Usando ${imoveisTeste.length} imóveis com foto no R2.`);
+
+// ── Envio ─────────────────────────────────────────────────────────────────────
+
+const resend = new Resend(RESEND_KEY);
+
+const { subject, html } = emailAlertaNovos({
+  nome: "Vitor",
+  imoveis: imoveisTeste,
+  total: 5,
+  prefs: { brasil: true },
+});
+
+console.log(`Enviando e-mail de teste para ${DEST}...`);
+const res = await resend.emails.send({
+  from:    "Busca Leilões Caixa <noreply@buscaleiloescaixa.com.br>",
+  replyTo: "atendimento@buscaleiloescaixa.com.br",
+  to:      DEST,
+  subject,
+  html,
+});
+
+if (res.error) {
+  console.error("Erro:", res.error.message);
+} else {
+  console.log("Enviado! ID:", res.data?.id);
 }

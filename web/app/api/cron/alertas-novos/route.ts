@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailAlertaNovos, ImovelPreview } from "@/emails/alertaNovosImoveis";
+import { slugify } from "@/lib/utils";
 
 type Prefs = { brasil?: boolean; estados?: string[]; cidades?: string[]; alertas?: boolean };
 
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
           areaTotal: 1,
           bairro: 1,
           modalidade: 1,
+          fotoMigrada: 1,
         },
       }
     )
@@ -94,7 +96,27 @@ export async function GET(req: NextRequest) {
     const top20 = imoveisMatch
       .slice()
       .sort((a, b) => (a.preco ?? Infinity) - (b.preco ?? Infinity))
-      .slice(0, 20);
+      .slice(0, 20)
+      .map((im) => {
+        const r2Base = process.env.R2_PUBLIC_URL ?? "https://pub-55673c9129354bcdad5bb571c2237b66.r2.dev";
+
+        // fotoUrl no banco aponta para a Caixa (hotlink protegido); usa R2 se já migrado
+        const fotoUrl = (im as { fotoMigrada?: boolean }).fotoMigrada
+          ? `${r2Base}/imoveis-caixa/${im.hdnImovel}`
+          : undefined;
+
+        // URL do filtro do usuário para este imóvel (usado no botão "voltar" da página)
+        let filtroUrl = "/";
+        if (!prefs.brasil && im.estado) {
+          const uf = im.estado.toLowerCase();
+          const cidadeNaPref = im.cidade && prefs.cidades?.includes(`${im.cidade}|${im.estado}`);
+          filtroUrl = cidadeNaPref && im.cidade
+            ? `/imoveis/${uf}/${slugify(im.cidade)}`
+            : `/imoveis/${uf}`;
+        }
+
+        return { ...im, fotoUrl, filtroUrl };
+      });
 
     try {
       const { subject, html } = emailAlertaNovos({
