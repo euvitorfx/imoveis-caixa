@@ -2,12 +2,14 @@ import os
 from datetime import datetime, timezone
 from typing import Optional
 from dotenv import load_dotenv
-from pymongo import MongoClient, UpdateOne, ASCENDING
+from pymongo import MongoClient, UpdateOne, InsertOne, ASCENDING
 from pymongo.errors import BulkWriteError
 
 load_dotenv()
 
 _client: Optional[MongoClient] = None
+
+CAMPOS_MONITORADOS = ["preco", "modalidade", "situacaoOcupacao", "desconto", "tipo"]
 
 
 def get_db():
@@ -30,6 +32,11 @@ def ensure_indexes():
     col.create_index([("ativo", ASCENDING)])
     col.create_index([("dataInsercao", ASCENDING)])
     col.create_index([("dataInativacao", ASCENDING)])
+
+    mudancas_col = get_db()["mudancas_imoveis"]
+    mudancas_col.create_index([("hdnImovel", ASCENDING)])
+    mudancas_col.create_index([("notificado", ASCENDING)])
+    mudancas_col.create_index([("detectadoEm", ASCENDING)])
     print("  Índices criados/verificados.")
 
 
@@ -43,8 +50,19 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
         return {"inseridos": 0, "atualizados": 0, "erros": 0}
 
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
+    mudancas_col = get_db()["mudancas_imoveis"]
     now = datetime.now(timezone.utc)
 
+    # Snapshot dos campos monitorados para detectar mudanças
+    hdns = [doc["hdnImovel"] for doc in imoveis if doc.get("hdnImovel")]
+    projecao = {campo: 1 for campo in CAMPOS_MONITORADOS}
+    projecao["hdnImovel"] = 1
+    existentes = {
+        doc["hdnImovel"]: doc
+        for doc in col.find({"hdnImovel": {"$in": hdns}}, projecao)
+    }
+
+    mudancas = []
     ops = []
     for doc in imoveis:
         chave = doc.get("hdnImovel")
@@ -52,6 +70,23 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
             continue
         doc["dataAtualizacao"] = now
         preco = doc.get("preco")
+
+        # Detectar mudanças apenas em imóveis já existentes (não em inserções novas)
+        existente = existentes.get(chave)
+        if existente:
+            for campo in CAMPOS_MONITORADOS:
+                val_novo = doc.get(campo)
+                val_anterior = existente.get(campo)
+                if val_novo is not None and val_anterior is not None and val_novo != val_anterior:
+                    mudancas.append({
+                        "hdnImovel": chave,
+                        "campo": campo,
+                        "de": val_anterior,
+                        "para": val_novo,
+                        "detectadoEm": now,
+                        "notificado": False,
+                    })
+
         # fotoUrl vai em $setOnInsert para não sobrescrever URL do R2 após migração
         foto_url = doc.pop("fotoUrl", None)
         set_on_insert: dict = {"dataInsercao": now}
@@ -74,6 +109,9 @@ def upsert_imoveis(imoveis: list[dict]) -> dict:
             update,
             upsert=True,
         ))
+
+    if mudancas:
+        mudancas_col.insert_many(mudancas)
 
     if not ops:
         return {"inseridos": 0, "atualizados": 0, "erros": 0}
@@ -99,18 +137,29 @@ def marcar_inativos(estado: str, hdnimoveis_ativos: list[str]):
     if not hdnimoveis_ativos:
         return
     col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
+    mudancas_col = get_db()["mudancas_imoveis"]
     now = datetime.now(timezone.utc)
+
+    filtro = {"estado": estado, "hdnImovel": {"$nin": hdnimoveis_ativos}, "ativo": True}
+
+    # Registrar inativações antes de aplicar o update
+    a_inativar = list(col.find(filtro, {"hdnImovel": 1}))
+    if a_inativar:
+        mudancas_col.insert_many([
+            {
+                "hdnImovel": doc["hdnImovel"],
+                "campo": "ativo",
+                "de": True,
+                "para": False,
+                "detectadoEm": now,
+                "notificado": False,
+            }
+            for doc in a_inativar
+        ])
+
     result = col.update_many(
-        {
-            "estado": estado,
-            "hdnImovel": {"$nin": hdnimoveis_ativos},
-            "ativo": True,
-        },
-        {"$set": {
-            "ativo": False,
-            "dataAtualizacao": now,
-            "dataInativacao": now,
-        }},
+        filtro,
+        {"$set": {"ativo": False, "dataAtualizacao": now, "dataInativacao": now}},
     )
     return result.modified_count
 
