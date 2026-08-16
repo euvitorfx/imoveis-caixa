@@ -97,11 +97,13 @@ export function emailAlertaNovos({
   imoveis,
   total,
   prefs,
+  descadastroUrl,
 }: {
   nome: string;
   imoveis: ImovelPreview[];
   total: number;
   prefs: Prefs;
+  descadastroUrl?: string;
 }): { subject: string; html: string } {
   const primeiroNome = (nome ?? "").split(" ")[0] || "usuário";
   const n = imoveis.length;
@@ -202,8 +204,10 @@ export function emailAlertaNovos({
               Busca Leilões Caixa &middot; Dados do acervo oficial da Caixa Econômica Federal.
             </p>
             <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.55);">
-              Para pausar estes alertas, acesse
-              <a href="https://www.buscaleiloescaixa.com.br/perfil" style="color:${AMBER};text-decoration:none;font-weight:600;">suas preferências</a>.
+              ${descadastroUrl
+                ? `Não quer mais receber estes alertas? <a href="${descadastroUrl}" style="color:${AMBER};text-decoration:none;font-weight:600;">Cancelar inscrição</a>`
+                : `Para pausar estes alertas, acesse <a href="${SITE_URL}/perfil" style="color:${AMBER};text-decoration:none;font-weight:600;">suas preferências</a>.`
+              }
             </p>
           </td>
         </tr>

@@ -3,6 +3,9 @@ import clientPromise from "@/lib/mongodb";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailAlertaNovos, ImovelPreview } from "@/emails/alertaNovosImoveis";
 import { slugify } from "@/lib/utils";
+import { generateUnsubToken } from "@/lib/unsubscribeToken";
+
+const SITE_URL = "https://www.buscaleiloescaixa.com.br";
 
 type Prefs = { brasil?: boolean; estados?: string[]; cidades?: string[]; alertas?: boolean };
 
@@ -119,11 +122,14 @@ export async function GET(req: NextRequest) {
       });
 
     try {
+      const descadastroUrl = `${SITE_URL}/api/alertas/descadastro?token=${generateUnsubToken(usuario._id.toString())}`;
+
       const { subject, html } = emailAlertaNovos({
         nome: usuario.name ?? "usuário",
         imoveis: top20,
         total: imoveisMatch.length,
         prefs,
+        descadastroUrl,
       });
 
       await resend.emails.send({
