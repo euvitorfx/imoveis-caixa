@@ -21,7 +21,8 @@ export async function PUT(req: NextRequest) {
 
   // Atualiza o token JWT no servidor para que o middleware veja temTelefone: true
   // imediatamente, sem precisar do update() no cliente
-  await unstable_update({ temTelefone: !!(telefone?.trim()) });
+  // Dispara o jwt callback com trigger="update" para re-ler temTelefone do banco
+  await unstable_update({});
 
   return NextResponse.json({ ok: true });
 }
