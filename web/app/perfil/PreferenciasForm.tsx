@@ -12,7 +12,7 @@ const ESTADOS: Record<string, string> = {
   TO:"Tocantins",
 };
 
-type Prefs = { brasil: boolean; estados: string[]; cidades: string[] };
+type Prefs = { brasil: boolean; estados: string[]; cidades: string[]; alertas?: boolean };
 
 export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
   const [prefs, setPrefs] = useState<Prefs>(inicial);
@@ -163,6 +163,22 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
           )}
         </div>
       )}
+
+      {/* Toggle de alertas por e-mail */}
+      <label className="flex items-center gap-3 cursor-pointer select-none pt-2 border-t border-gray-100">
+        <input
+          type="checkbox"
+          checked={prefs.alertas !== false}
+          onChange={(e) => setPrefs((p) => ({ ...p, alertas: e.target.checked }))}
+          className="w-4 h-4 rounded accent-amber-500"
+        />
+        <div>
+          <span className="text-sm font-medium text-gray-700">Receber alertas por e-mail</span>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Notificações diárias de novos imóveis na sua região
+          </p>
+        </div>
+      </label>
 
       <div className="flex items-center gap-3">
         <button

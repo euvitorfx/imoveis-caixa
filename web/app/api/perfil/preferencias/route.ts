@@ -7,7 +7,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { brasil, estados, cidades } = await req.json();
+  const { brasil, estados, cidades, alertas } = await req.json();
 
   const client = await clientPromise;
   await client
@@ -15,7 +15,16 @@ export async function PUT(req: NextRequest) {
     .collection("users")
     .updateOne(
       { _id: new ObjectId(session.user.id) },
-      { $set: { preferencias: { brasil: !!brasil, estados: estados ?? [], cidades: cidades ?? [] } } }
+      {
+        $set: {
+          preferencias: {
+            brasil: !!brasil,
+            estados: estados ?? [],
+            cidades: cidades ?? [],
+            alertas: alertas !== false,
+          },
+        },
+      }
     );
 
   return NextResponse.json({ ok: true });
