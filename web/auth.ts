@@ -9,7 +9,7 @@ import { authConfig } from "./auth.config";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailBoasVindas } from "@/emails/boasVindas";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
   adapter: MongoDBAdapter(clientPromise, { databaseName: process.env.MONGODB_DB }),
   session: { strategy: "jwt" },

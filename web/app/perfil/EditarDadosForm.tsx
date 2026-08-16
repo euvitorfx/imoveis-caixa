@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
@@ -19,7 +18,6 @@ export default function EditarDadosForm({
   const [telefone, setTelefone] = useState<string | undefined>(telefoneAtual || undefined);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
-  const { update } = useSession();
   const router = useRouter();
 
   // Foca no campo de telefone automaticamente quando obrigatório
@@ -49,12 +47,11 @@ export default function EditarDadosForm({
     });
     setSalvando(false);
     if (res.ok) {
-      await update(); // atualiza token JWT (temTelefone → true)
+      // O cookie JWT já foi atualizado no servidor pela rota /api/perfil/dados
       setMsg("Dados salvos!");
       setTimeout(() => {
         setMsg("");
         if (obrigatorio) {
-          // Hard navigation garante que o middleware lê o cookie JWT atualizado
           window.location.href = "/";
         } else {
           router.refresh();

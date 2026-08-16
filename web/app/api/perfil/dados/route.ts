@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { auth } from "@/auth";
+import { auth, unstable_update } from "@/auth";
 import clientPromise from "@/lib/mongodb";
 
 export async function PUT(req: NextRequest) {
@@ -18,6 +18,10 @@ export async function PUT(req: NextRequest) {
       { _id: new ObjectId(session.user.id) },
       { $set: { name: nome.trim(), telefone: telefone?.trim() || null } }
     );
+
+  // Atualiza o token JWT no servidor para que o middleware veja temTelefone: true
+  // imediatamente, sem precisar do update() no cliente
+  await unstable_update({ temTelefone: !!(telefone?.trim()) });
 
   return NextResponse.json({ ok: true });
 }
