@@ -30,16 +30,17 @@ const RECURSOS_ATIVOS = [
     descricao: "Baixe a ficha completa com fotos e descrição de qualquer imóvel.",
     href: null,
   },
-];
-
-const RECURSOS_BREVE = [
   {
     icone: "✉",
     iconeCor: "#2563eb",
     iconeBg: "#dbeafe",
     titulo: "Alertas por e-mail",
-    descricao: "Seja o primeiro a saber quando novos imóveis da sua região aparecerem.",
+    descricao: "Receba todo dia os novos imóveis da sua região direto no e-mail. Configure em preferências.",
+    href: "/perfil",
   },
+];
+
+const RECURSOS_BREVE = [
   {
     icone: "★",
     iconeCor: "#92400e",
@@ -130,7 +131,9 @@ export default function PopupFeaturesUsuario() {
                 </span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
-                    {r.titulo}
+                    {r.href ? (
+                      <a href={r.href} className="hover:underline" style={{ color: "#01304D" }}>{r.titulo}</a>
+                    ) : r.titulo}
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
                       já disponível
                     </span>

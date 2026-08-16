@@ -156,9 +156,11 @@ export function emailBoasVindas(nome: string): { subject: string; html: string }
 
               <p class="body-text"
                 style="margin:0;font-size:13px;color:${GRAY};line-height:1.6;">
-                Em breve você também terá acesso a
-                <strong class="title-text" style="color:${NAVY};">alertas por e-mail</strong>
-                quando novos imóveis da sua região aparecerem no acervo.
+                Configure suas
+                <a href="https://www.buscaleiloescaixa.com.br/perfil"
+                  style="color:${NAVY};font-weight:600;text-decoration:underline;">preferências de localização</a>
+                e receba <strong class="title-text" style="color:${NAVY};">alertas diários por e-mail</strong>
+                sempre que novos imóveis da sua região aparecerem no acervo.
               </p>
 
             </td>
