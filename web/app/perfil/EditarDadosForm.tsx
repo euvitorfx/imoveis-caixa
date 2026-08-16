@@ -53,8 +53,12 @@ export default function EditarDadosForm({
       setMsg("Dados salvos!");
       setTimeout(() => {
         setMsg("");
-        if (obrigatorio) router.push("/");
-        else router.refresh();
+        if (obrigatorio) {
+          // Hard navigation garante que o middleware lê o cookie JWT atualizado
+          window.location.href = "/";
+        } else {
+          router.refresh();
+        }
       }, 1000);
     } else {
       const d = await res.json();
