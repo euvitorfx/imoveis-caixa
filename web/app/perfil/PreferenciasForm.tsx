@@ -89,7 +89,14 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
       {/* Seleção por estado */}
       {!prefs.brasil && (
         <div className="space-y-3">
-          <p className="text-xs text-gray-500">Selecione os estados e, opcionalmente, as cidades específicas:</p>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-700 space-y-1">
+            <p className="font-semibold">Como funciona a seleção de região:</p>
+            <ul className="space-y-0.5 text-blue-600">
+              <li>• Marque um <strong>estado</strong> para receber alertas de todos os imóveis daquele estado.</li>
+              <li>• Expanda e marque <strong>cidades</strong> dentro do estado para filtrar apenas por elas.</li>
+              <li>• Você pode combinar estados inteiros com cidades específicas de outros estados.</li>
+            </ul>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {Object.entries(ESTADOS).map(([uf, nome]) => (
               <div key={uf} className="rounded-xl border border-gray-100 overflow-hidden">
@@ -155,10 +162,10 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
             ))}
           </div>
           {prefs.estados.length > 0 && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
               {prefs.cidades.length === 0
-                ? `Todos os imóveis de ${prefs.estados.join(", ")} serão incluídos nos seus alertas.`
-                : `${prefs.cidades.length} cidade(s) selecionada(s).`}
+                ? `✓ Todos os imóveis de ${prefs.estados.map((uf) => ESTADOS[uf] ?? uf).join(", ")} serão incluídos nos seus alertas.`
+                : `✓ ${prefs.cidades.length} cidade(s) selecionada(s) em ${prefs.estados.length} estado(s). Apenas imóveis dessas cidades serão incluídos.`}
             </p>
           )}
         </div>
