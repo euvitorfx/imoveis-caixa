@@ -18,6 +18,14 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
   const [prefs, setPrefs] = useState<Prefs>(inicial);
   const [cidadesMap, setCidadesMap] = useState<Record<string, string[]>>({});
   const [expandido, setExpandido] = useState<string | null>(null);
+  // States explicitly in "cidades específicas" mode
+  const [modoCidades, setModoCidades] = useState<Set<string>>(
+    () => new Set(
+      inicial.estados.filter((uf) =>
+        inicial.cidades.some((c) => c.endsWith(`|${uf}`))
+      )
+    )
+  );
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -31,18 +39,26 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
   }, [prefs.brasil]);
 
   function toggleEstado(uf: string) {
+    const removing = prefs.estados.includes(uf);
     setPrefs((p) => {
-      const estados = p.estados.includes(uf)
+      const estados = removing
         ? p.estados.filter((e) => e !== uf)
         : [...p.estados, uf];
-      // Remove cidades do estado desmarcado
       const cidades = p.cidades.filter((c) => {
         const [, estado] = c.split("|");
         return estados.includes(estado);
       });
       return { ...p, estados, cidades };
     });
-    if (!prefs.estados.includes(uf)) setExpandido(uf);
+    if (removing) {
+      setModoCidades((s) => {
+        const next = new Set(s);
+        next.delete(uf);
+        return next;
+      });
+    } else {
+      setExpandido(uf);
+    }
   }
 
   function toggleCidade(cidade: string, uf: string) {
@@ -53,6 +69,22 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
         ? p.cidades.filter((c) => c !== key)
         : [...p.cidades, key],
     }));
+  }
+
+  function ativarModoEstado(uf: string) {
+    setModoCidades((s) => {
+      const next = new Set(s);
+      next.delete(uf);
+      return next;
+    });
+    setPrefs((p) => ({
+      ...p,
+      cidades: p.cidades.filter((c) => !c.endsWith(`|${uf}`)),
+    }));
+  }
+
+  function ativarModoCidades(uf: string) {
+    setModoCidades((s) => new Set([...s, uf]));
   }
 
   async function salvar() {
@@ -71,6 +103,7 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
   const cidadesDoEstado = (uf: string): string[] => cidadesMap[uf] ?? [];
   const cidadesSelecionadas = (uf: string) =>
     prefs.cidades.filter((c) => c.endsWith(`|${uf}`)).length;
+  const emModoCidades = (uf: string) => modoCidades.has(uf);
 
   return (
     <div className="space-y-4">
@@ -89,18 +122,10 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
       {/* Seleção por estado */}
       {!prefs.brasil && (
         <div className="space-y-3">
-          <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-700 space-y-1">
-            <p className="font-semibold">Como funciona a seleção de região:</p>
-            <ul className="space-y-0.5 text-blue-600">
-              <li>• Marque um <strong>estado</strong> para receber alertas de todos os imóveis daquele estado.</li>
-              <li>• Expanda e marque <strong>cidades</strong> dentro do estado para filtrar apenas por elas.</li>
-              <li>• Você pode combinar estados inteiros com cidades específicas de outros estados.</li>
-            </ul>
-          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {Object.entries(ESTADOS).map(([uf, nome]) => (
               <div key={uf} className="rounded-xl border border-gray-100 overflow-hidden">
-                {/* Estado */}
+                {/* Cabeçalho do estado */}
                 <label className={`flex items-center gap-2 px-3 py-2 cursor-pointer select-none transition-colors ${
                   prefs.estados.includes(uf) ? "bg-blue-50" : "hover:bg-gray-50"
                 }`}>
@@ -119,7 +144,7 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
                   )}
                 </label>
 
-                {/* Cidades do estado (expandível) */}
+                {/* Filtro de cidades (expandível) */}
                 {prefs.estados.includes(uf) && cidadesDoEstado(uf).length > 0 && (
                   <div className="border-t border-gray-100">
                     <button
@@ -127,33 +152,66 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
                       onClick={() => setExpandido(expandido === uf ? null : uf)}
                       className="w-full text-left px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
                     >
-                      {expandido === uf ? "▲ Recolher cidades" : `▼ Filtrar por cidade (${cidadesDoEstado(uf).length})`}
+                      {expandido === uf
+                        ? "▲ Recolher"
+                        : emModoCidades(uf)
+                          ? `▼ ${cidadesSelecionadas(uf)} cidade(s) selecionada(s)`
+                          : "▼ Todo o estado · refinar por cidade"}
                     </button>
+
                     {expandido === uf && (
-                      <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-0.5 bg-white">
-                        {cidadesSelecionadas(uf) > 0 && (
-                          <p className="text-xs text-gray-400 py-1">
-                            {cidadesSelecionadas(uf) === 0
-                              ? "Todas as cidades do estado"
-                              : `${cidadesSelecionadas(uf)} cidade(s) selecionada(s)`}
-                          </p>
+                      <div className="px-3 pb-3 bg-white">
+                        {/* Radio buttons de modo */}
+                        <div className="space-y-2 pt-2 pb-2">
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`modo-${uf}`}
+                              checked={!emModoCidades(uf)}
+                              onChange={() => ativarModoEstado(uf)}
+                              className="w-3.5 h-3.5 mt-0.5 accent-blue-600 flex-shrink-0"
+                            />
+                            <div>
+                              <p className="text-xs font-semibold text-gray-700">Todo o estado</p>
+                              <p className="text-xs text-gray-400 leading-snug">Alertas de todos os imóveis de {nome}</p>
+                            </div>
+                          </label>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`modo-${uf}`}
+                              checked={emModoCidades(uf)}
+                              onChange={() => ativarModoCidades(uf)}
+                              className="w-3.5 h-3.5 mt-0.5 accent-blue-600 flex-shrink-0"
+                            />
+                            <div>
+                              <p className="text-xs font-semibold text-gray-700">Cidades específicas</p>
+                              <p className="text-xs text-gray-400 leading-snug">Apenas imóveis das cidades marcadas</p>
+                            </div>
+                          </label>
+                        </div>
+
+                        {/* Lista de cidades — visível apenas no modo "cidades específicas" */}
+                        {emModoCidades(uf) && (
+                          <div className="max-h-36 overflow-y-auto border border-gray-100 rounded-lg px-2 py-1.5 space-y-0.5 bg-gray-50">
+                            {cidadesDoEstado(uf).map((cidade) => {
+                              const key = `${cidade}|${uf}`;
+                              return (
+                                <label key={cidade} className="flex items-center gap-2 py-0.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={prefs.cidades.includes(key)}
+                                    onChange={() => toggleCidade(cidade, uf)}
+                                    className="w-3 h-3 accent-blue-600"
+                                  />
+                                  <span className="text-xs text-gray-600 capitalize">
+                                    {cidade.charAt(0) + cidade.slice(1).toLowerCase()}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
                         )}
-                        {cidadesDoEstado(uf).map((cidade) => {
-                          const key = `${cidade}|${uf}`;
-                          return (
-                            <label key={cidade} className="flex items-center gap-2 py-0.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={prefs.cidades.includes(key)}
-                                onChange={() => toggleCidade(cidade, uf)}
-                                className="w-3 h-3 accent-blue-600"
-                              />
-                              <span className="text-xs text-gray-600 capitalize">
-                                {cidade.charAt(0) + cidade.slice(1).toLowerCase()}
-                              </span>
-                            </label>
-                          );
-                        })}
                       </div>
                     )}
                   </div>
@@ -161,6 +219,7 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
               </div>
             ))}
           </div>
+
           {prefs.estados.length > 0 && (
             <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
               {prefs.cidades.length === 0
