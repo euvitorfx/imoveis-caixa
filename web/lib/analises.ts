@@ -121,6 +121,25 @@ export function calcular(d: DadosAnalise): ResultadoAnalise {
   return { leiloeiro, escritura, itbi, registro, totalAquisicao, totalManutencao, totalDespesas, corretagem, saldoPosVenda, ir, lucroLiquido, roi, roiMensal, roiPorMes };
 }
 
+// Dado um ROI alvo (%), retorna o valorCompra máximo que ainda atinge esse ROI.
+// Derivado analiticamente da fórmula: roi = lucroLiquido / totalAquisicao * 100
+export function calcularLanceMaximo(d: DadosAnalise, roiAlvo: number): number {
+  const pC = d.percCorretor / 100;
+  const pI = d.percIR / 100;
+  const r  = roiAlvo / 100;
+  // k = multiplicador do lance (1 + todas as % sobre valorCompra)
+  const k  = 1 + (d.percLeiloeiro + d.percEscritura + d.percITBI + d.percRegistro) / 100;
+  // custos fixos que não dependem do lance
+  const FC = d.dividaCondominio + d.iptu + d.imissaoPosse + d.reforma +
+             d.areaNaoAverbada + d.contabilidade + d.anunciosPagos;
+  const TM = (d.condominioMensal + d.energiaMensal + d.aguaMensal) * d.mesesAteVenda;
+  // S = receita líquida de venda menos custos fixos (sem o lance)
+  const S = d.valorVenda * (1 - pC) - FC - TM;
+  const denom = k * (1 - pI + r);
+  if (denom <= 0 || d.valorVenda <= 0) return 0;
+  return Math.max(0, (S * (1 - pI) - r * FC) / denom);
+}
+
 export function brl(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }

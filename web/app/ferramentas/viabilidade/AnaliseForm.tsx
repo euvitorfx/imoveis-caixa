@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import { DadosAnalise, ResultadoAnalise, AnaliseViabilidade, DADOS_PADRAO, calcular, brl } from "@/lib/analises";
+import { DadosAnalise, ResultadoAnalise, AnaliseViabilidade, DADOS_PADRAO, calcular, calcularLanceMaximo, brl } from "@/lib/analises";
 import ModalCompletarCadastro from "@/components/ModalCompletarCadastro";
+
+interface Taxas {
+  cdi: number;
+  ipca: number;
+  ibovespa: number;
+  ifix: number;
+  atualizadoEm: string | null;
+}
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function n(v: number | string): number {
@@ -125,7 +133,7 @@ function ModalFavoritos({
 }
 
 // ── Painel de resultados ───────────────────────────────────────────────────
-function PainelResultados({ r, meses }: { r: ResultadoAnalise; meses: number }) {
+function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: number; taxas: Taxas | null }) {
   const lucro = r.lucroLiquido;
   const positivo = lucro >= 0;
 
@@ -138,7 +146,24 @@ function PainelResultados({ r, meses }: { r: ResultadoAnalise; meses: number }) 
     </div>
   );
 
+  // ROI sobre capital total despendido (para comparação justa com índices)
+  const roiSobreTotal = r.totalDespesas > 0 ? (r.lucroLiquido / r.totalDespesas) * 100 : 0;
+
+  function retornoIndicePct(taxaAnual: number): number {
+    if (meses <= 0) return 0;
+    return (Math.pow(1 + taxaAnual / 100, meses / 12) - 1) * 100;
+  }
+
   const chartData = r.roiPorMes.map((p) => ({ ...p, roi: parseFloat(p.roi.toFixed(2)) }));
+
+  const indices = taxas
+    ? [
+        { label: "CDI / SELIC", pct: retornoIndicePct(taxas.cdi), nota: `${taxas.cdi.toFixed(1)}% a.a.` },
+        { label: "IPCA", pct: retornoIndicePct(taxas.ipca), nota: `${taxas.ipca.toFixed(1)}% a.a.` },
+        { label: "Ibovespa", pct: retornoIndicePct(taxas.ibovespa), nota: "média 5 anos" },
+        { label: "IFIX", pct: retornoIndicePct(taxas.ifix), nota: "média 5 anos" },
+      ]
+    : [];
 
   return (
     <div className="bg-white rounded-2xl shadow border p-5 space-y-5">
@@ -172,6 +197,45 @@ function PainelResultados({ r, meses }: { r: ResultadoAnalise; meses: number }) 
         {linha("IR (15%)", r.ir, false, true)}
         {linha("Lucro Líquido", r.lucroLiquido, true)}
       </div>
+
+      {/* Comparação com índices financeiros */}
+      {taxas && r.totalDespesas > 0 && meses > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">vs. Mercado Financeiro</p>
+            <span className="text-[10px] text-gray-400">{meses} meses</span>
+          </div>
+          <div className="space-y-1 text-xs">
+            {/* Imóvel */}
+            <div className="flex items-center gap-2 py-1.5 border-b border-gray-100">
+              <span className="w-4 text-center font-bold text-[#01304D]">★</span>
+              <span className="flex-1 font-semibold text-gray-700">Este imóvel</span>
+              <span className="tabular-nums font-bold" style={{ color: roiSobreTotal >= 0 ? "#16A34A" : "#DC2626" }}>
+                {roiSobreTotal.toFixed(1)}%
+              </span>
+              <span className="tabular-nums text-gray-400 w-24 text-right">{brl(lucro)}</span>
+            </div>
+            {indices.map((idx) => {
+              const retorno = idx.pct;
+              const valor = r.totalDespesas * retorno / 100;
+              const bate = roiSobreTotal > retorno;
+              return (
+                <div key={idx.label} className="flex items-center gap-2 py-1">
+                  <span className={`w-4 text-center text-[10px] ${bate ? "text-green-500" : "text-red-400"}`}>
+                    {bate ? "▲" : "▼"}
+                  </span>
+                  <span className="flex-1 text-gray-600">{idx.label}</span>
+                  <span className="tabular-nums text-gray-500">{retorno.toFixed(1)}%</span>
+                  <span className="tabular-nums text-gray-400 w-24 text-right">{brl(valor)}</span>
+                </div>
+              );
+            })}
+            <p className="text-[10px] text-gray-300 pt-1">
+              Capital: {brl(r.totalDespesas)} · Ibovespa e IFIX: médias históricas 5 anos
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ROI chart */}
       {chartData.length > 1 && (
@@ -231,8 +295,15 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
   const [erro, setErro] = useState("");
+  const [roiAlvo, setRoiAlvo] = useState(30);
+  const [taxas, setTaxas] = useState<Taxas | null>(null);
+
+  useEffect(() => {
+    fetch("/api/analises/taxas").then((r) => r.json()).then(setTaxas).catch(() => {});
+  }, []);
 
   const resultado: ResultadoAnalise = calcular(dados);
+  const lanceMaximo = calcularLanceMaximo(dados, roiAlvo);
 
   const set: Setter = useCallback((field, value) => {
     setDados((p) => ({ ...p, [field]: value }));
@@ -428,6 +499,22 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
               {val("Valor de Mercado", "valorMercado", dados, set, "Estimativa de mercado")}
               {val("Lance Inicial / Compra", "lanceInicial", dados, set)}
             </div>
+            {/* Lance Máximo por ROI Alvo */}
+            <div className="flex flex-wrap items-center gap-2 mt-1 bg-[#F0F6FF] border border-blue-100 rounded-xl px-4 py-2.5">
+              <span className="text-xs text-blue-600 font-medium">Para ROI de</span>
+              <input
+                type="number" min="0" max="200" step="1"
+                value={roiAlvo}
+                onChange={(e) => setRoiAlvo(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-14 text-center text-xs font-semibold border border-blue-200 rounded-lg px-2 py-1 bg-white outline-none focus:border-blue-400"
+              />
+              <span className="text-xs text-blue-600 font-medium">% →</span>
+              <span className="text-xs text-blue-500">lance máximo:</span>
+              <span className="text-sm font-bold text-[#01304D] tabular-nums">
+                {dados.valorVenda > 0 ? brl(lanceMaximo) : "—"}
+              </span>
+              <span className="text-[10px] text-blue-300 ml-auto">com os % configurados abaixo</span>
+            </div>
           </Secao>
 
           {/* Despesas de aquisição */}
@@ -489,7 +576,7 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
 
         {/* Painel de resultados (2/5, sticky) */}
         <div className="lg:col-span-2 lg:sticky lg:top-4">
-          <PainelResultados r={resultado} meses={dados.mesesAteVenda} />
+          <PainelResultados r={resultado} meses={dados.mesesAteVenda} taxas={taxas} />
         </div>
       </div>
 
