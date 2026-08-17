@@ -22,7 +22,7 @@ export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolea
   const logado = !!req.auth?.user;
 
   // Área do usuário: requer sessão NextAuth
-  if (pathname.startsWith("/perfil") && !logado) {
+  if ((pathname.startsWith("/perfil") || pathname.startsWith("/favoritos")) && !logado) {
     const url = new URL("/login", req.url);
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
