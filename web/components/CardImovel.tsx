@@ -8,7 +8,17 @@ function fmt(v: number | null | undefined) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-export default function CardImovel({ imovel }: { imovel: Imovel }) {
+export default function CardImovel({
+  imovel,
+  hasMudanca,
+  precoDe,
+  removido,
+}: {
+  imovel: Imovel;
+  hasMudanca?: boolean;
+  precoDe?: number;
+  removido?: boolean;
+}) {
   const descPct = imovel.precoAval && imovel.preco
     ? Math.round((1 - imovel.preco / imovel.precoAval) * 100)
     : null;
@@ -18,7 +28,7 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
     : null;
 
   return (
-    <div className="relative group">
+    <div className={`relative group${removido ? " opacity-60" : ""}`}>
       <BotaoFavorito imovel={imovel} />
 
       <a
@@ -36,6 +46,20 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">🏠</div>
+          )}
+
+          {/* Badge "Atualizado" — top left */}
+          {hasMudanca && (
+            <span className="absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded-full bg-amber-400 text-amber-900 z-10">
+              Atualizado
+            </span>
+          )}
+
+          {/* Badge "Fora do acervo" — top left (quando removido) */}
+          {removido && (
+            <span className="absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded-full bg-orange-500 text-white z-10">
+              Fora do acervo
+            </span>
           )}
 
           {/* Desconto — top right */}
@@ -80,7 +104,14 @@ export default function CardImovel({ imovel }: { imovel: Imovel }) {
           </p>
 
           {/* Preço */}
-          <p className="font-bold text-gray-900 text-lg leading-tight">{fmt(imovel.preco)}</p>
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <p className="font-bold text-gray-900 text-lg leading-tight">{fmt(imovel.preco)}</p>
+            {precoDe != null && imovel.preco != null && precoDe !== imovel.preco && (
+              <span className={`text-xs font-semibold ${imovel.preco < precoDe ? "text-green-600" : "text-red-500"}`}>
+                {imovel.preco < precoDe ? "↓" : "↑"} era {fmt(precoDe)}
+              </span>
+            )}
+          </div>
 
           {/* Avaliação + Economia */}
           {imovel.precoAval && (
