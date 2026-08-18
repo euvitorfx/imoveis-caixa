@@ -8,6 +8,7 @@ import clientPromise from "@/lib/mongodb";
 import { authConfig } from "./auth.config";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailBoasVindas } from "@/emails/boasVindas";
+import { getCorretorByUserId } from "@/lib/corretores";
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ...authConfig,
@@ -53,6 +54,8 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.temTelefone = !!dbUser?.telefone;
         token.plano = dbUser?.plano ?? "gratuito";
         token.popupFeaturesVisto = !!dbUser?.popupFeaturesVisto;
+        const corretor = await getCorretorByUserId(user.id!);
+        token.corretorId = corretor?._id ?? undefined;
       }
       if (trigger === "update") {
         // Chamado via useSession().update() após salvar telefone
@@ -70,6 +73,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       session.user.plano = (token.plano as "gratuito" | "premium") ?? "gratuito";
       session.user.temTelefone = token.temTelefone ?? false;
       session.user.popupFeaturesVisto = token.popupFeaturesVisto ?? false;
+      if (token.corretorId) session.user.corretorId = token.corretorId as string;
       return session;
     },
   },

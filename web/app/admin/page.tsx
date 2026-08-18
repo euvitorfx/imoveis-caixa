@@ -3,165 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BlogPost } from "@/lib/blog";
-import { Corretor, CategoriaCorretor } from "@/lib/corretores";
+import { Corretor } from "@/lib/corretores";
 import AdminUsuarios from "./AdminUsuarios";
-
-const ESTADOS = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO",
-  "MA","MG","MS","MT","PA","PB","PE","PI","PR",
-  "RJ","RN","RO","RR","RS","SC","SE","SP","TO",
-];
-
-const ESPECIALIDADES_OPCOES = [
-  "Imóveis de Leilão","Venda Direta Caixa","Financiamento FGTS",
-  "Imóveis Residenciais","Imóveis Comerciais","Terrenos e Lotes",
-  "Imóveis na Planta","Avaliação de Imóveis",
-];
-
-function FormNovoCorretor({ onSuccess }: { onSuccess: () => void }) {
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState("");
-  const [especialidades, setEspecialidades] = useState<string[]>([]);
-  const [form, setForm] = useState({
-    nome: "", creci: "", categoria: "corretor_geral" as CategoriaCorretor,
-    cidade: "", estado: "SP", bio: "",
-    whatsapp: "", instagram: "", email: "", website: "", foto: "",
-  });
-
-  function set(field: string, value: string) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function toggleEsp(e: string) {
-    setEspecialidades((prev) =>
-      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
-    );
-  }
-
-  async function enviar(ev: React.FormEvent) {
-    ev.preventDefault();
-    setErro("");
-    setEnviando(true);
-    const res = await fetch("/api/admin/corretores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, especialidades }),
-    });
-    const data = await res.json();
-    setEnviando(false);
-    if (!res.ok) { setErro(data.error || "Erro ao salvar."); return; }
-    setForm({ nome: "", creci: "", categoria: "corretor_geral", cidade: "", estado: "SP", bio: "", whatsapp: "", instagram: "", email: "", website: "", foto: "" });
-    setEspecialidades([]);
-    onSuccess();
-  }
-
-  return (
-    <form onSubmit={enviar} className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Nome completo *</label>
-          <input required value={form.nome} onChange={(e) => set("nome", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">CRECI *</label>
-          <input required value={form.creci} onChange={(e) => set("creci", e.target.value)}
-            placeholder="Ex: 12345-F/SP"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Categoria *</label>
-          <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="credenciado_caixa">Credenciado Caixa</option>
-            <option value="corretor_geral">Corretor Geral</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Estado *</label>
-          <select value={form.estado} onChange={(e) => set("estado", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-          </select>
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">Cidade *</label>
-          <input required value={form.cidade} onChange={(e) => set("cidade", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">Mini bio</label>
-          <textarea rows={3} value={form.bio} onChange={(e) => set("bio", e.target.value)}
-            placeholder="Experiência, especialização, diferenciais..."
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
-          <input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)}
-            placeholder="5511999999999"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Instagram</label>
-          <input value={form.instagram} onChange={(e) => set("instagram", e.target.value)}
-            placeholder="@seuperfil"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">E-mail profissional</label>
-          <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Site / Link profissional</label>
-          <input value={form.website} onChange={(e) => set("website", e.target.value)}
-            placeholder="https://..."
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-600 mb-1">URL da foto de perfil</label>
-          <input value={form.foto} onChange={(e) => set("foto", e.target.value)}
-            placeholder="https://..."
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-600 mb-2">Especialidades</label>
-        <div className="flex flex-wrap gap-2">
-          {ESPECIALIDADES_OPCOES.map((e) => (
-            <button key={e} type="button" onClick={() => toggleEsp(e)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                especialidades.includes(e)
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
-              }`}>
-              {e}
-            </button>
-          ))}
-        </div>
-      </div>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
-      <div className="flex gap-3">
-        <button type="submit" disabled={enviando}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg text-sm transition-colors">
-          {enviando ? "Salvando..." : "Cadastrar parceiro"}
-        </button>
-      </div>
-      <p className="text-xs text-gray-400">O corretor será cadastrado diretamente como aprovado e aparecerá no site.</p>
-    </form>
-  );
-}
+import AdminParceirosCRM from "./AdminParceirosCRM";
+import AdminProcessos from "./AdminProcessos";
 
 function fmtData(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-function fmtDataISO(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
-}
-
-type Tab = "blog" | "corretores" | "usuarios" | "utm";
+type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos";
 
 type UserStats = {
   total: number;
@@ -339,8 +191,6 @@ export default function AdminPage() {
   // Corretores state
   const [corretores,    setCorretores]    = useState<Corretor[]>([]);
   const [loadingCorr,   setLoadingCorr]   = useState(true);
-  const [showFormCorr,  setShowFormCorr]  = useState(false);
-  const [cadastroMsg,   setCadastroMsg]   = useState("");
 
   // Usuários state
   const [userStats,      setUserStats]      = useState<UserStats | null>(null);
@@ -403,28 +253,6 @@ export default function AdminPage() {
     setSyncing(false);
   }
 
-  // Corretores actions
-  async function aprovarCorretor(id: string) {
-    await fetch(`/api/admin/corretores/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aprovado: true }),
-    });
-    loadCorretores();
-  }
-
-  async function rejeitarCorretor(id: string, nome: string) {
-    if (!confirm(`Rejeitar e excluir cadastro de "${nome}"?`)) return;
-    await fetch(`/api/admin/corretores/${id}`, { method: "DELETE" });
-    loadCorretores();
-  }
-
-  async function excluirCorretor(id: string, nome: string) {
-    if (!confirm(`Excluir corretor "${nome}"?`)) return;
-    await fetch(`/api/admin/corretores/${id}`, { method: "DELETE" });
-    loadCorretores();
-  }
-
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
@@ -432,8 +260,7 @@ export default function AdminPage() {
 
   const publicados  = posts.filter((p) => p.publicado).length;
   const rascunhos   = posts.filter((p) => !p.publicado).length;
-  const pendentes   = corretores.filter((c) => !c.aprovado).length;
-  const aprovados   = corretores.filter((c) => c.aprovado).length;
+  const parceiros_fechados = corretores.filter((c) => c.status_relacionamento === "parceiro_fechado").length;
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
@@ -443,8 +270,8 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-gray-800">Painel Admin</h1>
           <p className="text-sm text-gray-500 mt-1">
             Blog: {publicados} publicado{publicados !== 1 ? "s" : ""} · {rascunhos} rascunho{rascunhos !== 1 ? "s" : ""}
-            {pendentes > 0 && (
-              <span className="ml-2 text-amber-600 font-medium">· {pendentes} corretor{pendentes !== 1 ? "es" : ""} aguardando aprovação</span>
+            {parceiros_fechados > 0 && (
+              <span className="ml-2 text-green-700 font-medium">· {parceiros_fechados} parceiro{parceiros_fechados !== 1 ? "s" : ""} ativo{parceiros_fechados !== 1 ? "s" : ""}</span>
             )}
             {userStats && (
               <span className="ml-2 text-blue-700 font-medium">
@@ -492,10 +319,10 @@ export default function AdminPage() {
               ? "border-blue-600 text-blue-600 bg-white"
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}>
-          Corretores
-          {pendentes > 0 && (
-            <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
-              {pendentes}
+          Parceiros CRM
+          {corretores.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+              {corretores.length}
             </span>
           )}
         </button>
@@ -514,6 +341,14 @@ export default function AdminPage() {
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}>
           🔗 Links UTM
+        </button>
+        <button onClick={() => setTab("processos")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "processos"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          Processos BLC
         </button>
       </div>
 
@@ -602,139 +437,15 @@ export default function AdminPage() {
 
       {/* Corretores Tab */}
       {tab === "corretores" && (
-        <>
-          {/* Pendentes */}
-          {pendentes > 0 && (
-            <div className="mb-8">
-              <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide mb-3">
-                Aguardando aprovação ({pendentes})
-              </h2>
-              <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide">
-                      <th className="px-4 py-3 font-medium">Nome</th>
-                      <th className="px-4 py-3 font-medium">Categoria</th>
-                      <th className="px-4 py-3 font-medium">Estado</th>
-                      <th className="px-4 py-3 font-medium">CRECI</th>
-                      <th className="px-4 py-3 font-medium">Enviado</th>
-                      <th className="px-4 py-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {corretores.filter((c) => !c.aprovado).map((c) => (
-                      <tr key={c._id} className="border-b last:border-0 hover:bg-amber-50">
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-gray-800">{c.nome}</p>
-                          <p className="text-xs text-gray-400">{c.cidade}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          {c.categoria === "credenciado_caixa"
-                            ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Credenciado</span>
-                            : <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Geral</span>
-                          }
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">{c.estado}</td>
-                        <td className="px-4 py-3 text-gray-600">{c.creci}</td>
-                        <td className="px-4 py-3 text-gray-500">{fmtDataISO(c.criadoEm)}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2 justify-end">
-                            <button onClick={() => aprovarCorretor(c._id)}
-                              className="text-xs bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded font-medium transition-colors">
-                              Aprovar
-                            </button>
-                            <button onClick={() => rejeitarCorretor(c._id, c.nome)}
-                              className="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded font-medium transition-colors">
-                              Rejeitar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Formulário de cadastro manual */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-                Cadastrar novo parceiro
-              </h2>
-              <button onClick={() => { setShowFormCorr((v) => !v); setCadastroMsg(""); }}
-                className="text-sm text-blue-600 hover:underline">
-                {showFormCorr ? "Fechar" : "+ Novo cadastro"}
-              </button>
-            </div>
-            {cadastroMsg && (
-              <p className="text-sm text-green-600 mb-3">{cadastroMsg}</p>
-            )}
-            {showFormCorr && (
-              <div className="bg-gray-50 border rounded-xl p-5">
-                <FormNovoCorretor onSuccess={() => {
-                  setShowFormCorr(false);
-                  setCadastroMsg("✓ Corretor cadastrado e publicado com sucesso.");
-                  loadCorretores();
-                }} />
-              </div>
-            )}
-          </div>
-
-          {/* Aprovados */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Parceiros ativos ({aprovados})
-            </h2>
-            {loadingCorr ? (
-              <p className="text-gray-400 text-center py-10">Carregando...</p>
-            ) : aprovados === 0 ? (
-              <p className="text-gray-400 text-center py-10">Nenhum corretor aprovado ainda.</p>
-            ) : (
-              <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide">
-                      <th className="px-4 py-3 font-medium">Nome</th>
-                      <th className="px-4 py-3 font-medium">Categoria</th>
-                      <th className="px-4 py-3 font-medium">Cidade / Estado</th>
-                      <th className="px-4 py-3 font-medium">CRECI</th>
-                      <th className="px-4 py-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {corretores.filter((c) => c.aprovado).map((c) => (
-                      <tr key={c._id} className="border-b last:border-0 hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <a href={`/corretores/${c.slug}`} target="_blank"
-                            className="font-medium text-gray-800 hover:text-blue-600 hover:underline">
-                            {c.nome}
-                          </a>
-                        </td>
-                        <td className="px-4 py-3">
-                          {c.categoria === "credenciado_caixa"
-                            ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Credenciado</span>
-                            : <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Geral</span>
-                          }
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">{c.cidade} / {c.estado}</td>
-                        <td className="px-4 py-3 text-gray-600">{c.creci}</td>
-                        <td className="px-4 py-3">
-                          <button onClick={() => excluirCorretor(c._id, c.nome)}
-                            className="text-xs text-red-500 hover:underline">
-                            Excluir
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
+        <AdminParceirosCRM
+          corretores={corretores}
+          loading={loadingCorr}
+          onRefresh={loadCorretores}
+        />
       )}
+
+      {/* Processos BLC Tab */}
+      {tab === "processos" && <AdminProcessos />}
     </div>
   );
 }

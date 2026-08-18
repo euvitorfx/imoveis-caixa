@@ -2,10 +2,12 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
+import { getCorretorByUserId } from "@/lib/corretores";
 import FotoForm from "./FotoForm";
 import PreferenciasForm from "./PreferenciasForm";
 import EditarDadosForm from "./EditarDadosForm";
 import ExcluirContaForm from "./ExcluirContaForm";
+import ClubeBLCCard, { ClubeBLCCardComprador } from "./ClubeBLCCard";
 
 async function getUserData(id: string) {
   const client = await clientPromise;
@@ -26,9 +28,10 @@ export default async function PerfilPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [user, params] = await Promise.all([
+  const [user, params, corretor] = await Promise.all([
     getUserData(session.user.id),
     searchParams,
+    getCorretorByUserId(session.user.id),
   ]);
 
   const obrigatorio = params.obrigatorio === "1";
@@ -109,6 +112,12 @@ export default async function PerfilPage({
         </p>
         <PreferenciasForm inicial={prefsIniciais} />
       </div>
+
+      {/* Clube BLC — assessor parceiro */}
+      {corretor && <ClubeBLCCard corretor={corretor} />}
+
+      {/* Clube BLC — comprador */}
+      <ClubeBLCCardComprador />
 
       {/* Links */}
       <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-0.5">

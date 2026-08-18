@@ -6,6 +6,7 @@ import { ObjectId } from "mongodb";
 import DetalheClient from "@/components/DetalheClient";
 import { SITE_URL, SITE_NAME, SITE_EMAIL, SITE_WHATSAPP } from "@/lib/config";
 import { getCorretoresAprovados, Corretor } from "@/lib/corretores";
+import AbrirProcessoBtn from "./AbrirProcessoBtn";
 
 function fmt(v: number | null | undefined) {
   if (v == null) return "—";
@@ -662,7 +663,16 @@ export default async function DetalheImovel({
               Ver todos os corretores parceiros →
             </a>
           </div>
-        ) : (
+        ) : null}
+
+        <AbrirProcessoBtn
+          imovelNumero={imovel.hdnImovel}
+          imovelDescricao={titulo}
+          imovelId={imovel._id}
+          defaultCreci={corretoresEstado[0]?.creci}
+        />
+
+        {corretoresEstado.length === 0 ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
             <p className="text-sm text-gray-500 flex-1">
               Já temos parceiros em <span className="font-medium">{imovel.estado}</span>, mas o cadastro online ainda está em andamento. Fale com nossa equipe pelo WhatsApp e fazemos a indicação de um corretor especializado em imóveis da Caixa diretamente para você.
@@ -680,7 +690,7 @@ export default async function DetalheImovel({
               Falar no WhatsApp
             </a>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
