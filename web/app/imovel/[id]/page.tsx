@@ -665,7 +665,7 @@ export default async function DetalheImovel({
         ) : (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
             <p className="text-sm text-gray-500 flex-1">
-              Ainda não temos corretores cadastrados em <span className="font-medium">{imovel.estado}</span>. Fale conosco pelo WhatsApp e indicamos um parceiro manualmente.
+              Já temos parceiros em <span className="font-medium">{imovel.estado}</span>, mas o cadastro online ainda está em andamento. Fale com nossa equipe pelo WhatsApp e fazemos a indicação de um corretor especializado em imóveis da Caixa diretamente para você.
             </p>
             <a
               href={`https://wa.me/${SITE_WHATSAPP}?text=${encodeURIComponent(`Olá! Vi o imóvel em ${imovel.cidade}/${imovel.estado} no Busca Leilões Caixa e gostaria de falar com um corretor parceiro.`)}`}
