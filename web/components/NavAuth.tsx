@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import NavLoginLink from "./NavLoginLink";
 
 export default async function NavAuth() {
   const session = await auth();
@@ -19,13 +20,12 @@ export default async function NavAuth() {
 
   return (
     <div className="flex items-center gap-2">
-      <a
-        href="/login"
+      <NavLoginLink
         className="flex items-center gap-1 text-sm font-medium hover:opacity-90 transition-opacity px-3 py-1 rounded-full border"
         style={{ borderColor: "rgba(255,255,255,0.4)", color: "rgba(255,255,255,0.85)" }}
       >
         Entrar
-      </a>
+      </NavLoginLink>
       <a
         href="/cadastro"
         className="flex items-center gap-1 text-sm font-semibold hover:opacity-90 transition-opacity px-3 py-1.5 rounded-full"
