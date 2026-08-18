@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     db
       .collection(process.env.MONGODB_COLLECTION!)
       .aggregate([
+        { $match: { ativo: true } },
         { $group: { _id: { uf: "$estado", cidade: "$cidade" }, qtd: { $sum: 1 } } },
         { $sort: { "_id.uf": 1, "_id.cidade": 1 } },
       ])
