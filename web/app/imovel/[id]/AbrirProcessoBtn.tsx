@@ -73,10 +73,18 @@ export default function AbrirProcessoBtn({ imovelNumero, imovelDescricao, imovel
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="text-sm font-medium px-4 py-2 rounded-lg border transition-colors hover:text-white"
+          className="text-sm font-medium px-4 py-2 rounded-lg border transition-colors"
           style={{ borderColor: "#01304D", color: "#01304D" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#01304D"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = ""; }}
+          onMouseEnter={(e) => {
+            const b = e.currentTarget as HTMLButtonElement;
+            b.style.backgroundColor = "#01304D";
+            b.style.color = "white";
+          }}
+          onMouseLeave={(e) => {
+            const b = e.currentTarget as HTMLButtonElement;
+            b.style.backgroundColor = "";
+            b.style.color = "#01304D";
+          }}
         >
           Já comprei este imóvel — registrar no Clube BLC
         </button>
