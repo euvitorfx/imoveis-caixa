@@ -7,13 +7,14 @@ import { Corretor } from "@/lib/corretores";
 import AdminUsuarios from "./AdminUsuarios";
 import AdminParceirosCRM from "./AdminParceirosCRM";
 import AdminProcessos from "./AdminProcessos";
+import AdminCobertura from "./AdminCobertura";
 
 function fmtData(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos";
+type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura";
 
 type UserStats = {
   total: number;
@@ -350,6 +351,14 @@ export default function AdminPage() {
           }`}>
           Processos BLC
         </button>
+        <button onClick={() => setTab("cobertura")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "cobertura"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          🗺️ Cobertura
+        </button>
       </div>
 
       {/* Blog Tab */}
@@ -446,6 +455,9 @@ export default function AdminPage() {
 
       {/* Processos BLC Tab */}
       {tab === "processos" && <AdminProcessos />}
+
+      {/* Cobertura Tab */}
+      {tab === "cobertura" && <AdminCobertura />}
     </div>
   );
 }
