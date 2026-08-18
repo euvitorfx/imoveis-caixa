@@ -43,13 +43,13 @@ export default function AbrirProcessoBtn({ imovelNumero, imovelDescricao, imovel
 
   if (!session) {
     return (
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className="mb-6">
         <a
           href={`/login?callbackUrl=/imovel/${encodeURIComponent(imovelNumero)}`}
-          className="text-sm font-medium hover:underline"
-          style={{ color: "#01304D" }}
+          className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2 rounded-lg border transition-colors"
+          style={{ borderColor: "#F59E0B", color: "#92400E", backgroundColor: "#FEF3C7" }}
         >
-          Já comprei este imóvel — entrar para registrar no Clube BLC →
+          Já comprei este imóvel? Registrar no Clube BLC →
         </a>
       </div>
     );
@@ -57,7 +57,7 @@ export default function AbrirProcessoBtn({ imovelNumero, imovelDescricao, imovel
 
   if (msg?.type === "success") {
     return (
-      <div className="mt-4 border-t border-gray-100 pt-4">
+      <div className="mb-6">
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
           {msg.text}{" "}
           <a href="/perfil" className="underline font-medium ml-1">
@@ -69,7 +69,7 @@ export default function AbrirProcessoBtn({ imovelNumero, imovelDescricao, imovel
   }
 
   return (
-    <div className="mt-4 border-t border-gray-100 pt-4">
+    <div className="mb-6">
       {!open ? (
         <button
           onClick={() => setOpen(true)}

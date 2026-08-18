@@ -485,6 +485,14 @@ export default async function DetalheImovel({
             )}
           </div>
 
+          {/* Clube BLC */}
+          <AbrirProcessoBtn
+            imovelNumero={imovel.hdnImovel}
+            imovelDescricao={titulo}
+            imovelId={imovel._id}
+            defaultCreci={corretoresEstado[0]?.creci}
+          />
+
           {/* 3 colunas de informação */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
             <InfoGroup title="📍 Localização" items={grupoLocal} />
@@ -664,13 +672,6 @@ export default async function DetalheImovel({
             </a>
           </div>
         ) : null}
-
-        <AbrirProcessoBtn
-          imovelNumero={imovel.hdnImovel}
-          imovelDescricao={titulo}
-          imovelId={imovel._id}
-          defaultCreci={corretoresEstado[0]?.creci}
-        />
 
         {corretoresEstado.length === 0 ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
