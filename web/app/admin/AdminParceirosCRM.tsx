@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type {
   Corretor, StatusRelacionamento, TipoPessoa,
   Assessoramento, ExclusividadeStatus, CidadeCobertura,
@@ -25,9 +25,10 @@ const STATUS_LABELS: Record<StatusRelacionamento, string> = {
 // ── Cities modal ─────────────────────────────────────────────────
 
 function CidadesModal({
-  corretor, onClose, onSaved,
+  corretor, cidadesOcupadas, onClose, onSaved,
 }: {
   corretor: Corretor;
+  cidadesOcupadas: Set<string>;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -35,36 +36,41 @@ function CidadesModal({
   const [ufSel, setUfSel] = useState(corretor.estado || "SP");
   const [cidadeSel, setCidadeSel] = useState("");
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
 
   const opcoesCidades = CIDADES_CAIXA[ufSel] ?? [];
 
   function addCidade() {
     if (!cidadeSel) return;
-    const exists = cidades.some((c) => c.uf === ufSel && c.cidade === cidadeSel);
-    if (exists) { setMsg("Cidade já adicionada."); return; }
+    const jaNeste = cidades.some((c) => c.uf === ufSel && c.cidade === cidadeSel);
+    if (jaNeste) { setMsg({ tipo: "erro", texto: "Cidade já adicionada a este parceiro." }); return; }
+    const jaOutro = cidadesOcupadas.has(`${ufSel}|${cidadeSel}`);
+    if (jaOutro) { setMsg({ tipo: "erro", texto: `${cidadeSel} já está atribuída a outro parceiro.` }); return; }
     setCidades((prev) => [
       ...prev,
       { uf: ufSel, cidade: cidadeSel, na_base_caixa: true, adicionada_em: new Date().toISOString() },
     ]);
     setCidadeSel("");
-    setMsg("");
+    setMsg(null);
   }
 
   function removeCidade(uf: string, cidade: string) {
     setCidades((prev) => prev.filter((c) => !(c.uf === uf && c.cidade === cidade)));
+    setMsg(null);
   }
 
   async function salvar() {
     setSaving(true);
+    setMsg(null);
     const res = await fetch(`/api/admin/corretores/${corretor._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cidades_cobertura: cidades }),
     });
+    const data = await res.json();
     setSaving(false);
     if (res.ok) { onSaved(); onClose(); }
-    else setMsg("Erro ao salvar.");
+    else setMsg({ tipo: "erro", texto: data.error ?? "Erro ao salvar." });
   }
 
   return (
@@ -73,39 +79,51 @@ function CidadesModal({
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <div>
             <h3 className="font-semibold text-gray-800">{corretor.nome}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Cidades com exclusividade</p>
+            <p className="text-xs text-gray-500 mt-0.5">Cidades de cobertura exclusiva</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1">
           {/* Adicionar cidade */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-3">
             <select
               value={ufSel}
-              onChange={(e) => { setUfSel(e.target.value); setCidadeSel(""); }}
+              onChange={(e) => { setUfSel(e.target.value); setCidadeSel(""); setMsg(null); }}
               className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-24"
             >
               {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
             </select>
             <select
               value={cidadeSel}
-              onChange={(e) => setCidadeSel(e.target.value)}
+              onChange={(e) => { setCidadeSel(e.target.value); setMsg(null); }}
               className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Selecione a cidade...</option>
-              {opcoesCidades.map((c) => <option key={c} value={c}>{c}</option>)}
+              {opcoesCidades.map((c) => {
+                const ocupada = cidadesOcupadas.has(`${ufSel}|${c}`);
+                const jaNeste = cidades.some((x) => x.uf === ufSel && x.cidade === c);
+                return (
+                  <option key={c} value={c} disabled={ocupada || jaNeste}>
+                    {c}{ocupada ? " — já atribuída" : jaNeste ? " — já adicionada" : ""}
+                  </option>
+                );
+              })}
             </select>
             <button
               onClick={addCidade}
-              disabled={!cidadeSel}
+              disabled={!cidadeSel || cidadesOcupadas.has(`${ufSel}|${cidadeSel}`)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-sm font-medium"
             >
               + Add
             </button>
           </div>
 
-          {msg && <p className="text-xs text-red-600 mb-3">{msg}</p>}
+          {msg && (
+            <p className={`text-xs mb-3 ${msg.tipo === "erro" ? "text-red-600" : "text-green-600"}`}>
+              {msg.texto}
+            </p>
+          )}
 
           {/* Lista de cidades */}
           {cidades.length === 0 ? (
@@ -117,9 +135,6 @@ function CidadesModal({
                   <span className="text-sm text-gray-700">
                     <span className="font-mono text-xs text-gray-400 mr-2">{c.uf}</span>
                     {c.cidade}
-                    {c.na_base_caixa && (
-                      <span className="ml-2 text-xs text-blue-600">✓ base Caixa</span>
-                    )}
                   </span>
                   <button
                     onClick={() => removeCidade(c.uf, c.cidade)}
@@ -326,6 +341,10 @@ function FormNovoParceiro({ onSuccess }: { onSuccess: () => void }) {
         <span className="text-sm text-gray-700">Publicar perfil no site agora</span>
       </label>
 
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-700">
+        As <strong>cidades de cobertura</strong> são configuradas após o cadastro — clique em <strong>Cidades</strong> na linha do parceiro na tabela abaixo.
+      </div>
+
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 
       <div>
@@ -412,6 +431,18 @@ export default function AdminParceirosCRM({
   const filtrados = filtro === "todos"
     ? corretores
     : corretores.filter((c) => (c.status_relacionamento ?? "sem_resposta") === filtro);
+
+  // Cidades já atribuídas a OUTROS parceiros (para bloquear duplicidade no modal)
+  const cidadesOcupadas = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of corretores) {
+      if (c._id === cidadesModal?._id) continue;
+      for (const cc of c.cidades_cobertura ?? []) {
+        set.add(`${cc.uf}|${cc.cidade}`);
+      }
+    }
+    return set;
+  }, [corretores, cidadesModal]);
 
   // counts per status
   const counts = corretores.reduce<Record<string, number>>((acc, c) => {
@@ -687,6 +718,7 @@ export default function AdminParceirosCRM({
       {cidadesModal && (
         <CidadesModal
           corretor={cidadesModal}
+          cidadesOcupadas={cidadesOcupadas}
           onClose={() => setCidadesModal(null)}
           onSaved={() => { onRefresh(); setCidadesModal(null); }}
         />
