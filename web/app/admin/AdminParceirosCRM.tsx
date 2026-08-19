@@ -5,7 +5,8 @@ import type {
   Corretor, StatusRelacionamento, TipoPessoa,
   Assessoramento, ExclusividadeStatus, CidadeCobertura,
 } from "@/lib/corretores";
-import { CIDADES_CAIXA } from "@/lib/cidades-caixa";
+import _TODAS_CIDADES from "@/public/cidades.json";
+const TODAS_CIDADES = _TODAS_CIDADES as Record<string, string[]>;
 
 const ESTADOS = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO",
@@ -38,7 +39,7 @@ function CidadesModal({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
 
-  const opcoesCidades = CIDADES_CAIXA[ufSel] ?? [];
+  const opcoesCidades = TODAS_CIDADES[ufSel] ?? [];
 
   function addCidade() {
     if (!cidadeSel) return;
