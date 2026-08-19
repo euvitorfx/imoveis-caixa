@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { ProcessoClubeEnriquecido } from "@/lib/processos-clube";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,6 +18,89 @@ const STATUS_COLORS: Record<string, string> = {
   concluido:        "text-green-700 bg-green-50",
   cancelado:        "text-gray-500 bg-gray-100",
 };
+
+// ── Autocomplete genérico ──────────────────────────────────────────
+
+interface AutocompleteProps<T> {
+  label: string;
+  placeholder: string;
+  required?: boolean;
+  value: string;
+  onChange: (val: string) => void;
+  onSelect: (item: T) => void;
+  fetchUrl: (q: string) => string;
+  renderItem: (item: T) => React.ReactNode;
+  getKey: (item: T) => string;
+}
+
+function Autocomplete<T>({
+  label, placeholder, required, value, onChange, onSelect,
+  fetchUrl, renderItem, getKey,
+}: AutocompleteProps<T>) {
+  const [results, setResults] = useState<T[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const buscar = useCallback((q: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (q.length < 2) { setResults([]); setOpen(false); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      const res = await fetch(fetchUrl(encodeURIComponent(q)));
+      const data = await res.json();
+      setResults(data);
+      setOpen(data.length > 0);
+      setLoading(false);
+    }, 300);
+  }, [fetchUrl]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="block text-xs font-medium text-gray-600 mb-1">
+        {label} {required && <span className="text-gray-400">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          required={required}
+          value={value}
+          onChange={(e) => { onChange(e.target.value); buscar(e.target.value); }}
+          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+        />
+        {loading && (
+          <span className="absolute right-2 top-2.5 text-xs text-gray-400 animate-pulse">...</span>
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+          {results.map((item) => (
+            <li
+              key={getKey(item)}
+              onMouseDown={(e) => { e.preventDefault(); onSelect(item); setOpen(false); setResults([]); }}
+              className="px-3 py-2.5 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0"
+            >
+              {renderItem(item)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Formulário novo processo ───────────────────────────────────────
 
 function FormNovoProcesso({ onSuccess }: { onSuccess: () => void }) {
   const [form, setForm] = useState({
@@ -59,31 +142,43 @@ function FormNovoProcesso({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={enviar} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">E-mail do comprador *</label>
-          <input
-            required type="email"
-            value={form.emailComprador}
-            onChange={(e) => set("emailComprador", e.target.value)}
-            placeholder="email@exemplo.com"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">CRECI do assessor parceiro *</label>
-          <input
-            required
-            value={form.creci}
-            onChange={(e) => set("creci", e.target.value.toUpperCase())}
-            placeholder="Ex: 7742-F"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        <Autocomplete<{ id: string; nome: string; email: string }>
+          label="E-mail do comprador"
+          placeholder="Digite nome ou e-mail..."
+          required
+          value={form.emailComprador}
+          onChange={(v) => set("emailComprador", v)}
+          onSelect={(u) => set("emailComprador", u.email)}
+          fetchUrl={(q) => `/api/admin/busca/usuarios?q=${q}`}
+          getKey={(u) => u.id}
+          renderItem={(u) => (
+            <div>
+              <p className="font-medium text-gray-800 text-xs">{u.nome}</p>
+              <p className="text-gray-400 text-xs">{u.email}</p>
+            </div>
+          )}
+        />
+        <Autocomplete<{ id: string; nome: string; creci: string; estado: string }>
+          label="CRECI do assessor parceiro"
+          placeholder="Digite CRECI ou nome..."
+          required
+          value={form.creci}
+          onChange={(v) => set("creci", v.toUpperCase())}
+          onSelect={(c) => set("creci", c.creci)}
+          fetchUrl={(q) => `/api/admin/busca/corretores?q=${q}`}
+          getKey={(c) => c.id}
+          renderItem={(c) => (
+            <div>
+              <p className="font-medium text-gray-800 text-xs">{c.nome}</p>
+              <p className="text-gray-400 text-xs">CRECI: {c.creci} · {c.estado}</p>
+            </div>
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Número do processo Caixa *</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Número do processo Caixa <span className="text-gray-400">*</span></label>
           <input
             required
             value={form.numeroProcessoCaixa}
@@ -106,26 +201,21 @@ function FormNovoProcesso({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Número do imóvel <span className="text-gray-400">(opcional)</span></label>
-          <input
-            value={form.imovelNumero}
-            onChange={(e) => set("imovelNumero", e.target.value)}
-            placeholder="Ex: AL1234500001"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Descrição do imóvel <span className="text-gray-400">(opcional)</span></label>
-          <input
-            value={form.imovelDescricao}
-            onChange={(e) => set("imovelDescricao", e.target.value)}
-            placeholder="Ex: Casa, 90m², Maceió - AL"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
+      <Autocomplete<{ id: string; numero: string; descricao: string; cidade: string; estado: string; tipo: string }>
+        label="Imóvel"
+        placeholder="Digite número, cidade ou tipo do imóvel... (opcional)"
+        value={form.imovelNumero}
+        onChange={(v) => { set("imovelNumero", v); set("imovelDescricao", ""); }}
+        onSelect={(i) => { set("imovelNumero", i.numero); set("imovelDescricao", [i.tipo, i.cidade, i.estado].filter(Boolean).join(", ")); }}
+        fetchUrl={(q) => `/api/admin/busca/imoveis?q=${q}`}
+        getKey={(i) => i.id}
+        renderItem={(i) => (
+          <div>
+            <p className="font-medium text-gray-800 text-xs font-mono">{i.numero}</p>
+            <p className="text-gray-400 text-xs">{i.tipo} · {i.cidade} – {i.estado}</p>
+          </div>
+        )}
+      />
 
       {msg && (
         <p className={`text-sm ${msg.tipo === "ok" ? "text-green-600" : "text-red-600"}`}>
