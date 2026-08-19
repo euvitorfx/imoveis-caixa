@@ -181,7 +181,7 @@ function UtmLinksTab() {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("blog");
+  const [tab, setTab] = useState<Tab>("usuarios");
 
   // Blog state
   const [posts,     setPosts]     = useState<BlogPost[]>([]);
@@ -306,13 +306,13 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b">
-        <button onClick={() => setTab("blog")}
+        <button onClick={() => setTab("usuarios")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
-            tab === "blog"
+            tab === "usuarios"
               ? "border-blue-600 text-blue-600 bg-white"
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}>
-          Blog
+          Usuários
         </button>
         <button onClick={() => setTab("corretores")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 relative ${
@@ -326,22 +326,6 @@ export default function AdminPage() {
               {corretores.length}
             </span>
           )}
-        </button>
-        <button onClick={() => setTab("usuarios")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
-            tab === "usuarios"
-              ? "border-blue-600 text-blue-600 bg-white"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}>
-          Usuários
-        </button>
-        <button onClick={() => setTab("utm")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
-            tab === "utm"
-              ? "border-blue-600 text-blue-600 bg-white"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}>
-          🔗 Links UTM
         </button>
         <button onClick={() => setTab("processos")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
@@ -358,6 +342,22 @@ export default function AdminPage() {
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}>
           🗺️ Cobertura
+        </button>
+        <button onClick={() => setTab("blog")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "blog"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          Blog
+        </button>
+        <button onClick={() => setTab("utm")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "utm"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          🔗 Links UTM
         </button>
       </div>
 
