@@ -389,6 +389,13 @@ export default function AdminParceirosCRM({
   const [vinculandoEmail, setVinculandoEmail] = useState("");
   const [vinculandoMsg, setVinculandoMsg] = useState<Record<string, string>>({});
 
+  // Filtros adicionais
+  const [buscaNome, setBuscaNome] = useState("");
+  const [filtroUF, setFiltroUF] = useState("todas");
+  const [filtroExclusividade, setFiltroExclusividade] = useState("todas");
+  const [filtroCidades, setFiltroCidades] = useState("todas");
+  const [filtroConta, setFiltroConta] = useState("todas");
+
   async function vincular(id: string, email: string) {
     const res = await fetch(`/api/admin/corretores/${id}/vincular`, {
       method: "POST",
@@ -429,9 +436,19 @@ export default function AdminParceirosCRM({
     onRefresh();
   }
 
-  const filtrados = filtro === "todos"
-    ? corretores
-    : corretores.filter((c) => (c.status_relacionamento ?? "sem_resposta") === filtro);
+  const filtrados = useMemo(() => {
+    return corretores.filter((c) => {
+      if (filtro !== "todos" && (c.status_relacionamento ?? "sem_resposta") !== filtro) return false;
+      if (buscaNome && !c.nome.toLowerCase().includes(buscaNome.toLowerCase()) && !(c.creci ?? "").toLowerCase().includes(buscaNome.toLowerCase())) return false;
+      if (filtroUF !== "todas" && c.estado !== filtroUF) return false;
+      if (filtroExclusividade !== "todas" && (c.exclusividade ?? "em_analise") !== filtroExclusividade) return false;
+      if (filtroCidades === "com" && !(c.cidades_cobertura?.length)) return false;
+      if (filtroCidades === "sem" && (c.cidades_cobertura?.length ?? 0) > 0) return false;
+      if (filtroConta === "vinculado" && !c.userId) return false;
+      if (filtroConta === "nao_vinculado" && c.userId) return false;
+      return true;
+    });
+  }, [corretores, filtro, buscaNome, filtroUF, filtroExclusividade, filtroCidades, filtroConta]);
 
   // Cidades já atribuídas a OUTROS parceiros (para bloquear duplicidade no modal)
   const cidadesOcupadas = useMemo(() => {
@@ -496,24 +513,85 @@ export default function AdminParceirosCRM({
         )}
       </div>
 
-      {/* Status filter pills */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {FILTER_OPTS.map(({ key, label }) => {
-          const count = key === "todos" ? corretores.length : (counts[key] ?? 0);
-          return (
+      {/* Filtros */}
+      <div className="bg-gray-50 border rounded-xl p-4 mb-4 space-y-3">
+        {/* Linha 1 — busca + UF */}
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            value={buscaNome}
+            onChange={(e) => setBuscaNome(e.target.value)}
+            placeholder="Buscar por nome ou CRECI..."
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+          />
+          <select
+            value={filtroUF}
+            onChange={(e) => setFiltroUF(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="todas">Todos os estados</option>
+            {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+          </select>
+          <select
+            value={filtroExclusividade}
+            onChange={(e) => setFiltroExclusividade(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="todas">Qualquer exclusividade</option>
+            <option value="em_analise">Em análise</option>
+            <option value="sim">Exclusiva</option>
+            <option value="nao">Sem exclusividade</option>
+          </select>
+          <select
+            value={filtroCidades}
+            onChange={(e) => setFiltroCidades(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="todas">Todas as cidades</option>
+            <option value="com">Com cidades cadastradas</option>
+            <option value="sem">Sem cidades</option>
+          </select>
+          <select
+            value={filtroConta}
+            onChange={(e) => setFiltroConta(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="todas">Conta vinculada ou não</option>
+            <option value="vinculado">Conta vinculada</option>
+            <option value="nao_vinculado">Sem conta vinculada</option>
+          </select>
+          {(buscaNome || filtroUF !== "todas" || filtroExclusividade !== "todas" || filtroCidades !== "todas" || filtroConta !== "todas" || filtro !== "todos") && (
             <button
-              key={key}
-              onClick={() => setFiltro(key)}
-              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                filtro === key
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
-              }`}
+              onClick={() => { setBuscaNome(""); setFiltroUF("todas"); setFiltroExclusividade("todas"); setFiltroCidades("todas"); setFiltroConta("todas"); setFiltro("todos"); }}
+              className="text-xs text-gray-500 hover:text-red-500 border rounded-lg px-3 py-1.5 bg-white transition-colors"
             >
-              {label} {count > 0 && <span className="opacity-70">({count})</span>}
+              Limpar filtros
             </button>
-          );
-        })}
+          )}
+          <span className="text-xs text-gray-400 self-center ml-auto">
+            {filtrados.length} de {corretores.length} parceiro{corretores.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Linha 2 — status pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {FILTER_OPTS.map(({ key, label }) => {
+            const count = key === "todos" ? corretores.length : (counts[key] ?? 0);
+            return (
+              <button
+                key={key}
+                onClick={() => setFiltro(key)}
+                className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                  filtro === key
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
+                }`}
+              >
+                {label} {count > 0 && <span className="opacity-70">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Table */}
