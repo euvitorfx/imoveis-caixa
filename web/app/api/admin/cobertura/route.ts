@@ -11,60 +11,69 @@ export async function GET(req: NextRequest) {
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB);
 
-  // Parallel: property counts per city + all partners with their cities
-  const [imoveisPorCidade, corretores] = await Promise.all([
-    db
-      .collection(process.env.MONGODB_COLLECTION!)
+  const [cidadesBase, imoveisAtivos, corretores, allCorretores] = await Promise.all([
+    // Todas as cidades já vistas (coleção persistente — não depende de imóveis ativos)
+    db.collection("cidades_caixa")
+      .find({}, { projection: { uf: 1, cidade: 1 } })
+      .sort({ uf: 1, cidade: 1 })
+      .toArray(),
+
+    // Contagem de imóveis ativos por cidade
+    db.collection(process.env.MONGODB_COLLECTION!)
       .aggregate([
         { $match: { ativo: true } },
         { $group: { _id: { uf: "$estado", cidade: "$cidade" }, qtd: { $sum: 1 } } },
-        { $sort: { "_id.uf": 1, "_id.cidade": 1 } },
       ])
       .toArray(),
-    db
-      .collection("corretores")
+
+    // Parceiros com cidades de cobertura
+    db.collection("corretores")
       .find(
         { cidades_cobertura: { $exists: true, $ne: [] } },
         { projection: { nome: 1, creci: 1, status_relacionamento: 1, cidades_cobertura: 1 } }
       )
       .toArray(),
+
+    // Todos os parceiros para o resumo por status
+    db.collection("corretores")
+      .find({}, { projection: { status_relacionamento: 1 } })
+      .toArray(),
   ]);
 
-  // Build coverage map: "UF|CIDADE" → { corretorNome, corretorId, status }
+  // Map: "UF|CIDADE" → qtd imóveis ativos
+  const ativosMap = new Map<string, number>();
+  for (const row of imoveisAtivos) {
+    ativosMap.set(`${row._id.uf}|${row._id.cidade}`, row.qtd as number);
+  }
+
+  // Map: "UF|CIDADE" → parceiro responsável
   const coberturaMap = new Map<string, { nome: string; creci: string; status: string }>();
   for (const c of corretores) {
     for (const cc of c.cidades_cobertura ?? []) {
-      const key = `${cc.uf}|${cc.cidade}`;
-      coberturaMap.set(key, {
-        nome: c.nome,
-        creci: c.creci,
+      coberturaMap.set(`${cc.uf}|${cc.cidade}`, {
+        nome:   c.nome,
+        creci:  c.creci,
         status: c.status_relacionamento ?? "sem_resposta",
       });
     }
   }
 
-  // Build city list
-  const cidades = imoveisPorCidade.map((row) => {
-    const key = `${row._id.uf}|${row._id.cidade}`;
+  // Lista final de cidades
+  const cidades = cidadesBase.map((c) => {
+    const key     = `${c.uf}|${c.cidade}`;
     const parceiro = coberturaMap.get(key) ?? null;
     return {
-      uf: row._id.uf as string,
-      cidade: row._id.cidade as string,
-      qtdImoveis: row.qtd as number,
-      coberta: parceiro !== null,
+      uf:         c.uf as string,
+      cidade:     c.cidade as string,
+      qtdImoveis: ativosMap.get(key) ?? 0,
+      coberta:    parceiro !== null,
       parceiro,
     };
   });
 
-  const totalImoveis = cidades.reduce((s, c) => s + c.qtdImoveis, 0);
-  const cidadesCobertas = cidades.filter((c) => c.coberta).length;
+  const totalImoveis      = cidades.reduce((s, c) => s + c.qtdImoveis, 0);
+  const cidadesCobertas   = cidades.filter((c) => c.coberta).length;
   const cidadesDisponiveis = cidades.length - cidadesCobertas;
-
-  // Partner summary by status
-  const allCorretores = await db
-    .collection("corretores")
-    .find({}, { projection: { status_relacionamento: 1 } })
-    .toArray();
 
   const parceirosPorStatus = allCorretores.reduce<Record<string, number>>((acc, c) => {
     const s = c.status_relacionamento ?? "sem_resposta";
@@ -76,7 +85,7 @@ export async function GET(req: NextRequest) {
     resumo: {
       totalParceiros: allCorretores.length,
       parceirosPorStatus,
-      totalCidades: cidades.length,
+      totalCidades:     cidades.length,
       cidadesCobertas,
       cidadesDisponiveis,
       coberturaPct: cidades.length > 0 ? cidadesCobertas / cidades.length : 0,

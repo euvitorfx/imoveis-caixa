@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
-from mongo import ensure_indexes, upsert_imoveis, marcar_inativos, total_por_estado, registrar_sync, get_db
+from mongo import ensure_indexes, upsert_imoveis, upsert_cidades, marcar_inativos, total_por_estado, registrar_sync, get_db
 from scraper import CaixaScraper, ALL_ESTADOS
 from geocoder import geocode_batch
 
@@ -73,6 +73,7 @@ def main():
 
             if props:
                 stats = upsert_imoveis(props)
+                upsert_cidades(props)
                 hdns  = [p["hdnImovel"] for p in props if p.get("hdnImovel")]
                 inat  = marcar_inativos(estado, hdns)
 

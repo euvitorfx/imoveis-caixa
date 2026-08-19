@@ -164,6 +164,43 @@ def marcar_inativos(estado: str, hdnimoveis_ativos: list[str]):
     return result.modified_count
 
 
+def upsert_cidades(imoveis: list[dict]):
+    """
+    Registra cidades novas na coleção cidades_caixa.
+    Chave única: (uf, cidade). Atualiza ultimaVezVisto a cada run.
+    Não remove cidades — elas persistem mesmo sem imóveis ativos.
+    """
+    if not imoveis:
+        return
+    db = get_db()
+    col = db["cidades_caixa"]
+    now = datetime.now(timezone.utc)
+
+    seen: set[tuple] = set()
+    ops = []
+    for doc in imoveis:
+        uf = doc.get("estado")
+        cidade = doc.get("cidade")
+        if not uf or not cidade:
+            continue
+        key = (uf, cidade)
+        if key in seen:
+            continue
+        seen.add(key)
+        ops.append(UpdateOne(
+            {"uf": uf, "cidade": cidade},
+            {
+                "$set": {"ultimaVezVisto": now},
+                "$setOnInsert": {"uf": uf, "cidade": cidade, "primeiraVezVisto": now},
+            },
+            upsert=True,
+        ))
+
+    if ops:
+        col.bulk_write(ops, ordered=False)
+        db["cidades_caixa"].create_index([("uf", ASCENDING), ("cidade", ASCENDING)], unique=True)
+
+
 def registrar_sync(total_imoveis: int):
     """Grava timestamp e total do último scrape completo na coleção _meta."""
     db  = get_db()
