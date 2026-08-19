@@ -604,6 +604,7 @@ export default function AdminParceirosCRM({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide">
+                <th className="px-4 py-3 font-medium w-10">#</th>
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">UF / CRECI</th>
                 <th className="px-4 py-3 font-medium">Contato</th>
@@ -616,8 +617,9 @@ export default function AdminParceirosCRM({
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((c) => (
+              {filtrados.map((c, i) => (
                 <tr key={c._id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-400 text-xs tabular-nums">{filtrados.length - i}</td>
                   {/* Nome */}
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-800">{c.nome}</p>
