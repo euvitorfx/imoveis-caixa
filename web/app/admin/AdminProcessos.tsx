@@ -19,10 +19,136 @@ const STATUS_COLORS: Record<string, string> = {
   cancelado:        "text-gray-500 bg-gray-100",
 };
 
+function FormNovoProcesso({ onSuccess }: { onSuccess: () => void }) {
+  const [form, setForm] = useState({
+    emailComprador:      "",
+    creci:               "",
+    numeroProcessoCaixa: "",
+    imovelNumero:        "",
+    imovelDescricao:     "",
+    status:              "aguardando_dados",
+  });
+  const [enviando, setEnviando] = useState(false);
+  const [msg, setMsg] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
+
+  function set(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setMsg(null);
+  }
+
+  async function enviar(ev: React.FormEvent) {
+    ev.preventDefault();
+    setEnviando(true);
+    setMsg(null);
+    const res = await fetch("/api/admin/processos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    setEnviando(false);
+    if (res.ok) {
+      setMsg({ tipo: "ok", texto: `Processo criado — Comprador: ${data.compradorNome} · Assessor: ${data.corretorNome}` });
+      setForm({ emailComprador: "", creci: "", numeroProcessoCaixa: "", imovelNumero: "", imovelDescricao: "", status: "aguardando_dados" });
+      onSuccess();
+    } else {
+      setMsg({ tipo: "erro", texto: data.error ?? "Erro ao criar processo." });
+    }
+  }
+
+  return (
+    <form onSubmit={enviar} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">E-mail do comprador *</label>
+          <input
+            required type="email"
+            value={form.emailComprador}
+            onChange={(e) => set("emailComprador", e.target.value)}
+            placeholder="email@exemplo.com"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">CRECI do assessor parceiro *</label>
+          <input
+            required
+            value={form.creci}
+            onChange={(e) => set("creci", e.target.value.toUpperCase())}
+            placeholder="Ex: 7742-F"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Número do processo Caixa *</label>
+          <input
+            required
+            value={form.numeroProcessoCaixa}
+            onChange={(e) => set("numeroProcessoCaixa", e.target.value)}
+            placeholder="Ex: 12345678901234"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Status inicial</label>
+          <select
+            value={form.status}
+            onChange={(e) => set("status", e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Número do imóvel <span className="text-gray-400">(opcional)</span></label>
+          <input
+            value={form.imovelNumero}
+            onChange={(e) => set("imovelNumero", e.target.value)}
+            placeholder="Ex: AL1234500001"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Descrição do imóvel <span className="text-gray-400">(opcional)</span></label>
+          <input
+            value={form.imovelDescricao}
+            onChange={(e) => set("imovelDescricao", e.target.value)}
+            placeholder="Ex: Casa, 90m², Maceió - AL"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {msg && (
+        <p className={`text-sm ${msg.tipo === "ok" ? "text-green-600" : "text-red-600"}`}>
+          {msg.texto}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={enviando}
+        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg text-sm transition-colors"
+      >
+        {enviando ? "Criando..." : "Criar processo"}
+      </button>
+    </form>
+  );
+}
+
 export default function AdminProcessos() {
   const [processos, setProcessos] = useState<ProcessoClubeEnriquecido[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   async function load() {
     const res = await fetch("/api/admin/processos");
@@ -44,14 +170,33 @@ export default function AdminProcessos() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-6">
+
+      {/* Cabeçalho + botão novo */}
+      <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400">
           Processos Clube BLC
         </h2>
-        <span className="text-xs text-gray-400">{processos.length} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">{processos.length} total</span>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="text-sm font-medium px-4 py-1.5 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            {showForm ? "Fechar" : "+ Novo processo"}
+          </button>
+        </div>
       </div>
 
+      {/* Formulário de novo processo */}
+      {showForm && (
+        <div className="bg-gray-50 border rounded-xl p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Abrir novo processo</p>
+          <FormNovoProcesso onSuccess={() => { load(); }} />
+        </div>
+      )}
+
+      {/* Tabela */}
       {loading ? (
         <p className="text-gray-400 text-center py-10">Carregando...</p>
       ) : processos.length === 0 ? (
