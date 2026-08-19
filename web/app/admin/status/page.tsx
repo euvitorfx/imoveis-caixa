@@ -50,6 +50,7 @@ const SPRINTS = [
   { num: "10", title: "Clube BLC (base) + IA + R2", items: ["Página /clube", "Descrições IA (Haiku)", "Export PDF + auth gate", "Fotos → R2 (24k+)", "Popup de cadastro", "Admin social/copy IA"] },
   { num: "11", title: "Planilha de Análise de Viabilidade", items: ["Calculadora online completa", "Import de favoritos", "Export XLS", "Salvar/editar análises", "Botão no detalhe do imóvel", "API CRUD (GET/POST/PUT/DELETE)", "Gráfico ROI (Recharts)"] },
   { num: "12", title: "Qualidade, Métricas & Backup", items: ["Telefone obrigatório no cadastro", "Modal para usuários sem telefone", "Métricas financeiras no /estatísticas", "Toggle 7/15/30 dias movimentações", "Bug fix: dataInativacao scraper", "Backup semanal MongoDB → R2", "GitHub Action Backup (domingos 04h BRT)"] },
+  { num: "13", title: "Portal do Corretor + Processos BLC", items: ["Vincular conta usuário ↔ corretor (CRM)", "ClubeBLCCard no /perfil do corretor", "AbrirProcessoBtn na página do imóvel", "Sistema de Processos BLC completo", "Admin: aba Processos BLC + formulário", "Autocomplete usuário/corretor/imóvel", "Admin: aba Cobertura + resumo RESUMO/BASE", "cidades_caixa persistente (1.481 cidades)", "Lista IBGE completa (5.571 cidades) no CRM", "Validação de duplicidade de cidades", "Filtros avançados no CRM", "Numeração + reordenação de abas admin"] },
 ];
 
 const ROADMAP = [
@@ -82,6 +83,14 @@ const ROADMAP = [
         dep: "Depende de Alertas de Novos Imóveis estar pronto",
       },
       {
+        title: "Métricas de Abertura dos E-mails",
+        priority: "Média",
+        priorityColor: "bg-blue-100 text-blue-800",
+        desc: "Salvar o ID retornado pelo Resend após cada envio (alertas de novos imóveis, mudanças em favoritos, boas-vindas) no MongoDB. Configurar webhook do Resend para receber eventos email.opened, email.clicked e email.bounced e atualizar os registros. Exibir no admin: taxa de abertura por disparo, bounces e cliques por campanha.",
+        chips: ["Resend webhook", "MongoDB", "Admin dashboard", "email.opened / .clicked"],
+        dep: "IDs de e-mail já são gerados pelo Resend — falta apenas salvar e ouvir os eventos",
+      },
+      {
         title: "Fix: Cores do E-mail em Dark Mode",
         priority: "Pendente",
         priorityColor: "bg-gray-100 text-gray-600",
@@ -98,12 +107,12 @@ const ROADMAP = [
         dep: "Depende: Sprint 14 (Pagamento Premium)",
       },
       {
-        title: "E-mails do Clube BLC",
-        priority: "Baixa",
-        priorityColor: "bg-gray-100 text-gray-600",
-        desc: "Dois e-mails: (1) confirmação quando usuário registra nova compra, com cashback estimado; (2) notificação quando cashback é confirmado pelo admin com valor e prazo de pagamento.",
-        chips: ["Resend", "Registro de compra", "Cashback confirmado"],
-        dep: "Depende: Sprints 15 e 16 (Clube BLC)",
+        title: "E-mails do Clube BLC — Processos",
+        priority: "Média",
+        priorityColor: "bg-blue-100 text-blue-800",
+        desc: "Notificações automáticas por e-mail para comprador e assessor em todos os eventos do ciclo de vida dos Processos BLC: abertura, mudança de status (em análise, em andamento, concluído, cancelado), solicitações e confirmações. Mesmo sistema de e-mail dos alertas de imóveis, possivelmente remetente separado.",
+        chips: ["Resend", "Comprador + assessor", "Todos os status"],
+        dep: "Processos BLC implementados ✓ — falta apenas o disparo de e-mail",
       },
     ],
   },
@@ -112,20 +121,20 @@ const ROADMAP = [
     color: "bg-violet-500",
     items: [
       {
-        title: 'Formulário "Nova Compra"',
-        priority: "Clube",
-        priorityColor: "bg-violet-100 text-violet-800",
-        desc: "Registro da compra no site após finalizar na Caixa — HDN, modalidade e assessor indicado.",
-        chips: ["Formulário no site", "API + MongoDB"],
-        dep: "",
+        title: 'Formulário "Nova Compra" — Processos BLC',
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "AbrirProcessoBtn na página do imóvel + formulário completo no /perfil do comprador. Processos salvos no MongoDB com status rastreável. Admin pode criar e gerenciar processos com autocomplete de usuário/corretor/imóvel.",
+        chips: ["AbrirProcessoBtn", "API + MongoDB", "Admin + comprador"],
+        dep: "✓ Em produção (Sprint 13)",
       },
       {
         title: "Dashboard de Compra + Checklist",
-        priority: "Clube",
-        priorityColor: "bg-violet-100 text-violet-800",
-        desc: "Área do membro para acompanhar o status da compra passo a passo até o registro.",
-        chips: ["Área logada", "Status por etapa"],
-        dep: "",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "Aba 'Clube BLC' no /perfil do comprador lista todos os processos com status, imóvel, assessor e datas. Admin tem aba 'Processos BLC' com tabela completa e select de status. Ciclo: aguardando dados → em análise → em andamento → concluído/cancelado.",
+        chips: ["Área logada /perfil", "Admin painel", "Status por etapa"],
+        dep: "✓ Em produção (Sprint 13)",
       },
       {
         title: "Lógica de Cashback",
@@ -137,11 +146,11 @@ const ROADMAP = [
       },
       {
         title: "Gestão de Assessores Parceiros",
-        priority: "Clube",
-        priorityColor: "bg-violet-100 text-violet-800",
-        desc: "Admin para cadastrar assessores, vincular compras e controlar comissão por compra finalizada.",
-        chips: ["Admin panel", "Comissão"],
-        dep: "Depende de Formulário Nova Compra",
+        priority: "Feito",
+        priorityColor: "bg-green-100 text-green-800",
+        desc: "CRM de parceiros no admin com filtros avançados, numeração, vincular conta usuário ↔ corretor. Portal do Corretor (/perfil) com ClubeBLCCard. Cobertura por cidade com lista IBGE completa (5.571 cidades), validação de duplicidade e painel de cobertura no admin.",
+        chips: ["CRM admin", "Portal corretor", "5.571 cidades IBGE", "Cobertura"],
+        dep: "✓ Em produção (Sprint 13)",
       },
       {
         title: "Pagamento — Plano Premium",
@@ -199,6 +208,14 @@ const ROADMAP = [
     theme: "Admin & Infraestrutura",
     color: "bg-slate-600",
     items: [
+      {
+        title: "Monitorar Fluid Active CPU (Vercel)",
+        priority: "Pendente",
+        priorityColor: "bg-amber-100 text-amber-800",
+        desc: "Em ago/2026 o plano free atingiu 100% do limite de 4h/mês de Fluid CPU. Causa real: sitemap.ts com revalidate=1h carregava 25k+ docs + 27 queries por regeneração (~24x/dia = ~4 min/dia). Correções aplicadas: sitemap revalidate 1h→24h (principal) + polling da página de status 30s→120s com pause automático (secundário). Monitorar por 3–5 dias para confirmar redução.",
+        chips: ["Sitemap 1h→24h", "Polling 30s→120s", "Monitorar até 24/08/2026"],
+        dep: "Correções aplicadas em 18–19/08/2026 — aguardando confirmação",
+      },
       {
         title: "Roadmap dinâmico via MongoDB + Admin UI",
         priority: "Média",
@@ -576,7 +593,7 @@ const ROADMAP = [
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const REFRESH = 30;
+const REFRESH = 120;
 
 function timeAgo(iso: string | number): string {
   const ts = typeof iso === "number" ? iso : Date.parse(iso);
@@ -658,8 +675,10 @@ export default function StatusPage() {
   const [error, setError] = useState("");
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(REFRESH);
+  const [paused, setPaused] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (document.visibilityState === "hidden") return;
     try {
       const res = await fetch("/api/admin/status");
       if (!res.ok) { setError("Não autorizado ou erro na API."); return; }
@@ -681,7 +700,21 @@ export default function StatusPage() {
   }, [fetchData]);
 
   useEffect(() => {
-    const t = setInterval(() => setCountdown((c) => (c <= 1 ? REFRESH : c - 1)), 1000);
+    function onVisibility() {
+      const hidden = document.visibilityState === "hidden";
+      setPaused(hidden);
+      if (!hidden) fetchData();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [fetchData]);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState !== "hidden") {
+        setCountdown((c) => (c <= 1 ? REFRESH : c - 1));
+      }
+    }, 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -703,7 +736,8 @@ export default function StatusPage() {
           <div className="flex items-center gap-3 flex-wrap">
             {lastUpdate && (
               <span className="text-xs text-gray-400">
-                Atualizado às {lastUpdate.toLocaleTimeString("pt-BR")} · próximo em {countdown}s
+                Atualizado às {lastUpdate.toLocaleTimeString("pt-BR")} ·{" "}
+                {paused ? "pausado (aba em segundo plano)" : `próximo em ${countdown}s`}
               </span>
             )}
             <button onClick={fetchData}
@@ -717,7 +751,7 @@ export default function StatusPage() {
         {/* Stats strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { num: "12", label: "Sprints concluídas", color: "border-green-400" },
+            { num: "13", label: "Sprints concluídas", color: "border-green-400" },
             { num: String(totalPending), label: "Itens pendentes", color: "border-amber-400" },
             { num: "25k+", label: "Imóveis no banco", color: "border-blue-400" },
             { num: "9.855", label: "Matrículas enriquecidas", color: "border-violet-400" },

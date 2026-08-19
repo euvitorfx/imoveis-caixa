@@ -5,7 +5,7 @@ import { getPostsPublicados } from "@/lib/blog";
 import { getCorretoresAprovados } from "@/lib/corretores";
 import { ALL_ESTADOS, slugify } from "@/lib/utils";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
