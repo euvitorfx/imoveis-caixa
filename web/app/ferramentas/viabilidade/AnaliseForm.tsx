@@ -132,8 +132,31 @@ function ModalFavoritos({
   );
 }
 
+// ── Donut helper ───────────────────────────────────────────────────────────
+function buildDonutPaths(slices: { value: number; color: string }[]) {
+  const total = slices.reduce((s, x) => s + x.value, 0);
+  if (total <= 0) return { paths: [] as { d: string; color: string; pct: number }[], total: 0 };
+  const cx = 56, cy = 56, R = 44, ri = 27;
+  let angle = -Math.PI / 2;
+  const paths = slices
+    .filter((s) => s.value > 0)
+    .map((s) => {
+      const frac = s.value / total;
+      const a = frac * 2 * Math.PI;
+      const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle);
+      const x2 = cx + R * Math.cos(angle + a), y2 = cy + R * Math.sin(angle + a);
+      const xi1 = cx + ri * Math.cos(angle), yi1 = cy + ri * Math.sin(angle);
+      const xi2 = cx + ri * Math.cos(angle + a), yi2 = cy + ri * Math.sin(angle + a);
+      const large = a > Math.PI ? 1 : 0;
+      const d = `M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi2.toFixed(1)},${yi2.toFixed(1)} A${ri},${ri} 0 ${large},0 ${xi1.toFixed(1)},${yi1.toFixed(1)} Z`;
+      angle += a;
+      return { d, color: s.color, pct: Math.round(frac * 100) };
+    });
+  return { paths, total };
+}
+
 // ── Painel de resultados ───────────────────────────────────────────────────
-function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: number; taxas: Taxas | null }) {
+function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; meses: number; taxas: Taxas | null; dados: DadosAnalise }) {
   const lucro = r.lucroLiquido;
   const positivo = lucro >= 0;
 
@@ -154,6 +177,25 @@ function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: num
     return (Math.pow(1 + taxaAnual / 100, meses / 12) - 1) * 100;
   }
 
+  // Ponto de equilíbrio: venda mínima onde lucroLíquido = 0
+  // saldoPosVenda = venda*(1-percCorretor/100); IR=0 no breakeven; logo venda*(1-perc)=totalDespesas
+  const breakeven = dados.percCorretor < 100
+    ? r.totalDespesas / (1 - dados.percCorretor / 100)
+    : 0;
+  const margemSeguranca = dados.valorVenda > 0 ? dados.valorVenda - breakeven : 0;
+  const margemPct = dados.valorVenda > 0 ? (margemSeguranca / dados.valorVenda) * 100 : 0;
+
+  // Donut: composição de todos os custos/deduções
+  const donutSlices = [
+    { label: "Aquisição", value: r.totalAquisicao, color: "#01304D" },
+    { label: "Manutenção", value: r.totalManutencao, color: "#F59E0B" },
+    { label: "Corretagem", value: r.corretagem, color: "#3B82F6" },
+    { label: "IR", value: r.ir, color: "#9CA3AF" },
+  ];
+  const { paths: donutPaths, total: donutTotal } = buildDonutPaths(
+    donutSlices.map((s) => ({ value: s.value, color: s.color }))
+  );
+
   const chartData = r.roiPorMes.map((p) => ({ ...p, roi: parseFloat(p.roi.toFixed(2)) }));
 
   const indices = taxas
@@ -164,6 +206,10 @@ function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: num
         { label: "IFIX", pct: retornoIndicePct(taxas.ifix), nota: "média 5 anos" },
       ]
     : [];
+
+  const maxROI = indices.length > 0
+    ? Math.max(Math.abs(roiSobreTotal), ...indices.map((i) => i.pct), 0.01)
+    : 0;
 
   return (
     <div className="bg-white rounded-2xl shadow border p-5 space-y-5">
@@ -187,6 +233,24 @@ function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: num
         </div>
       </div>
 
+      {/* Ponto de equilíbrio */}
+      {breakeven > 0 && (
+        <div className="rounded-xl bg-[#F0F6FF] border border-blue-100 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400 mb-1.5">Ponto de equilíbrio</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-bold tabular-nums text-[#01304D]">{brl(breakeven)}</span>
+            <span className="text-xs text-gray-400">venda mínima sem prejuízo</span>
+          </div>
+          {dados.valorVenda > 0 && (
+            <p className={`text-xs mt-1 font-medium ${margemSeguranca >= 0 ? "text-green-600" : "text-red-500"}`}>
+              {margemSeguranca >= 0
+                ? `Margem de segurança: ${brl(margemSeguranca)} (${margemPct.toFixed(1)}%)`
+                : `Venda projetada abaixo do breakeven em ${brl(Math.abs(margemSeguranca))}`}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Breakdown */}
       <div>
         {linha("Total Aquisição", r.totalAquisicao)}
@@ -198,41 +262,85 @@ function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: num
         {linha("Lucro Líquido", r.lucroLiquido, true)}
       </div>
 
-      {/* Comparação com índices financeiros */}
+      {/* Composição dos custos — donut */}
+      {donutTotal > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Composição dos custos</p>
+          <div className="flex items-center gap-4">
+            <svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true" className="flex-shrink-0">
+              {donutPaths.map((p, i) => (
+                <path key={i} d={p.d} fill={p.color} stroke="white" strokeWidth="2" />
+              ))}
+            </svg>
+            <div className="flex flex-col gap-2 flex-1">
+              {donutSlices
+                .filter((s) => s.value > 0)
+                .map((s) => (
+                  <div key={s.label} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                    <span className="text-xs text-gray-500 flex-1">{s.label}</span>
+                    <span className="text-xs font-semibold tabular-nums text-gray-700">
+                      {donutTotal > 0 ? Math.round((s.value / donutTotal) * 100) : 0}%
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comparação com índices financeiros — barras visuais */}
       {taxas && r.totalDespesas > 0 && meses > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">vs. Mercado Financeiro</p>
-            <span className="text-[10px] text-gray-400">{meses} meses</span>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">vs. Mercado Financeiro</p>
+            <span className="text-[10px] text-gray-300">{meses} meses</span>
           </div>
-          <div className="space-y-1 text-xs">
+          <div className="space-y-3">
             {/* Imóvel */}
-            <div className="flex items-center gap-2 py-1.5 border-b border-gray-100">
-              <span className="w-4 text-center font-bold text-[#01304D]">★</span>
-              <span className="flex-1 font-semibold text-gray-700">Este imóvel</span>
-              <span className="tabular-nums font-bold" style={{ color: roiSobreTotal >= 0 ? "#16A34A" : "#DC2626" }}>
-                {roiSobreTotal.toFixed(1)}%
-              </span>
-              <span className="tabular-nums text-gray-400 w-24 text-right">{brl(lucro)}</span>
+            <div>
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-xs font-semibold text-[#01304D]">★ Este imóvel</span>
+                <span className={`text-xs font-bold tabular-nums ${positivo ? "text-green-700" : "text-red-600"}`}>
+                  {roiSobreTotal.toFixed(1)}%
+                </span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (Math.abs(roiSobreTotal) / maxROI) * 100))}%`,
+                    background: "#01304D",
+                  }}
+                />
+              </div>
             </div>
             {indices.map((idx) => {
-              const retorno = idx.pct;
-              const valor = r.totalDespesas * retorno / 100;
-              const bate = roiSobreTotal > retorno;
+              const bate = roiSobreTotal > idx.pct;
               return (
-                <div key={idx.label} className="flex items-center gap-2 py-1">
-                  <span className={`w-4 text-center text-[10px] ${bate ? "text-green-500" : "text-red-400"}`}>
-                    {bate ? "▲" : "▼"}
-                  </span>
-                  <span className="flex-1 text-gray-600">{idx.label}</span>
-                  <span className="tabular-nums text-gray-500">{retorno.toFixed(1)}%</span>
-                  <span className="tabular-nums text-gray-400 w-24 text-right">{brl(valor)}</span>
+                <div key={idx.label}>
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-xs text-gray-500">
+                      <span className={`text-[10px] mr-1 ${bate ? "text-green-500" : "text-red-400"}`}>
+                        {bate ? "▲" : "▼"}
+                      </span>
+                      {idx.label}
+                    </span>
+                    <span className="text-xs tabular-nums text-gray-400">{idx.pct.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, (idx.pct / maxROI) * 100))}%`,
+                        background: bate ? "#BBF7D0" : "#FECACA",
+                      }}
+                    />
+                  </div>
                 </div>
               );
             })}
-            <p className="text-[10px] text-gray-300 pt-1">
-              Capital: {brl(r.totalDespesas)} · Ibovespa e IFIX: médias históricas 5 anos
-            </p>
+            <p className="text-[10px] text-gray-300">Ibovespa e IFIX: médias históricas 5 anos</p>
           </div>
         </div>
       )}
@@ -240,7 +348,7 @@ function PainelResultados({ r, meses, taxas }: { r: ResultadoAnalise; meses: num
       {/* ROI chart */}
       {chartData.length > 1 && (
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">ROI por mês</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">ROI por mês</p>
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
@@ -576,7 +684,7 @@ export default function AnaliseForm({ inicial, analiseId }: Props) {
 
         {/* Painel de resultados (2/5, sticky) */}
         <div className="lg:col-span-2 lg:sticky lg:top-4">
-          <PainelResultados r={resultado} meses={dados.mesesAteVenda} taxas={taxas} />
+          <PainelResultados r={resultado} meses={dados.mesesAteVenda} taxas={taxas} dados={dados} />
         </div>
       </div>
 
