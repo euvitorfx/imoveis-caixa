@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { DadosAnalise, ResultadoAnalise, AnaliseViabilidade, DADOS_PADRAO, calcular, calcularLanceMaximo, brl } from "@/lib/analises";
 import ModalCompletarCadastro from "@/components/ModalCompletarCadastro";
@@ -132,6 +132,26 @@ function ModalFavoritos({
   );
 }
 
+// ── Tooltip customizado do gráfico de ROI ─────────────────────────────────
+function RoiTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ value: number; payload: { lucro: number } }>;
+  label?: number;
+}) {
+  if (!active || !payload?.length) return null;
+  const roi = payload[0]?.value ?? 0;
+  const lucro = payload[0]?.payload?.lucro ?? 0;
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-lg text-xs">
+      <p className="text-gray-400 mb-1">Mês {label}</p>
+      <p className={`font-bold tabular-nums text-sm ${roi >= 0 ? "text-green-700" : "text-red-600"}`}>
+        {roi >= 0 ? "+" : ""}{roi.toFixed(2)}% ROI
+      </p>
+      <p className={`tabular-nums mt-0.5 ${roi >= 0 ? "text-green-600" : "text-red-500"}`}>{brl(lucro)}</p>
+    </div>
+  );
+}
+
 // ── Donut helper ───────────────────────────────────────────────────────────
 function buildDonutPaths(slices: { value: number; color: string }[]) {
   const total = slices.reduce((s, x) => s + x.value, 0);
@@ -198,6 +218,7 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
   );
 
   const chartData = r.roiPorMes.map((p) => ({ ...p, roi: parseFloat(p.roi.toFixed(2)) }));
+  const breakevenMes = chartData.find((d) => d.roi >= 0)?.mes ?? null;
 
   const indices = taxas
     ? [
@@ -349,23 +370,67 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
       {/* ROI chart */}
       {chartData.length > 1 && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">ROI por mês</p>
-          <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <XAxis dataKey="mes" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
-              <Tooltip
-                formatter={(v) => [`${Number(v).toFixed(2)}%`, "ROI"]}
-                labelFormatter={(l) => `Mês ${l}`}
-                contentStyle={{ fontSize: 11 }}
+          <div className="flex items-baseline justify-between mb-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+              ROI se vendido em cada mês
+            </p>
+            {breakevenMes && breakevenMes > 1 && (
+              <span className="text-[10px] text-green-500">lucro a partir do mês {breakevenMes}</span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-300 mb-3">Passe o mouse para ver o retorno mês a mês</p>
+          <ResponsiveContainer width="100%" height={190}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="roiAreaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={positivo ? "#16A34A" : "#DC2626"} stopOpacity={0.18} />
+                  <stop offset="95%" stopColor={positivo ? "#16A34A" : "#DC2626"} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="mes"
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+                tickFormatter={(v) => `${v}m`}
               />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${v.toFixed(0)}%`}
+              />
+              <Tooltip content={<RoiTooltip />} />
               <ReferenceLine y={0} stroke="#E5E7EB" strokeDasharray="3 3" />
-              <Line
-                type="monotone" dataKey="roi" dot={false} strokeWidth={2}
+              <Area
+                type="monotone"
+                dataKey="roi"
+                dot={false}
+                strokeWidth={2}
                 stroke={positivo ? "#16A34A" : "#DC2626"}
+                fill="url(#roiAreaFill)"
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
+          {/* Resumo mês 1 vs mês alvo */}
+          <div className="flex justify-between text-[10px] mt-1 px-1">
+            <div className="text-gray-400">
+              <span className="font-medium">Mês 1:</span>{" "}
+              <span className={chartData[0]?.roi >= 0 ? "text-green-600" : "text-red-500"}>
+                {chartData[0]?.roi >= 0 ? "+" : ""}{chartData[0]?.roi.toFixed(1)}%
+              </span>
+              {" "}· {brl(chartData[0]?.lucro ?? 0)}
+            </div>
+            <div className="text-right font-medium text-[#01304D]">
+              <span>Mês {dados.mesesAteVenda}:</span>{" "}
+              <span className={chartData[chartData.length - 1]?.roi >= 0 ? "text-green-600" : "text-red-500"}>
+                {chartData[chartData.length - 1]?.roi >= 0 ? "+" : ""}
+                {chartData[chartData.length - 1]?.roi.toFixed(1)}%
+              </span>
+              {" "}· {brl(chartData[chartData.length - 1]?.lucro ?? 0)}
+            </div>
+          </div>
         </div>
       )}
     </div>
