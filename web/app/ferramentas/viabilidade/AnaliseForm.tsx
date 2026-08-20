@@ -185,9 +185,10 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
   const margemSeguranca = dados.valorVenda > 0 ? dados.valorVenda - breakeven : 0;
   const margemPct = dados.valorVenda > 0 ? (margemSeguranca / dados.valorVenda) * 100 : 0;
 
-  // Donut: composição de todos os custos/deduções
+  // Donut: composição de todos os custos/deduções (reforma separada da aquisição)
   const donutSlices = [
-    { label: "Aquisição", value: r.totalAquisicao, color: "#01304D" },
+    { label: "Aquisição", value: r.totalAquisicao - dados.reforma, color: "#01304D" },
+    { label: "Reforma", value: dados.reforma, color: "#EF4444" },
     { label: "Manutenção", value: r.totalManutencao, color: "#F59E0B" },
     { label: "Corretagem", value: r.corretagem, color: "#3B82F6" },
     { label: "IR", value: r.ir, color: "#9CA3AF" },
