@@ -135,19 +135,21 @@ function ModalFavoritos({
 // ── Tooltip customizado do gráfico de ROI ─────────────────────────────────
 function RoiTooltip({ active, payload, label }: {
   active?: boolean;
-  payload?: Array<{ value: number; payload: { lucro: number } }>;
+  payload?: Array<{ value: number; payload: { lucro: number; roi: number } }>;
   label?: number;
 }) {
   if (!active || !payload?.length) return null;
-  const roi = payload[0]?.value ?? 0;
-  const lucro = payload[0]?.payload?.lucro ?? 0;
+  const roiMensal = payload[0]?.value ?? 0;
+  const roiTotal  = payload[0]?.payload?.roi ?? 0;
+  const lucro     = payload[0]?.payload?.lucro ?? 0;
   return (
     <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-lg text-xs">
       <p className="text-gray-400 mb-1">Mês {label}</p>
-      <p className={`font-bold tabular-nums text-sm ${roi >= 0 ? "text-green-700" : "text-red-600"}`}>
-        {roi >= 0 ? "+" : ""}{roi.toFixed(2)}% ROI
+      <p className={`font-bold tabular-nums text-sm ${roiMensal >= 0 ? "text-green-700" : "text-red-600"}`}>
+        {roiMensal >= 0 ? "+" : ""}{roiMensal.toFixed(2)}% por mês
       </p>
-      <p className={`tabular-nums mt-0.5 ${roi >= 0 ? "text-green-600" : "text-red-500"}`}>{brl(lucro)}</p>
+      <p className="text-gray-400 tabular-nums text-[11px]">ROI total: {roiTotal >= 0 ? "+" : ""}{roiTotal.toFixed(2)}%</p>
+      <p className={`tabular-nums mt-0.5 ${lucro >= 0 ? "text-green-600" : "text-red-500"}`}>{brl(lucro)}</p>
     </div>
   );
 }
@@ -217,7 +219,11 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
     donutSlices.map((s) => ({ value: s.value, color: s.color }))
   );
 
-  const chartData = r.roiPorMes.map((p) => ({ ...p, roi: parseFloat(p.roi.toFixed(2)) }));
+  const chartData = r.roiPorMes.map((p) => ({
+    ...p,
+    roi: parseFloat(p.roi.toFixed(2)),
+    roiMensal: parseFloat((p.roi / p.mes).toFixed(2)),
+  }));
   const breakevenMes = chartData.find((d) => d.roi >= 0)?.mes ?? null;
 
   const indices = taxas
@@ -372,13 +378,13 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
         <div>
           <div className="flex items-baseline justify-between mb-0.5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-              ROI se vendido em cada mês
+              Lucro médio por mês
             </p>
             {breakevenMes && breakevenMes > 1 && (
-              <span className="text-[10px] text-green-500">lucro a partir do mês {breakevenMes}</span>
+              <span className="text-[10px] text-green-500">positivo a partir do mês {breakevenMes}</span>
             )}
           </div>
-          <p className="text-[10px] text-gray-300 mb-3">Passe o mouse para ver o retorno mês a mês</p>
+          <p className="text-[10px] text-gray-300 mb-3">% de lucro por mês na média até aquele prazo</p>
           <ResponsiveContainer width="100%" height={190}>
             <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
               <defs>
@@ -405,7 +411,7 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
               <ReferenceLine y={0} stroke="#E5E7EB" strokeDasharray="3 3" />
               <Area
                 type="monotone"
-                dataKey="roi"
+                dataKey="roiMensal"
                 dot={false}
                 strokeWidth={2}
                 stroke={positivo ? "#16A34A" : "#DC2626"}
@@ -417,16 +423,15 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
           <div className="flex justify-between text-[10px] mt-1 px-1">
             <div className="text-gray-400">
               <span className="font-medium">Mês 1:</span>{" "}
-              <span className={chartData[0]?.roi >= 0 ? "text-green-600" : "text-red-500"}>
-                {chartData[0]?.roi >= 0 ? "+" : ""}{chartData[0]?.roi.toFixed(1)}%
+              <span className={chartData[0]?.roiMensal >= 0 ? "text-green-600" : "text-red-500"}>
+                {chartData[0]?.roiMensal >= 0 ? "+" : ""}{chartData[0]?.roiMensal.toFixed(2)}%/mês
               </span>
-              {" "}· {brl(chartData[0]?.lucro ?? 0)}
             </div>
             <div className="text-right font-medium text-[#01304D]">
               <span>Mês {dados.mesesAteVenda}:</span>{" "}
-              <span className={chartData[chartData.length - 1]?.roi >= 0 ? "text-green-600" : "text-red-500"}>
-                {chartData[chartData.length - 1]?.roi >= 0 ? "+" : ""}
-                {chartData[chartData.length - 1]?.roi.toFixed(1)}%
+              <span className={chartData[chartData.length - 1]?.roiMensal >= 0 ? "text-green-600" : "text-red-500"}>
+                {chartData[chartData.length - 1]?.roiMensal >= 0 ? "+" : ""}
+                {chartData[chartData.length - 1]?.roiMensal.toFixed(2)}%/mês
               </span>
               {" "}· {brl(chartData[chartData.length - 1]?.lucro ?? 0)}
             </div>
