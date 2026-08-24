@@ -16,13 +16,27 @@ export async function GET(req: NextRequest) {
     db.collection("sprints").find({}).sort({ order: 1 }).toArray(),
   ]);
 
+  type ItemDoc = {
+    _id: string;
+    theme: string;
+    themeColor: string;
+    themeOrder: number;
+    title: string;
+    priority: string;
+    originalPriority: string;
+    desc: string;
+    chips: string[];
+    dep: string;
+    order: number;
+  };
+
   // Serialize _id to string and group items by theme
-  const serializedItems = items.map((doc) => ({
-    ...doc,
+  const serializedItems: ItemDoc[] = items.map((doc) => ({
+    ...(doc as unknown as Omit<ItemDoc, "_id">),
     _id: doc._id.toString(),
   }));
 
-  const themeMap = new Map<string, { theme: string; color: string; themeOrder: number; items: typeof serializedItems }>();
+  const themeMap = new Map<string, { theme: string; color: string; themeOrder: number; items: ItemDoc[] }>();
   for (const item of serializedItems) {
     if (!themeMap.has(item.theme)) {
       themeMap.set(item.theme, { theme: item.theme, color: item.themeColor, themeOrder: item.themeOrder, items: [] });
