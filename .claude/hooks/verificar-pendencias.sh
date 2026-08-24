@@ -1,11 +1,11 @@
 #!/bin/bash
 # Roda automaticamente após cada resposta do Claude (hook: Stop)
-# Verifica se tarefas de manutenção foram esquecidas após alterações de código
+# Lembra o Claude de atualizar memória e roadmap no MongoDB após alterações de código
 
 # Arquivos do último commit
 LAST=$(git diff --name-only HEAD~1 HEAD 2>/dev/null)
 
-# Mudanças em código da app no último commit (excluindo status e memória)
+# Mudanças em código da app no último commit (excluindo scripts de infra e memória)
 LAST_APP=$(echo "$LAST" | grep -E "^web/app/|^web/components/|^web/lib/|^web/emails/" | grep -v "admin/status" | head -5)
 
 # Mudanças não commitadas em código da app
@@ -17,12 +17,6 @@ if [ -z "$LAST_APP" ] && [ -z "$UNSTAGED" ]; then
 fi
 
 # Avaliar cada item
-if echo "$LAST" | grep -q "admin/status"; then
-  STATUS_OK="✅"
-else
-  STATUS_OK="❌"
-fi
-
 if echo "$LAST" | grep -q "\.claude/memory/"; then
   MEMORY_OK="✅"
 else
@@ -36,15 +30,15 @@ else
 fi
 
 # Tudo ok — sai silenciosamente
-if [ "$STATUS_OK" = "✅" ] && [ "$MEMORY_OK" = "✅" ] && [ "$COMMIT_OK" = "✅" ]; then
+if [ "$MEMORY_OK" = "✅" ] && [ "$COMMIT_OK" = "✅" ]; then
   exit 0
 fi
 
-# Exibe o aviso
+# Exibe o aviso (dirigido ao Claude, não ao usuário)
 echo ""
-echo "┌──────────────────────────────────────────┐"
-echo "│  🔍 VERIFICAÇÃO AUTOMÁTICA               │"
-echo "└──────────────────────────────────────────┘"
+echo "┌──────────────────────────────────────────────────────┐"
+echo "│  🤖 CHECKLIST PÓS-IMPLEMENTAÇÃO (para o Claude)     │"
+echo "└──────────────────────────────────────────────────────┘"
 
 if [ -n "$LAST_APP" ]; then
   echo "Código alterado no último commit:"
@@ -58,8 +52,12 @@ fi
 
 echo ""
 echo "  $COMMIT_OK  Commit + push realizado"
-echo "  $STATUS_OK  /admin/status atualizado"
 echo "  $MEMORY_OK  Memória (.claude/memory/) atualizada"
+echo ""
+echo "  📋 Roadmap — executar se features foram entregues:"
+echo "     node web/scripts/atualizar-status.mjs feito \"Título do item\""
+echo "     node web/scripts/atualizar-status.mjs sprint <num> \"<título>\" \"item1|item2\""
+echo "     node web/scripts/atualizar-status.mjs listar   ← ver todos os itens"
 echo ""
 echo "  ↳ Corrija os itens ❌ antes de prosseguir."
 echo ""
