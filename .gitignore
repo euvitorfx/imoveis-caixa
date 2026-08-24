@@ -24,3 +24,6 @@ debug/
 
 # macOS
 .DS_Store
+
+# Claude Code — configurações locais da máquina (permissões, caminhos Windows)
+.claude/settings.local.json
