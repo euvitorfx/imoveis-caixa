@@ -143,4 +143,3 @@ export function calcularLanceMaximo(d: DadosAnalise, roiAlvo: number): number {
 export function brl(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
-// teste hook
