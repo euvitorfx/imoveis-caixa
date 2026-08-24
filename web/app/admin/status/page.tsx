@@ -36,168 +36,37 @@ interface StatusData {
   deployments: Deployment[];
 }
 
+interface RoadmapItem {
+  _id: string;
+  theme: string;
+  themeColor: string;
+  themeOrder: number;
+  title: string;
+  priority: string;
+  originalPriority: string;
+  desc: string;
+  chips: string[];
+  dep: string;
+  order: number;
+}
+
+interface RoadmapTheme {
+  theme: string;
+  color: string;
+  themeOrder: number;
+  items: RoadmapItem[];
+}
+
+interface SprintDoc {
+  _id: string;
+  num: string;
+  title: string;
+  items: string[];
+  order: number;
+}
+
 type Tab = "panorama" | "live" | "sprints" | "roadmap";
 type RoadmapFilter = "Pendentes" | "Alta" | "Média" | "Baixa" | "Feito";
-
-// ── Static data ────────────────────────────────────────────────────────────
-const SPRINTS = [
-  { num: "1", title: "SEO Técnico + Analytics", items: ["Google Analytics 4", "Meta Pixel", "Vercel Analytics"] },
-  { num: "2", title: "Páginas SEO por Estado/Cidade", items: ["/imoveis/[estado]", "/imoveis/[estado]/[cidade]", "Bandeiras dos estados"] },
-  { num: "3", title: "SEO Avançado + /novidades", items: ["JSON-LD", "FAQ Schema", "Sitemap dinâmico"] },
-  { num: "4", title: "Favoritos + Filtros Avançados", items: ["Favoritos por usuário", "Filtros área/vagas/FGTS", "Ordenação"] },
-  { num: "5", title: "Blog + Painel Admin", items: ["Blog MongoDB", "Sync YouTube", "Admin posts"] },
-  { num: "6", title: "Corretores", items: ["/corretores", "Bloco no imóvel", "Admin corretores"] },
-  { num: "7", title: "Enriquecimento Incremental", items: ["enrich.py", "GitHub Actions", "Matrícula + PDF", "9.855 matrículas"] },
-  { num: "8", title: "Redesign Visual — Petróleo & Âmbar", items: ["Nova paleta #01304D", "Header + footer", "Cards + filtros", "Carousel hero"] },
-  { num: "9", title: "Auth + Usuários + Mobile", items: ["Cadastro / login", "Plano freemium", "Google OAuth", "Admin usuários", "Menu mobile", "Phone mask + flag"] },
-  { num: "10", title: "Clube BLC (base) + IA + R2", items: ["Página /clube", "Descrições IA (Haiku)", "Export PDF + auth gate", "Fotos → R2 (24k+)", "Popup de cadastro", "Admin social/copy IA"] },
-  { num: "11", title: "Planilha de Análise de Viabilidade", items: ["Calculadora online completa", "Import de favoritos", "Export XLS", "Salvar/editar análises", "Botão no detalhe do imóvel", "API CRUD (GET/POST/PUT/DELETE)", "Gráfico ROI (Recharts)"] },
-  { num: "12", title: "Qualidade, Métricas & Backup", items: ["Telefone obrigatório no cadastro", "Modal para usuários sem telefone", "Métricas financeiras no /estatísticas", "Toggle 7/15/30 dias movimentações", "Bug fix: dataInativacao scraper", "Backup semanal MongoDB → R2", "GitHub Action Backup (domingos 04h BRT)"] },
-  { num: "13", title: "Portal do Corretor + Processos BLC", items: ["Vincular conta usuário ↔ corretor (CRM)", "ClubeBLCCard no /perfil do corretor", "AbrirProcessoBtn na página do imóvel", "Sistema de Processos BLC completo", "Admin: aba Processos BLC + formulário", "Autocomplete usuário/corretor/imóvel", "Admin: aba Cobertura + resumo RESUMO/BASE", "cidades_caixa persistente (1.481 cidades)", "Lista IBGE completa (5.571 cidades) no CRM", "Validação de duplicidade de cidades", "Filtros avançados no CRM", "Numeração + reordenação de abas admin"] },
-];
-
-const ROADMAP = [
-  {
-    theme: "E-mails & Comunicação",
-    color: "#F59E0B",
-    items: [
-      { title: "Recuperação de Senha", priority: "Alta", desc: "Fluxo completo de esqueci minha senha: token com expiração gravado no MongoDB, e-mail com link, rota /recuperar-senha para redefinir.", chips: ["Resend", "Token MongoDB", "Rota /recuperar-senha"], dep: "" },
-      { title: "Alertas de Novos Imóveis", priority: "Alta", desc: "GitHub Action diária consulta novos imóveis por estado/cidade e envia e-mail para usuários com preferências cadastradas.", chips: ["Resend", "GitHub Action diária", "Preferências por região", "Unsubscribe"], dep: "Seleção de regiões no cadastro (pré-requisito)" },
-      { title: "E-mails do Clube BLC — Processos", priority: "Média", desc: "Notificações automáticas por e-mail para comprador e assessor em todos os eventos do ciclo de vida dos Processos BLC.", chips: ["Resend", "Comprador + assessor", "Todos os status"], dep: "Processos BLC implementados ✓ — falta apenas o disparo de e-mail" },
-      { title: "Resumo Semanal do Acervo", priority: "Média", desc: "E-mail opcional todo domingo com novos, removidos e destaque da semana nos estados favoritos do usuário.", chips: ["Resend", "GitHub Action domingo", "Opt-in no perfil"], dep: "Depende de Alertas de Novos Imóveis estar pronto" },
-      { title: "Métricas de Abertura dos E-mails", priority: "Média", desc: "Salvar ID do Resend após cada envio. Configurar webhook para eventos email.opened, email.clicked e email.bounced.", chips: ["Resend webhook", "MongoDB", "Admin dashboard", "email.opened / .clicked"], dep: "IDs de e-mail já são gerados pelo Resend — falta apenas salvar e ouvir os eventos" },
-      { title: "Fix: Cores do E-mail em Dark Mode", priority: "Pendente", desc: "Gmail mobile dark mode distorce as cores do template. Investigar imagens PNG para áreas críticas ou testar com Litmus / Email on Acid.", chips: ["Gmail dark mode", "Litmus / Email on Acid"], dep: "Boas-vindas funciona em light mode ✓" },
-      { title: "E-mail de Upgrade Premium", priority: "Baixa", desc: "Confirmação automática quando pagamento for aprovado pelo webhook do Stripe / Mercado Pago.", chips: ["Resend", "Webhook pagamento"], dep: "Depende: Sprint 14 (Pagamento Premium)" },
-    ],
-  },
-  {
-    theme: "Clube BLC — Monetização",
-    color: "#7C3AED",
-    items: [
-      { title: 'Formulário "Nova Compra" — Processos BLC', priority: "Feito", desc: "AbrirProcessoBtn na página do imóvel + formulário completo no /perfil do comprador.", chips: ["AbrirProcessoBtn", "API + MongoDB", "Admin + comprador"], dep: "✓ Em produção (Sprint 13)" },
-      { title: "Dashboard de Compra + Checklist", priority: "Feito", desc: "Aba 'Clube BLC' no /perfil do comprador lista todos os processos com status, imóvel, assessor e datas.", chips: ["Área logada /perfil", "Admin painel", "Status por etapa"], dep: "✓ Em produção (Sprint 13)" },
-      { title: "Gestão de Assessores Parceiros", priority: "Feito", desc: "CRM de parceiros no admin com filtros avançados, numeração, vincular conta usuário ↔ corretor. Portal do Corretor (/perfil) com ClubeBLCCard.", chips: ["CRM admin", "Portal corretor", "5.571 cidades IBGE", "Cobertura"], dep: "✓ Em produção (Sprint 13)" },
-      { title: "Lógica de Cashback", priority: "Clube", desc: "Calcular e registrar cashback do usuário (0,5% → 1% conforme histórico). Visualização no perfil e admin.", chips: ["Escalonamento", "Histórico"], dep: "" },
-      { title: "Pagamento — Plano Premium", priority: "Clube", desc: "Checkout de assinatura para acesso premium via Stripe ou Mercado Pago.", chips: ["Stripe / MP", "Webhook"], dep: "" },
-    ],
-  },
-  {
-    theme: "Calculadora & Análise Financeira",
-    color: "#2563EB",
-    items: [
-      { title: "Calculadora de ROI / TIR / Lucro Líquido", priority: "Alta", desc: "Embutida na página de cada imóvel. Pré-preenchida com lance mínimo e dados do imóvel Caixa.", chips: ["Pré-preenchida c/ dados Caixa", "React state", "API Banco Central (CDI)"], dep: "" },
-      { title: "Lance Máximo por Meta de ROI", priority: "Alta", desc: "Usuário define ROI mínimo desejado (ex: 30%) e a calculadora retorna automaticamente o lance máximo.", chips: ["Cálculo inverso", "Integrado à calculadora"], dep: "Depende: Calculadora de ROI" },
-      { title: "Comparação com Índices de Mercado", priority: "Alta", desc: "Mostra se o ROI do leilão bate CDI, IPCA, Ibovespa e IFIX no mesmo prazo e capital.", chips: ["CDI", "IPCA", "Ibovespa", "IFIX", "API BC gratuita"], dep: "Depende: Calculadora de ROI" },
-      { title: "Salvar Cálculo Vinculado ao Imóvel", priority: "Média", desc: "Usuário salva os parâmetros da calculadora junto ao imóvel favorito. Persistência no MongoDB.", chips: ["MongoDB", "Favoritos"], dep: "Depende: Calculadora de ROI + Favoritos" },
-    ],
-  },
-  {
-    theme: "Alertas & Notificações",
-    color: "#EA580C",
-    items: [
-      { title: "Botão 'Adicionar ao Google Calendar'", priority: "Alta", desc: "Gera arquivo .ics com datas de 1ª e 2ª praça e prazo de habilitação diretamente na página do imóvel.", chips: [".ics download", "Dados já no scraper", "Implementação simples"], dep: "" },
-      { title: "Lembrete de Prazo de Habilitação", priority: "Alta", desc: "Alertar 24h e 1h antes do prazo de habilitação dos imóveis salvos. Via e-mail (e futuramente WhatsApp).", chips: ["E-mail + WhatsApp", "Imóveis salvos"], dep: "Depende: Alertas por WhatsApp (para canal WA)" },
-      { title: "Alertas por WhatsApp", priority: "Alta", desc: "Novos imóveis e mudanças em favoritos via WhatsApp. Taxa de abertura ~98% vs 22% do e-mail. Feature Premium.", chips: ["Twilio / Z-API", "Feature Premium", "98% abertura"], dep: "Depende: Gateway de Pagamento Premium" },
-      { title: "Alerta por ROI Mínimo", priority: "Média", desc: "Usuário define critério avançado: receber alertas somente de imóveis com desconto acima de X% ou estimativa de ROI acima de Y%.", chips: ["Filtro avançado", "Calculadora integrada"], dep: "Depende: Calculadora de ROI" },
-      { title: "Opt-out Granular de Alertas", priority: "Média", desc: "Controles separados por tipo e canal: 'novos imóveis' e 'mudanças em favoritos', independentemente para e-mail e WhatsApp.", chips: ["Toggle por tipo", "Toggle por canal", "Perfil"], dep: "" },
-    ],
-  },
-  {
-    theme: "Portfólio de Imóveis",
-    color: "#4F46E5",
-    items: [
-      { title: "Kanban de Acompanhamento", priority: "Média", desc: "Pipeline visual: Interesse → Em análise → Lance confirmado → Arrematado → Vendido. Drag and drop entre estágios.", chips: ["Caixa + outros leiloeiros", "Drag and drop", "MongoDB"], dep: "" },
-      { title: "Cadastro Manual de Imóvel Externo", priority: "Média", desc: "Adicionar imóvel de qualquer leiloeiro (Megaleilões, Sodré Santoro, etc.) preenchendo os dados manualmente.", chips: ["Qualquer leiloeiro", "Formulário manual", "MongoDB"], dep: "" },
-      { title: "Dashboard de Métricas do Portfólio", priority: "Média", desc: "Painel com totais: valor arrematado, valor vendido, lucro realizado, imóveis em pipeline, ROI médio realizado.", chips: ["MongoDB Aggregation", "Área logada"], dep: "Depende: Kanban + Status por Imóvel" },
-      { title: "Notas e Etiquetas por Imóvel", priority: "Média", desc: "Campo de texto livre por imóvel para observações pessoais. Tags personalizadas pelo usuário.", chips: ["Campo de notas", "Tags customizadas", "MongoDB"], dep: "" },
-    ],
-  },
-  {
-    theme: "IA Jurídica & Documentos",
-    color: "#7E22CE",
-    items: [
-      { title: "Chat Jurídico Especializado em Caixa", priority: "Média", desc: "Chatbot com IA treinado nas regras da Caixa: sub-rogação de IPTU, uso do FGTS, habilitação, desocupação, modalidades.", chips: ["Claude API", "System prompt Caixa", "BLC exclusivo"], dep: "" },
-      { title: "Análise de Edital com IA (Upload PDF)", priority: "Média", desc: "Upload do edital em PDF. IA identifica: sub-rogação de débitos, restrições ao FGTS, datas críticas. Score de risco 0–100.", chips: ["Claude API", "PDF parsing", "Score 0-100", "Formato Caixa padrão"], dep: "" },
-      { title: "Análise de Matrícula com IA", priority: "Média", desc: "Upload da certidão de matrícula. IA identifica penhoras, ônus reais, hipotecas, histórico e riscos de sub-rogação.", chips: ["Claude API", "PDF parsing"], dep: "" },
-      { title: "Resumo de Risco Automático dos Imóveis Caixa", priority: "Baixa", desc: "Para imóveis Caixa já no banco, gerar automaticamente um resumo de risco a partir dos dados existentes.", chips: ["Dados do scraper", "Claude API", "BLC exclusivo"], dep: "Depende: Dados ricos do scraper" },
-    ],
-  },
-  {
-    theme: "Cotização de Sócios",
-    color: "#0891B2",
-    items: [
-      { title: "Cadastro de Sócios por Imóvel", priority: "Média", desc: "Adicionar múltiplos sócios em um arremate com percentual de participação de cada um.", chips: ["Multi-sócio", "% participação", "MongoDB"], dep: "Depende: Portfólio / Status por Imóvel" },
-      { title: "Simulação de Divisão de Lucro", priority: "Média", desc: "3 critérios de divisão: igualitário, proporcional ao investido, ou reembolso das despesas primeiro.", chips: ["3 critérios", "Simulação em tempo real"], dep: "Depende: Cadastro de Sócios" },
-      { title: "Convite de Sócio por E-mail", priority: "Baixa", desc: "Sócio recebe convite por e-mail e pode visualizar os dados do imóvel e a calculadora com sua participação calculada.", chips: ["Resend", "Link com token", "Permissão de visualização"], dep: "Depende: Cadastro de Sócios + Calculadora" },
-    ],
-  },
-  {
-    theme: "Pós-Arremate",
-    color: "#78716C",
-    items: [
-      { title: "Pipeline Pós-Arremate Visual", priority: "Baixa", desc: "Fluxo visual: Arrematado → Regularização → Registro → Desocupação → Reforma → À venda → Vendido.", chips: ["Kanban", "Etapas com datas", "MongoDB"], dep: "Depende: Portfólio Kanban" },
-      { title: "Registro de Despesas Reais", priority: "Baixa", desc: "Lançar despesas reais ocorridas após o arremate. Atualiza o lucro realizado vs. o estimado na calculadora.", chips: ["CRUD despesas", "Lucro realizado", "MongoDB"], dep: "Depende: Pipeline Pós-Arremate" },
-      { title: "Cashback Clube BLC Vinculado ao Arremate", priority: "Clube", desc: "Ao marcar imóvel Caixa como 'Arrematado via BLC', o sistema calcula e registra o cashback automaticamente.", chips: ["BLC exclusivo", "Integração Clube", "MongoDB"], dep: "Depende: Lógica de Cashback do Clube BLC" },
-    ],
-  },
-  {
-    theme: "Crescimento & Marketing",
-    color: "#DB2777",
-    items: [
-      { title: "Blog de Conteúdo Especializado em Caixa", priority: "Média", desc: "Artigos sobre como arrematar na Caixa, FGTS, sub-rogação, habilitação, IR. Blog do concorrente (armt.app) está vazio — janela de SEO aberta.", chips: ["SEO orgânico", "Blog MongoDB (já existe)", "Nicho Caixa"], dep: "" },
-      { title: "Programa de Indicação (Referral)", priority: "Média", desc: "Link único por usuário. Indicar amigo que se cadastrar gera benefício para ambos.", chips: ["Link único", "Benefício mútuo", "MongoDB"], dep: "Depende: Gateway de Pagamento Premium" },
-      { title: "Link Público de Análise Compartilhável", priority: "Baixa", desc: "Gerar link para compartilhar a análise de um imóvel com sócio, advogado ou cliente sem precisar de login.", chips: ["Token de acesso", "Snapshot MongoDB", "Sem login"], dep: "Depende: Calculadora de ROI" },
-      { title: "Comunidade / Fórum de Arrematantes", priority: "Baixa", desc: "Fórum com categorias específicas para Caixa. Considerar Discord/WhatsApp Group como MVP.", chips: ["Network effect", "Discord como MVP", "Moderação"], dep: "Requer base de usuários ativa" },
-    ],
-  },
-  {
-    theme: "Plataforma & Experiência",
-    color: "#0D9488",
-    items: [
-      { title: "Feature Gating Gratuito vs Premium", priority: "Média", desc: "Campo 'plano' existe no DB mas sem bloqueio de conteúdo na UI. Locks + CTA de upgrade onde aplicável.", chips: ["Feature gating", "CTA upgrade"], dep: "" },
-      { title: "Notificações In-App", priority: "Média", desc: "Sino de notificações dentro do site exibindo novidades em favoritos, lembretes de leilão e alertas do sistema.", chips: ["Badge contador", "Painel de notificações", "MongoDB"], dep: "" },
-      { title: "Seleção de Regiões no Cadastro", priority: "Média", desc: "Adicionar seleção de estados/cidades preferidos no fluxo de cadastro, não apenas no perfil.", chips: ["UX melhoria", "/cadastro"], dep: "" },
-      { title: "PWA — Instalável no Celular", priority: "Baixa", desc: "Tornar o BLC instalável como Progressive Web App: ícone na tela inicial, funcionamento offline parcial, notificações push.", chips: ["manifest.json", "Service Worker", "Push notifications"], dep: "" },
-    ],
-  },
-  {
-    theme: "Admin & Infraestrutura",
-    color: "#475569",
-    items: [
-      { title: "Monitorar Fluid Active CPU (Vercel)", priority: "Pendente", desc: "Em ago/2026 o plano free atingiu 100% do limite de 4h/mês. Correções aplicadas em 18–19/08/2026: sitemap 1h→24h + polling 30s→120s. Monitorar até set/2026.", chips: ["Sitemap 1h→24h", "Polling 30s→120s", "Monitorar até set/2026"], dep: "Correções aplicadas — aguardando confirmação" },
-      { title: "Roadmap dinâmico via MongoDB + Admin UI", priority: "Média", desc: "Mover o roadmap e histórico de sprints do código para MongoDB, com interface no admin para marcar itens concluídos sem deploy.", chips: ["MongoDB", "Admin UI", "Sem deploy para atualizar"], dep: "" },
-    ],
-  },
-  {
-    theme: "Melhorias Recentes",
-    color: "#059669",
-    items: [
-      { title: "Admin: Atividade por Usuário", priority: "Feito", desc: "Tabela de usuários exibe: favoritos salvos, planilhas criadas, último acesso, total de sessões e total de páginas visitadas.", chips: ["Admin", "MongoDB", "Métricas"], dep: "✓ Em produção" },
-      { title: "Limites Freemium Ajustados", priority: "Feito", desc: "Plano gratuito: 1 planilha de viabilidade e 10 favoritos. Premium: ilimitado. Lógica aplicada na API com mensagem de upgrade.", chips: ["Freemium", "API"], dep: "✓ Em produção" },
-      { title: "Fix: callbackUrl no Login", priority: "Feito", desc: "Links 'Entrar na conta' em páginas protegidas agora passam o callbackUrl correto — usuário retorna à página de origem após login.", chips: ["UX", "NextAuth"], dep: "✓ Em produção" },
-      { title: "Telefone Obrigatório + Modal Cadastro Incompleto", priority: "Feito", desc: "Cadastro agora exige WhatsApp/telefone. Usuários sem telefone veem modal ao tentar favoritar, salvar planilha ou exportar PDF.", chips: ["Auth", "UX", "ModalCompletarCadastro"], dep: "✓ Em produção" },
-      { title: "Estatísticas: Métricas Financeiras do Acervo", priority: "Feito", desc: "Página /estatísticas ganhou valor total do acervo ativo (~R$ 3,6 bi) e saídas de valor por 7/15/30 dias.", chips: ["Estatísticas", "MongoDB Aggregation", "ISR 1h"], dep: "✓ Em produção" },
-      { title: "Fix Scraper: dataInativacao para Saídas Precisas", priority: "Feito", desc: "marcar_inativos agora filtra ativo:true e grava dataInativacao apenas na primeira transição ativo→inativo.", chips: ["Scraper", "Bug fix", "MongoDB Index"], dep: "✓ Em produção" },
-      { title: "Backup Semanal MongoDB → Cloudflare R2", priority: "Feito", desc: "GitHub Action exporta users, analises_viabilidade e imoveis em JSONL gzip toda domingo às 04h BRT. Retenção 8 semanas.", chips: ["GitHub Actions", "R2", "JSONL gzip", "Retenção 8 semanas"], dep: "✓ Em produção" },
-      { title: "Popup de Boas-Vindas para Usuários Logados", priority: "Feito", desc: "Popup exibido uma única vez para usuários logados mostrando recursos ativos e em breve. Persistência via MongoDB.", chips: ["MongoDB", "JWT Session", "Layout global"], dep: "✓ Em produção" },
-      { title: "Planilha de Viabilidade — Upgrade Gráficos", priority: "Feito", desc: "Donut de composição de custos, breakeven, comparativo de mercado CDI/IPCA/Ibovespa/IFIX, gráfico ROI médio por mês.", chips: ["Recharts", "SVG donut", "Breakeven"], dep: "✓ Em produção" },
-    ],
-  },
-  {
-    theme: "Dados — Automático",
-    color: "#10B981",
-    items: [
-      { title: "Imóveis sem Enriquecimento", priority: "Auto", desc: "~4.720 imóveis ainda não enriquecidos. Workflow processa automaticamente ~700/dia — sem ação manual.", chips: ["GitHub Actions", "~7 dias restantes"], dep: "✓ Processando automaticamente" },
-    ],
-  },
-];
-
-// Candidatos para próxima sprint: Alta prioridade, ainda pendentes
-const NEXT_SPRINT_CANDIDATES = ROADMAP.flatMap((t) =>
-  t.items
-    .filter((i) => i.priority === "Alta")
-    .map((i) => ({ ...i, theme: t.theme, themeColor: t.color }))
-);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const REFRESH = 120;
@@ -217,14 +86,13 @@ function eventLabel(e: string) {
 
 // ── Badge components ───────────────────────────────────────────────────────
 function WorkflowBadge({ run }: { run: WorkflowRun }) {
-  if (run.status !== "completed") {
+  if (run.status !== "completed")
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800">
         <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
         {run.status === "queued" ? "Na fila" : "Executando"}
       </span>
     );
-  }
   if (run.conclusion === "success")
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-800">
@@ -272,7 +140,6 @@ function DeployBadge({ state }: { state: Deployment["state"] }) {
   );
 }
 
-// ── Priority chip ──────────────────────────────────────────────────────────
 function PriorityChip({ priority }: { priority: string }) {
   const map: Record<string, string> = {
     Alta: "bg-amber-100 text-amber-800 border-amber-200",
@@ -284,9 +151,79 @@ function PriorityChip({ priority }: { priority: string }) {
     Auto: "bg-emerald-100 text-emerald-800 border-emerald-200",
   };
   return (
-    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${map[priority] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
+    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${map[priority] ?? "bg-gray-100 text-gray-500 border-gray-200"}`}>
       {priority}
     </span>
+  );
+}
+
+// ── Sprint form modal ──────────────────────────────────────────────────────
+function SprintFormModal({ nextNum, onClose, onSaved }: { nextNum: string; onClose: () => void; onSaved: (sprint: SprintDoc) => void }) {
+  const [num, setNum] = useState(nextNum);
+  const [title, setTitle] = useState("");
+  const [itemsText, setItemsText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setErr("");
+    const items = itemsText.split("\n").map((l) => l.trim()).filter(Boolean);
+    try {
+      const res = await fetch("/api/admin/sprints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ num, title, items }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Erro ao salvar");
+      const { id } = await res.json();
+      onSaved({ _id: id, num, title, items, order: parseInt(num, 10) });
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Erro desconhecido");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-base font-bold text-gray-800 mb-4">Adicionar Sprint</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex gap-3">
+            <div className="w-24">
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Número</label>
+              <input value={num} onChange={(e) => setNum(e.target.value)} required
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-gray-600 block mb-1">Título</label>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} required
+                placeholder="Nome da sprint"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Itens entregues (um por linha)</label>
+            <textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} required
+              rows={6} placeholder={"Feature A\nFeature B\nBug fix C"}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+          </div>
+          {err && <p className="text-xs text-red-600">{err}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 text-sm border rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 text-sm bg-[#01304D] text-white rounded-lg hover:bg-[#01304D]/90 transition-colors disabled:opacity-50">
+              {saving ? "Salvando..." : "Salvar Sprint"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -294,69 +231,122 @@ function PriorityChip({ priority }: { priority: string }) {
 export default function StatusPage() {
   const [tab, setTab] = useState<Tab>("panorama");
   const [roadmapFilter, setRoadmapFilter] = useState<RoadmapFilter>("Pendentes");
+
+  // Live CI/CD state
   const [live, setLive] = useState<StatusData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [liveError, setLiveError] = useState("");
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(REFRESH);
   const [paused, setPaused] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  // Roadmap/Sprints state (from MongoDB)
+  const [themes, setThemes] = useState<RoadmapTheme[]>([]);
+  const [sprints, setSprints] = useState<SprintDoc[]>([]);
+  const [roadmapLoading, setRoadmapLoading] = useState(true);
+  const [showSprintForm, setShowSprintForm] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // ── Fetch CI/CD data ─────────────────────────────────────────────────────
+  const fetchLive = useCallback(async () => {
     if (document.visibilityState === "hidden") return;
     try {
       const res = await fetch("/api/admin/status");
-      if (!res.ok) { setError("Não autorizado ou erro na API."); return; }
+      if (!res.ok) { setLiveError("Não autorizado ou erro na API."); return; }
       setLive(await res.json());
       setLastUpdate(new Date());
       setCountdown(REFRESH);
-      setError("");
+      setLiveError("");
     } catch {
-      setError("Falha ao carregar status.");
+      setLiveError("Falha ao carregar status.");
     } finally {
-      setLoading(false);
+      setLiveLoading(false);
+    }
+  }, []);
+
+  // ── Fetch roadmap from MongoDB ────────────────────────────────────────────
+  const fetchRoadmap = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/roadmap");
+      if (!res.ok) return;
+      const data = await res.json();
+      setThemes(data.themes ?? []);
+      setSprints((data.sprints ?? []).sort((a: SprintDoc, b: SprintDoc) => a.order - b.order));
+    } catch {
+      // silently fail — page still shows
+    } finally {
+      setRoadmapLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const iv = setInterval(fetchData, REFRESH * 1000);
+    fetchLive();
+    fetchRoadmap();
+    const iv = setInterval(fetchLive, REFRESH * 1000);
     return () => clearInterval(iv);
-  }, [fetchData]);
+  }, [fetchLive, fetchRoadmap]);
 
   useEffect(() => {
     function onVisibility() {
       const hidden = document.visibilityState === "hidden";
       setPaused(hidden);
-      if (!hidden) fetchData();
+      if (!hidden) fetchLive();
     }
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [fetchData]);
+  }, [fetchLive]);
 
   useEffect(() => {
     const t = setInterval(() => {
-      if (document.visibilityState !== "hidden") {
-        setCountdown((c) => (c <= 1 ? REFRESH : c - 1));
-      }
+      if (document.visibilityState !== "hidden") setCountdown((c) => (c <= 1 ? REFRESH : c - 1));
     }, 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Computed stats
-  const allRoadmapItems = ROADMAP.flatMap((t) => t.items);
-  const feitoCount = allRoadmapItems.filter((i) => i.priority === "Feito").length;
-  const pendingCount = allRoadmapItems.filter((i) => !["Feito", "Auto"].includes(i.priority)).length;
-  const altaCount = allRoadmapItems.filter((i) => i.priority === "Alta").length;
-  const sprintItemCount = SPRINTS.reduce((a, s) => a + s.items.length, 0);
+  // ── Toggle item priority ──────────────────────────────────────────────────
+  async function toggleItem(item: RoadmapItem) {
+    const newPriority = item.priority === "Feito" ? (item.originalPriority ?? "Média") : "Feito";
+    setTogglingId(item._id);
 
-  // Dedup workflows by name (keep latest run per workflow)
+    // Optimistic update
+    setThemes((prev) =>
+      prev.map((t) => ({
+        ...t,
+        items: t.items.map((i) => (i._id === item._id ? { ...i, priority: newPriority } : i)),
+      }))
+    );
+
+    try {
+      const res = await fetch(`/api/admin/roadmap/items/${item._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority: newPriority }),
+      });
+      if (!res.ok) throw new Error("Falha");
+    } catch {
+      // Revert on failure
+      setThemes((prev) =>
+        prev.map((t) => ({
+          ...t,
+          items: t.items.map((i) => (i._id === item._id ? { ...i, priority: item.priority } : i)),
+        }))
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  // ── Computed stats ────────────────────────────────────────────────────────
+  const allItems = themes.flatMap((t) => t.items);
+  const feitoCount = allItems.filter((i) => i.priority === "Feito").length;
+  const pendingCount = allItems.filter((i) => !["Feito", "Auto"].includes(i.priority)).length;
+  const altaCount = allItems.filter((i) => i.priority === "Alta").length;
+  const sprintItemCount = sprints.reduce((a, s) => a + s.items.length, 0);
+
   const latestWorkflows = live?.workflows
     ? Object.values(
         live.workflows.reduce<Record<string, WorkflowRun>>((acc, run) => {
-          const key = run.name;
-          if (!acc[key] || Date.parse(run.updated_at) > Date.parse(acc[key].updated_at)) {
-            acc[key] = run;
-          }
+          if (!acc[run.name] || Date.parse(run.updated_at) > Date.parse(acc[run.name].updated_at)) acc[run.name] = run;
           return acc;
         }, {})
       ).sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
@@ -367,20 +357,27 @@ export default function StatusPage() {
     latestWorkflows.some((r) => r.conclusion === "failure" || r.conclusion === "timed_out") ||
     latestDeploy?.state === "ERROR";
 
-  // Roadmap filter
-  const filteredRoadmap = ROADMAP.map((t) => ({
-    ...t,
-    items: t.items.filter((item) => {
-      if (roadmapFilter === "Pendentes") return !["Feito", "Auto"].includes(item.priority);
-      if (roadmapFilter === "Feito") return item.priority === "Feito";
-      return item.priority === roadmapFilter;
-    }),
-  })).filter((t) => t.items.length > 0);
+  const nextSprintCandidates = themes.flatMap((t) =>
+    t.items.filter((i) => i.priority === "Alta").map((i) => ({ ...i, themeColor: t.color }))
+  );
+
+  const filteredRoadmap = themes
+    .map((t) => ({
+      ...t,
+      items: t.items.filter((item) => {
+        if (roadmapFilter === "Pendentes") return !["Feito", "Auto"].includes(item.priority);
+        if (roadmapFilter === "Feito") return item.priority === "Feito";
+        return item.priority === roadmapFilter;
+      }),
+    }))
+    .filter((t) => t.items.length > 0);
+
+  const nextSprintNum = sprints.length > 0 ? String(Math.max(...sprints.map((s) => parseInt(s.num, 10))) + 1) : "14";
 
   const tabs: { id: Tab; label: string; badge?: string }[] = [
     { id: "panorama", label: "Panorama" },
     { id: "live", label: "Ao Vivo", badge: hasLiveError ? "!" : undefined },
-    { id: "sprints", label: "Sprints" },
+    { id: "sprints", label: `Sprints (${sprints.length})` },
     { id: "roadmap", label: "Roadmap" },
   ];
 
@@ -398,33 +395,25 @@ export default function StatusPage() {
                 <span className="text-sm font-semibold text-gray-800 ml-2">Dashboard do Projeto</span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {lastUpdate && (
                 <span className="text-xs text-gray-400 hidden sm:block">
                   {paused ? "pausado" : `atualiza em ${countdown}s`}
                 </span>
               )}
-              <button
-                onClick={fetchData}
-                className="text-xs px-3 py-1.5 border rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={() => { fetchLive(); fetchRoadmap(); }}
+                className="text-xs px-3 py-1.5 border rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
                 ↺ Atualizar
               </button>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-1 -mb-px">
             {tabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors relative ${
-                  tab === t.id
-                    ? "border-amber-500 text-amber-700"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  tab === t.id ? "border-amber-500 text-amber-700" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}>
                 {t.label}
                 {t.badge && (
                   <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold bg-red-500 text-white rounded-full">
@@ -438,32 +427,30 @@ export default function StatusPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
+        {liveError && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{liveError}</div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════
-            TAB: PANORAMA
-        ═══════════════════════════════════════════════════════════ */}
+        {/* ═══════════ PANORAMA ═══════════ */}
         {tab === "panorama" && (
           <div className="space-y-8">
-            {/* Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { num: "13", label: "Sprints concluídas", sub: `${sprintItemCount} funcionalidades entregues`, color: "#01304D" },
+                { num: String(sprints.length), label: "Sprints concluídas", sub: `${sprintItemCount} funcionalidades entregues`, color: "#01304D" },
                 { num: String(feitoCount + sprintItemCount), label: "Features em produção", sub: `Inclui ${feitoCount} adicionadas pós-sprint`, color: "#10B981" },
-                { num: String(altaCount), label: "Itens de alta prioridade", sub: "No roadmap pendente", color: "#F59E0B" },
+                { num: String(altaCount), label: "Alta prioridade", sub: "No roadmap pendente", color: "#F59E0B" },
                 { num: String(pendingCount), label: "Itens no roadmap", sub: "Planejados para sprints futuros", color: "#6366F1" },
               ].map((s) => (
                 <div key={s.label} className="bg-white rounded-xl shadow-sm border p-4" style={{ borderLeftColor: s.color, borderLeftWidth: 4 }}>
-                  <div className="text-2xl font-extrabold text-gray-800 font-mono tabular-nums">{s.num}</div>
+                  <div className="text-2xl font-extrabold text-gray-800 font-mono tabular-nums">
+                    {roadmapLoading ? <span className="inline-block w-8 h-7 bg-gray-100 rounded animate-pulse" /> : s.num}
+                  </div>
                   <div className="text-xs font-semibold text-gray-700 mt-0.5">{s.label}</div>
                   <div className="text-[11px] text-gray-400 mt-0.5">{s.sub}</div>
                 </div>
               ))}
             </div>
 
-            {/* Infra alert */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
               <span className="text-amber-500 text-lg shrink-0 mt-0.5">⚠</span>
               <div>
@@ -476,7 +463,6 @@ export default function StatusPage() {
               </div>
             </div>
 
-            {/* Live health condensed + Próxima Sprint side by side */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Live health */}
               <div className="bg-white rounded-xl shadow-sm border p-5">
@@ -484,11 +470,10 @@ export default function StatusPage() {
                   <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Saúde dos Serviços</h2>
                   <button onClick={() => setTab("live")} className="text-xs text-blue-600 hover:underline">ver tudo →</button>
                 </div>
-                {loading ? (
+                {liveLoading ? (
                   <div className="h-20 flex items-center justify-center text-sm text-gray-400">Carregando...</div>
                 ) : (
                   <div className="space-y-2">
-                    {/* Latest deploy */}
                     {latestDeploy && (
                       <div className="flex items-center justify-between py-2 border-b border-gray-100">
                         <div>
@@ -503,7 +488,6 @@ export default function StatusPage() {
                         </div>
                       </div>
                     )}
-                    {/* Workflows */}
                     {latestWorkflows.map((run) => (
                       <div key={run.workflow_id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div>
@@ -522,90 +506,105 @@ export default function StatusPage() {
                 )}
               </div>
 
-              {/* Próxima Sprint */}
+              {/* Next sprint candidates */}
               <div className="bg-white rounded-xl shadow-sm border p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Sprint 14 — Candidatos</h2>
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Sprint {nextSprintNum} — Candidatos</h2>
                     <p className="text-[11px] text-gray-400 mt-0.5">Itens de alta prioridade no roadmap</p>
                   </div>
                   <button onClick={() => { setTab("roadmap"); setRoadmapFilter("Alta"); }} className="text-xs text-blue-600 hover:underline">ver roadmap →</button>
                 </div>
-                <div className="space-y-2">
-                  {NEXT_SPRINT_CANDIDATES.slice(0, 6).map((item) => (
-                    <div key={item.title} className="flex items-start gap-2 py-1.5 border-b border-gray-100 last:border-0">
-                      <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: item.themeColor }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 leading-tight">{item.title}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">{item.theme}</p>
+                {roadmapLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {nextSprintCandidates.slice(0, 6).map((item) => (
+                      <div key={item._id} className="flex items-start gap-2 py-1.5 border-b border-gray-100 last:border-0">
+                        <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: item.themeColor }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 leading-tight">{item.title}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">{item.theme}</p>
+                        </div>
                       </div>
-                    </div>
+                    ))}
+                    {nextSprintCandidates.length > 6 && (
+                      <p className="text-[11px] text-gray-400 pt-1">+ {nextSprintCandidates.length - 6} outros itens Alta</p>
+                    )}
+                    {nextSprintCandidates.length === 0 && (
+                      <p className="text-sm text-gray-400">Nenhum item de alta prioridade pendente.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Last sprint */}
+            {sprints.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Última Sprint Concluída</h2>
+                    <p className="text-xs font-semibold text-gray-500 mt-0.5">
+                      Sprint {sprints[sprints.length - 1].num} — {sprints[sprints.length - 1].title}
+                    </p>
+                  </div>
+                  <button onClick={() => setTab("sprints")} className="text-xs text-blue-600 hover:underline">ver todas →</button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {sprints[sprints.length - 1].items.map((item) => (
+                    <span key={item} className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2.5 py-1">
+                      ✓ {item}
+                    </span>
                   ))}
-                  {NEXT_SPRINT_CANDIDATES.length > 6 && (
-                    <p className="text-[11px] text-gray-400 pt-1">+ {NEXT_SPRINT_CANDIDATES.length - 6} outros itens Alta</p>
-                  )}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Sprint 13 summary */}
-            <div className="bg-white rounded-xl shadow-sm border p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Última Sprint Concluída</h2>
-                  <p className="text-xs font-semibold text-gray-500 mt-0.5">Sprint 13 — {SPRINTS[12].title}</p>
-                </div>
-                <button onClick={() => setTab("sprints")} className="text-xs text-blue-600 hover:underline">ver todas →</button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {SPRINTS[12].items.map((item) => (
-                  <span key={item} className="text-xs bg-green-50 text-green-700 border border-green-200 rounded px-2.5 py-1">
-                    ✓ {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Roadmap overview: theme progress bars */}
+            {/* Theme progress */}
             <div className="bg-white rounded-xl shadow-sm border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Progresso por Tema</h2>
                 <button onClick={() => setTab("roadmap")} className="text-xs text-blue-600 hover:underline">ver roadmap →</button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {ROADMAP.filter(t => t.theme !== "Dados — Automático").map((t) => {
-                  const done = t.items.filter((i) => i.priority === "Feito").length;
-                  const total = t.items.length;
-                  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                  return (
-                    <div key={t.theme} className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: t.color }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-600 truncate">{t.theme}</span>
-                          <span className="text-[11px] text-gray-400 tabular-nums shrink-0 ml-2">{done}/{total}</span>
-                        </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{ width: `${pct}%`, backgroundColor: t.color }}
-                          />
+              {roadmapLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[...Array(8)].map((_, i) => <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {themes.filter((t) => t.theme !== "Dados — Automático").map((t) => {
+                    const done = t.items.filter((i) => i.priority === "Feito").length;
+                    const total = t.items.length;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    return (
+                      <div key={t.theme} className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: t.color }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-600 truncate">{t.theme}</span>
+                            <span className="text-[11px] text-gray-400 tabular-nums shrink-0 ml-2">{done}/{total}</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: t.color }} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════
-            TAB: AO VIVO
-        ═══════════════════════════════════════════════════════════ */}
+        {/* ═══════════ AO VIVO ═══════════ */}
         {tab === "live" && (
           <div className="space-y-8">
-            {/* GitHub Actions */}
             <div>
               <h2 className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -614,37 +613,32 @@ export default function StatusPage() {
                 GitHub Actions — ao vivo
                 <div className="flex-1 h-px bg-gray-200 ml-2" />
               </h2>
-              {loading ? (
+              {liveLoading ? (
                 <div className="bg-white rounded-xl shadow-sm border h-24 flex items-center justify-center text-sm text-gray-400">Carregando...</div>
               ) : !live?.workflows.length ? (
                 <div className="bg-white rounded-xl shadow-sm border h-24 flex items-center justify-center text-sm text-gray-400">Nenhum workflow encontrado.</div>
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide bg-gray-50">
-                        <th className="px-4 py-3 font-medium">Workflow</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Gatilho</th>
-                        <th className="px-4 py-3 font-medium">Branch</th>
-                        <th className="px-4 py-3 font-medium">Executado</th>
-                        <th className="px-4 py-3 font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {live.workflows
-                        .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
-                        .map((run) => (
-                          <tr
-                            key={run.id}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[600px]">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide bg-gray-50">
+                          <th className="px-4 py-3 font-medium">Workflow</th>
+                          <th className="px-4 py-3 font-medium">Status</th>
+                          <th className="px-4 py-3 font-medium">Gatilho</th>
+                          <th className="px-4 py-3 font-medium">Branch</th>
+                          <th className="px-4 py-3 font-medium">Executado</th>
+                          <th className="px-4 py-3 font-medium"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {live.workflows.sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)).map((run) => (
+                          <tr key={run.id}
                             className={`border-b last:border-0 ${
-                              run.conclusion === "failure" || run.conclusion === "timed_out"
-                                ? "bg-red-50"
-                                : run.status !== "completed"
-                                ? "bg-yellow-50"
-                                : "hover:bg-gray-50"
-                            }`}
-                          >
+                              run.conclusion === "failure" || run.conclusion === "timed_out" ? "bg-red-50"
+                              : run.status !== "completed" ? "bg-yellow-50"
+                              : "hover:bg-gray-50"
+                            }`}>
                             <td className="px-4 py-3">
                               <p className="font-medium text-gray-800">{run.name}</p>
                               <p className="text-xs text-gray-400 mt-0.5">{run.path.replace(".github/workflows/", "")}</p>
@@ -658,69 +652,67 @@ export default function StatusPage() {
                             </td>
                           </tr>
                         ))}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Vercel Deployments */}
             <div>
               <h2 className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 22.525H0l12-21.05 12 21.05z" /></svg>
                 Vercel Deployments — ao vivo
                 <div className="flex-1 h-px bg-gray-200 ml-2" />
               </h2>
-              {loading ? (
+              {liveLoading ? (
                 <div className="bg-white rounded-xl shadow-sm border h-24 flex items-center justify-center text-sm text-gray-400">Carregando...</div>
               ) : !live?.deployments.length ? (
                 <div className="bg-white rounded-xl shadow-sm border h-24 flex items-center justify-center text-sm text-gray-400">Nenhum deploy encontrado.</div>
               ) : (
                 <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide bg-gray-50">
-                        <th className="px-4 py-3 font-medium">Commit</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Branch</th>
-                        <th className="px-4 py-3 font-medium">Autor</th>
-                        <th className="px-4 py-3 font-medium">Quando</th>
-                        <th className="px-4 py-3 font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {live.deployments.map((dep) => (
-                        <tr
-                          key={dep.uid}
-                          className={`border-b last:border-0 ${
-                            dep.state === "ERROR"
-                              ? "bg-red-50"
-                              : dep.state === "BUILDING" || dep.state === "INITIALIZING"
-                              ? "bg-yellow-50"
-                              : "hover:bg-gray-50"
-                          }`}
-                        >
-                          <td className="px-4 py-3 max-w-xs">
-                            <p className="font-medium text-gray-800 truncate">
-                              {dep.meta?.githubCommitMessage?.split("\n")[0] ?? dep.name}
-                            </p>
-                            {dep.meta?.githubCommitSha && (
-                              <p className="text-xs font-mono text-gray-400 mt-0.5">{dep.meta.githubCommitSha.slice(0, 7)}</p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3"><DeployBadge state={dep.state} /></td>
-                          <td className="px-4 py-3 text-xs font-mono text-gray-600">{dep.meta?.githubCommitRef ?? "—"}</td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{dep.creator?.username ?? "—"}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{timeAgo(dep.createdAt)}</td>
-                          <td className="px-4 py-3 text-right">
-                            {dep.state === "READY" && dep.url && (
-                              <a href={`https://${dep.url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">Ver →</a>
-                            )}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[600px]">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b text-xs uppercase tracking-wide bg-gray-50">
+                          <th className="px-4 py-3 font-medium">Commit</th>
+                          <th className="px-4 py-3 font-medium">Status</th>
+                          <th className="px-4 py-3 font-medium">Branch</th>
+                          <th className="px-4 py-3 font-medium">Autor</th>
+                          <th className="px-4 py-3 font-medium">Quando</th>
+                          <th className="px-4 py-3 font-medium"></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {live.deployments.map((dep) => (
+                          <tr key={dep.uid}
+                            className={`border-b last:border-0 ${
+                              dep.state === "ERROR" ? "bg-red-50"
+                              : dep.state === "BUILDING" || dep.state === "INITIALIZING" ? "bg-yellow-50"
+                              : "hover:bg-gray-50"
+                            }`}>
+                            <td className="px-4 py-3 max-w-xs">
+                              <p className="font-medium text-gray-800 truncate">
+                                {dep.meta?.githubCommitMessage?.split("\n")[0] ?? dep.name}
+                              </p>
+                              {dep.meta?.githubCommitSha && (
+                                <p className="text-xs font-mono text-gray-400 mt-0.5">{dep.meta.githubCommitSha.slice(0, 7)}</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3"><DeployBadge state={dep.state} /></td>
+                            <td className="px-4 py-3 text-xs font-mono text-gray-600">{dep.meta?.githubCommitRef ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500">{dep.creator?.username ?? "—"}</td>
+                            <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{timeAgo(dep.createdAt)}</td>
+                            <td className="px-4 py-3 text-right">
+                              {dep.state === "READY" && dep.url && (
+                                <a href={`https://${dep.url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">Ver →</a>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -734,83 +726,93 @@ export default function StatusPage() {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════
-            TAB: SPRINTS
-        ═══════════════════════════════════════════════════════════ */}
+        {/* ═══════════ SPRINTS ═══════════ */}
         {tab === "sprints" && (
           <div>
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div>
-                <h2 className="text-lg font-bold text-gray-800">13 Sprints Concluídas</h2>
+                <h2 className="text-lg font-bold text-gray-800">{sprints.length} Sprints Concluídas</h2>
                 <p className="text-sm text-gray-500">{sprintItemCount} funcionalidades entregues em produção</p>
               </div>
+              <button onClick={() => setShowSprintForm(true)}
+                className="flex items-center gap-2 text-sm px-4 py-2 bg-[#01304D] text-white rounded-lg hover:bg-[#01304D]/90 transition-colors">
+                + Nova Sprint
+              </button>
             </div>
 
             {/* Progress bar */}
             <div className="bg-white rounded-xl shadow-sm border p-5 mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-gray-600">Progresso geral</span>
-                <span className="text-xs text-gray-500">Sprint 13 de ~16 estimadas</span>
+                <span className="text-xs text-gray-500">Sprint {sprints.length} de ~16 estimadas</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#01304D] to-[#F59E0B] rounded-full" style={{ width: "81%" }} />
+                <div className="h-full bg-gradient-to-r from-[#01304D] to-[#F59E0B] rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.round((sprints.length / 16) * 100))}%` }} />
               </div>
               <div className="flex justify-between mt-1.5">
                 <span className="text-[11px] text-green-600 font-semibold">✓ Sprint 1</span>
-                <span className="text-[11px] text-amber-600 font-semibold">→ Sprint 14</span>
+                <span className="text-[11px] text-amber-600 font-semibold">→ Sprint {nextSprintNum}</span>
                 <span className="text-[11px] text-gray-400">~Sprint 16</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {SPRINTS.map((s, idx) => (
-                <div key={s.num} className="bg-white rounded-xl shadow-sm border border-l-4 border-l-green-400 p-4 flex gap-3">
+            {roadmapLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[...Array(6)].map((_, i) => <div key={i} className="h-32 bg-white rounded-xl border animate-pulse" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {sprints.map((s, idx) => (
+                  <div key={s._id} className="bg-white rounded-xl shadow-sm border border-l-4 border-l-green-400 p-4 flex gap-3">
+                    <div className="shrink-0">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-700 text-xs font-extrabold border border-green-200">
+                        {s.num}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="text-sm font-semibold text-gray-800 leading-tight">{s.title}</p>
+                        {idx === sprints.length - 1 && (
+                          <span className="shrink-0 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">Última</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {s.items.map((item) => (
+                          <span key={item} className="text-[11px] bg-green-50 text-green-700 rounded px-1.5 py-0.5 border border-green-100">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Next sprint placeholder */}
+                <div className="bg-white rounded-xl shadow-sm border border-l-4 border-l-amber-400 p-4 flex gap-3 opacity-70">
                   <div className="shrink-0">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-50 text-green-700 text-xs font-extrabold border border-green-200">
-                      {s.num}
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-700 text-xs font-extrabold border border-amber-200">
+                      {nextSprintNum}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 leading-tight">{s.title}</p>
+                    <p className="text-sm font-semibold text-gray-600 leading-tight">Em planejamento</p>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {s.items.map((item) => (
-                        <span key={item} className="text-[11px] bg-green-50 text-green-700 rounded px-1.5 py-0.5 border border-green-100">{item}</span>
+                      {nextSprintCandidates.slice(0, 3).map((item) => (
+                        <span key={item._id} className="text-[11px] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 border border-amber-100">{item.title}</span>
                       ))}
+                      {nextSprintCandidates.length > 3 && (
+                        <span className="text-[11px] text-gray-400 px-1.5 py-0.5">+ {nextSprintCandidates.length - 3} mais...</span>
+                      )}
                     </div>
-                  </div>
-                  {idx === SPRINTS.length - 1 && (
-                    <span className="shrink-0 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5 h-fit">Última</span>
-                  )}
-                </div>
-              ))}
-
-              {/* Sprint 14 placeholder */}
-              <div className="bg-white rounded-xl shadow-sm border border-l-4 border-l-amber-400 border-dashed p-4 flex gap-3 opacity-70">
-                <div className="shrink-0">
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-700 text-xs font-extrabold border border-amber-200">
-                    14
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-600 leading-tight">Em planejamento</p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {NEXT_SPRINT_CANDIDATES.slice(0, 4).map((item) => (
-                      <span key={item.title} className="text-[11px] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 border border-amber-100">{item.title}</span>
-                    ))}
-                    <span className="text-[11px] text-gray-400 px-1.5 py-0.5">+ mais...</span>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════
-            TAB: ROADMAP
-        ═══════════════════════════════════════════════════════════ */}
+        {/* ═══════════ ROADMAP ═══════════ */}
         {tab === "roadmap" && (
           <div>
-            {/* Header + filter */}
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">Roadmap</h2>
@@ -822,21 +824,16 @@ export default function StatusPage() {
                 {(["Pendentes", "Alta", "Média", "Baixa", "Feito"] as RoadmapFilter[]).map((f) => {
                   const counts: Record<RoadmapFilter, number> = {
                     Pendentes: pendingCount,
-                    Alta: allRoadmapItems.filter((i) => i.priority === "Alta").length,
-                    Média: allRoadmapItems.filter((i) => i.priority === "Média").length,
-                    Baixa: allRoadmapItems.filter((i) => i.priority === "Baixa").length,
+                    Alta: allItems.filter((i) => i.priority === "Alta").length,
+                    Média: allItems.filter((i) => i.priority === "Média").length,
+                    Baixa: allItems.filter((i) => i.priority === "Baixa").length,
                     Feito: feitoCount,
                   };
                   return (
-                    <button
-                      key={f}
-                      onClick={() => setRoadmapFilter(f)}
+                    <button key={f} onClick={() => setRoadmapFilter(f)}
                       className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                        roadmapFilter === f
-                          ? "bg-[#01304D] text-white border-[#01304D]"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
-                      }`}
-                    >
+                        roadmapFilter === f ? "bg-[#01304D] text-white border-[#01304D]" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                      }`}>
                       {f} <span className={`ml-1 ${roadmapFilter === f ? "text-white/70" : "text-gray-400"}`}>({counts[f]})</span>
                     </button>
                   );
@@ -844,51 +841,85 @@ export default function StatusPage() {
               </div>
             </div>
 
-            <div className="space-y-8">
-              {filteredRoadmap.map((theme) => {
-                const themeDone = ROADMAP.find((t) => t.theme === theme.theme)?.items.filter((i) => i.priority === "Feito").length ?? 0;
-                const themeTotal = ROADMAP.find((t) => t.theme === theme.theme)?.items.length ?? 0;
-                return (
-                  <div key={theme.theme}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme.color }} />
-                      <span className="text-sm font-bold text-gray-700">{theme.theme}</span>
-                      {themeDone > 0 && themeTotal > 0 && (
-                        <span className="text-xs text-gray-400">{themeDone}/{themeTotal} concluídos</span>
-                      )}
-                      <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {theme.items.map((item) => (
-                        <div
-                          key={item.title}
-                          className={`bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-2 ${
-                            item.priority === "Feito" ? "opacity-75" : ""
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</p>
-                            <PriorityChip priority={item.priority} />
+            {roadmapLoading ? (
+              <div className="space-y-6">
+                {[...Array(4)].map((_, i) => <div key={i} className="h-40 bg-white rounded-xl border animate-pulse" />)}
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {filteredRoadmap.map((theme) => {
+                  const themeTotal = themes.find((t) => t.theme === theme.theme)?.items.length ?? 0;
+                  const themeDone = themes.find((t) => t.theme === theme.theme)?.items.filter((i) => i.priority === "Feito").length ?? 0;
+                  return (
+                    <div key={theme.theme}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme.color }} />
+                        <span className="text-sm font-bold text-gray-700">{theme.theme}</span>
+                        {themeDone > 0 && (
+                          <span className="text-xs text-gray-400">{themeDone}/{themeTotal} concluídos</span>
+                        )}
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {theme.items.map((item) => (
+                          <div key={item._id}
+                            className={`bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-2 transition-opacity ${
+                              item.priority === "Feito" ? "opacity-70" : ""
+                            }`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</p>
+                              <PriorityChip priority={item.priority} />
+                            </div>
+                            <p className="text-xs text-gray-500 leading-relaxed flex-1">{item.desc}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {item.chips.map((c) => (
+                                <span key={c} className="text-xs bg-gray-100 text-gray-500 rounded px-2 py-0.5 border border-gray-200">{c}</span>
+                              ))}
+                            </div>
+                            {item.dep && (
+                              <p className="text-xs text-gray-400 pt-1 border-t border-dashed border-gray-200">{item.dep}</p>
+                            )}
+                            {/* Toggle button — only for non-Clube/Auto items */}
+                            {!["Clube", "Auto"].includes(item.originalPriority ?? item.priority) && (
+                              <button
+                                onClick={() => toggleItem(item)}
+                                disabled={togglingId === item._id}
+                                className={`mt-1 text-xs py-1.5 px-3 rounded-lg border font-medium transition-colors self-start disabled:opacity-50 ${
+                                  item.priority === "Feito"
+                                    ? "border-gray-200 text-gray-500 hover:bg-gray-50"
+                                    : "border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+                                }`}>
+                                {togglingId === item._id ? "..." : item.priority === "Feito" ? "↩ Reabrir" : "✓ Marcar como Feito"}
+                              </button>
+                            )}
                           </div>
-                          <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {item.chips.map((c) => (
-                              <span key={c} className="text-xs bg-gray-100 text-gray-500 rounded px-2 py-0.5 border border-gray-200">{c}</span>
-                            ))}
-                          </div>
-                          {item.dep && (
-                            <p className="text-xs text-gray-400 pt-1 border-t border-dashed border-gray-200">{item.dep}</p>
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
+                  );
+                })}
+                {filteredRoadmap.length === 0 && (
+                  <div className="text-center py-12 text-gray-400 text-sm">
+                    Nenhum item com filtro &quot;{roadmapFilter}&quot;.
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Sprint form modal */}
+      {showSprintForm && (
+        <SprintFormModal
+          nextNum={nextSprintNum}
+          onClose={() => setShowSprintForm(false)}
+          onSaved={(sprint) => {
+            setSprints((prev) => [...prev, sprint].sort((a, b) => a.order - b.order));
+            setShowSprintForm(false);
+          }}
+        />
+      )}
 
       <p className="text-center text-xs text-gray-400 pb-8">
         Busca Leilões Caixa · BLC — Dashboard interno
