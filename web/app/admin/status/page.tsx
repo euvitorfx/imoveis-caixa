@@ -157,75 +157,6 @@ function PriorityChip({ priority }: { priority: string }) {
   );
 }
 
-// ── Sprint form modal ──────────────────────────────────────────────────────
-function SprintFormModal({ nextNum, onClose, onSaved }: { nextNum: string; onClose: () => void; onSaved: (sprint: SprintDoc) => void }) {
-  const [num, setNum] = useState(nextNum);
-  const [title, setTitle] = useState("");
-  const [itemsText, setItemsText] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setErr("");
-    const items = itemsText.split("\n").map((l) => l.trim()).filter(Boolean);
-    try {
-      const res = await fetch("/api/admin/sprints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ num, title, items }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Erro ao salvar");
-      const { id } = await res.json();
-      onSaved({ _id: id, num, title, items, order: parseInt(num, 10) });
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Erro desconhecido");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h3 className="text-base font-bold text-gray-800 mb-4">Adicionar Sprint</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-3">
-            <div className="w-24">
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Número</label>
-              <input value={num} onChange={(e) => setNum(e.target.value)} required
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-gray-600 block mb-1">Título</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} required
-                placeholder="Nome da sprint"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Itens entregues (um por linha)</label>
-            <textarea value={itemsText} onChange={(e) => setItemsText(e.target.value)} required
-              rows={6} placeholder={"Feature A\nFeature B\nBug fix C"}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-          </div>
-          {err && <p className="text-xs text-red-600">{err}</p>}
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2 text-sm border rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 py-2 text-sm bg-[#01304D] text-white rounded-lg hover:bg-[#01304D]/90 transition-colors disabled:opacity-50">
-              {saving ? "Salvando..." : "Salvar Sprint"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function StatusPage() {
@@ -244,7 +175,7 @@ export default function StatusPage() {
   const [themes, setThemes] = useState<RoadmapTheme[]>([]);
   const [sprints, setSprints] = useState<SprintDoc[]>([]);
   const [roadmapLoading, setRoadmapLoading] = useState(true);
-  const [showSprintForm, setShowSprintForm] = useState(false);
+
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // ── Fetch CI/CD data ─────────────────────────────────────────────────────
@@ -729,15 +660,9 @@ export default function StatusPage() {
         {/* ═══════════ SPRINTS ═══════════ */}
         {tab === "sprints" && (
           <div>
-            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">{sprints.length} Sprints Concluídas</h2>
-                <p className="text-sm text-gray-500">{sprintItemCount} funcionalidades entregues em produção</p>
-              </div>
-              <button onClick={() => setShowSprintForm(true)}
-                className="flex items-center gap-2 text-sm px-4 py-2 bg-[#01304D] text-white rounded-lg hover:bg-[#01304D]/90 transition-colors">
-                + Nova Sprint
-              </button>
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-800">{sprints.length} Sprints Concluídas</h2>
+              <p className="text-sm text-gray-500">{sprintItemCount} funcionalidades entregues em produção</p>
             </div>
 
             {/* Progress bar */}
@@ -909,17 +834,6 @@ export default function StatusPage() {
         )}
       </div>
 
-      {/* Sprint form modal */}
-      {showSprintForm && (
-        <SprintFormModal
-          nextNum={nextSprintNum}
-          onClose={() => setShowSprintForm(false)}
-          onSaved={(sprint) => {
-            setSprints((prev) => [...prev, sprint].sort((a, b) => a.order - b.order));
-            setShowSprintForm(false);
-          }}
-        />
-      )}
 
       <p className="text-center text-xs text-gray-400 pb-8">
         Busca Leilões Caixa · BLC — Dashboard interno
