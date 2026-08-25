@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
 import BotaoCompartilhar from "@/components/BotaoCompartilhar";
 import BotaoPDF from "@/components/BotaoPDF";
 import BotaoFavorito from "@/components/BotaoFavorito";
@@ -67,6 +68,24 @@ function Countdown({ dateStr }: { dateStr: string }) {
 }
 
 export default function DetalheClient({ imovel, titulo, preco, endereco, mapaLabel }: Props) {
+  const { data: session, status } = useSession();
+  const [totalAnalises, setTotalAnalises] = useState<number>(-1);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (session?.user?.plano === "premium") return;
+    fetch("/api/analises?count=1")
+      .then((r) => r.json())
+      .then((d) => setTotalAnalises(d.total ?? 0))
+      .catch(() => setTotalAnalises(0));
+  }, [status, session?.user?.plano]);
+
+  const viabilidadeHref = `/ferramentas/viabilidade/nova?hdnImovel=${encodeURIComponent(imovel.hdnImovel)}&preco=${imovel.preco ?? 0}&precoAval=${imovel.precoAval ?? 0}&endereco=${encodeURIComponent(imovel.endereco ?? "")}&cidade=${encodeURIComponent(imovel.cidade)}&estado=${encodeURIComponent(imovel.estado)}`;
+  const viabilidadeBloqueada =
+    status === "authenticated" &&
+    session?.user?.plano !== "premium" &&
+    totalAnalises >= 1;
+
   const temMapa      = !!(imovel.lat && imovel.lng);
   const temHistorico = imovel.historicoPreco && imovel.historicoPreco.length >= 2;
   const temLeilao    = !!imovel.dataLeilao1Date;
@@ -95,13 +114,28 @@ export default function DetalheClient({ imovel, titulo, preco, endereco, mapaLab
 
       {/* Análise de viabilidade */}
       <div className="mb-6">
-        <a
-          href={`/ferramentas/viabilidade/nova?hdnImovel=${encodeURIComponent(imovel.hdnImovel)}&preco=${imovel.preco ?? 0}&precoAval=${imovel.precoAval ?? 0}&endereco=${encodeURIComponent(imovel.endereco ?? "")}&cidade=${encodeURIComponent(imovel.cidade)}&estado=${encodeURIComponent(imovel.estado)}`}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors w-full justify-center"
-          style={{ backgroundColor: "#01304D" }}
-        >
-          📊 Criar Análise Financeira
-        </a>
+        {viabilidadeBloqueada ? (
+          <div>
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold w-full justify-center cursor-not-allowed opacity-60 border border-gray-200 text-gray-500 bg-gray-50">
+              🔒 Criar Análise Financeira
+              <span className="text-[10px] font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Premium</span>
+            </div>
+            <p className="text-[11px] text-gray-400 text-center mt-1.5">
+              Limite do plano gratuito atingido.{" "}
+              <a href="/ferramentas/viabilidade" className="text-blue-500 hover:underline">
+                Ver minha análise
+              </a>
+            </p>
+          </div>
+        ) : (
+          <a
+            href={status === "unauthenticated" ? `/login?callbackUrl=${encodeURIComponent(viabilidadeHref)}` : viabilidadeHref}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors w-full justify-center"
+            style={{ backgroundColor: "#01304D" }}
+          >
+            📊 Criar Análise Financeira
+          </a>
+        )}
       </div>
 
       {/* Mapa */}

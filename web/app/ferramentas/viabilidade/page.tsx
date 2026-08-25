@@ -18,7 +18,7 @@ function fmtData(iso: string) {
 }
 
 export default function ViabilidadeListPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [analises, setAnalises] = useState<Resumo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,17 +43,24 @@ export default function ViabilidadeListPage() {
           <h1 className="text-2xl font-bold text-gray-800">Análises de Viabilidade</h1>
           <p className="text-sm text-gray-500 mt-1">Calcule o ROI e a viabilidade financeira de imóveis em leilão.</p>
         </div>
-        <Link
-          href={
-            status === "unauthenticated"
-              ? "/login?callbackUrl=/ferramentas/viabilidade/nova"
-              : "/ferramentas/viabilidade/nova"
-          }
-          className="px-4 py-2 rounded-lg text-white font-semibold text-sm transition-colors"
-          style={{ backgroundColor: "#01304D" }}
-        >
-          + Nova análise
-        </Link>
+        {status === "authenticated" && session?.user?.plano !== "premium" && analises.length >= 1 ? (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-not-allowed opacity-60 border border-gray-200 text-gray-500 bg-gray-50">
+            <span>🔒</span> Nova análise
+            <span className="text-[10px] font-normal bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Premium</span>
+          </div>
+        ) : (
+          <Link
+            href={
+              status === "unauthenticated"
+                ? "/login?callbackUrl=/ferramentas/viabilidade/nova"
+                : "/ferramentas/viabilidade/nova"
+            }
+            className="px-4 py-2 rounded-lg text-white font-semibold text-sm transition-colors"
+            style={{ backgroundColor: "#01304D" }}
+          >
+            + Nova análise
+          </Link>
+        )}
       </div>
 
       {status === "unauthenticated" && (

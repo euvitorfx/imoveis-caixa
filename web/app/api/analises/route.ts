@@ -11,11 +11,18 @@ function col() {
   );
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
+  const url = new URL(req.url);
   const c = await col();
+
+  if (url.searchParams.get("count") === "1") {
+    const total = await c.countDocuments({ userId: session.user.id });
+    return NextResponse.json({ total });
+  }
+
   const docs = await c
     .find({ userId: session.user.id })
     .sort({ atualizadaEm: -1 })
