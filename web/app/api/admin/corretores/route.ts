@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllCorretores, createCorretor, slugifyNome } from "@/lib/corretores";
 import type { CategoriaCorretor, TipoPessoa, Assessoramento, StatusRelacionamento, ExclusividadeStatus } from "@/lib/corretores";
+import clientPromise from "@/lib/mongodb";
 
 export async function GET() {
   const corretores = await getAllCorretores();
@@ -16,10 +17,26 @@ export async function POST(req: NextRequest) {
     status_relacionamento, exclusividade,
     cidades_cobertura, observacoes_internas, origem, id_legado,
     aprovado,
+    userId,
   } = body;
 
   if (!nome || !creci || !estado) {
     return NextResponse.json({ error: "Campos obrigatórios faltando." }, { status: 400 });
+  }
+
+  // Verifica se já existe corretor vinculado a esse usuário
+  if (userId) {
+    const client = await clientPromise;
+    const existente = await client
+      .db(process.env.MONGODB_DB)
+      .collection("corretores")
+      .findOne({ userId });
+    if (existente) {
+      return NextResponse.json(
+        { error: `Usuário já é corretor parceiro (${existente.nome})` },
+        { status: 409 }
+      );
+    }
   }
 
   const id = await createCorretor({
@@ -47,6 +64,7 @@ export async function POST(req: NextRequest) {
     observacoes_internas:   observacoes_internas || undefined,
     origem:                 origem || undefined,
     id_legado:              id_legado ? Number(id_legado) : undefined,
+    userId:                 userId || undefined,
   });
 
   return NextResponse.json({ id });

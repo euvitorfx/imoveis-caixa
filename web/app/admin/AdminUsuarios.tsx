@@ -21,6 +21,8 @@ type UserRow = {
   ultimoAcesso?: string;
   isAfiliado?: boolean;
   afiliadoId?: string | null;
+  isCorretor?: boolean;
+  corretorId?: string | null;
 };
 
 type UserStats = {
@@ -106,6 +108,12 @@ export default function AdminUsuarios({
   const [savingAfiliado, setSavingAfiliado] = useState(false);
   const [erroAfiliado, setErroAfiliado] = useState("");
 
+  // Mini-form de corretor dentro do modal de edição
+  const [showCorretorForm, setShowCorretorForm] = useState(false);
+  const [corretorForm, setCorretorForm] = useState({ creci: "", estado: "", cidade: "", categoria: "corretor_geral" });
+  const [savingCorretor, setSavingCorretor] = useState(false);
+  const [erroCorretor, setErroCorretor] = useState("");
+
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "", estados: [] as string[], cidades: [] as string[] });
 
   // Filtros por coluna
@@ -148,11 +156,49 @@ export default function AdminUsuarios({
     setShowAfiliadoForm(false);
     setAfiliadoForm({ codigo: (u.name ?? "").split(" ")[0].toUpperCase().replace(/[^A-Z0-9]/g, ""), percentualComissao: "" });
     setErroAfiliado("");
+    setShowCorretorForm(false);
+    setCorretorForm({ creci: "", estado: "", cidade: "", categoria: "corretor_geral" });
+    setErroCorretor("");
     setModal("editar");
   }
   function removerEstado(uf: string) { setForm((p) => ({ ...p, estados: p.estados.filter((e) => e !== uf) })); }
   function removerCidade(c: string) { setForm((p) => ({ ...p, cidades: p.cidades.filter((x) => x !== c) })); }
-  function fecharModal() { setModal(null); setEditando(null); setErro(""); setShowAfiliadoForm(false); setErroAfiliado(""); }
+  function fecharModal() {
+    setModal(null); setEditando(null); setErro("");
+    setShowAfiliadoForm(false); setErroAfiliado("");
+    setShowCorretorForm(false); setErroCorretor("");
+  }
+
+  async function criarCorretor() {
+    if (!editando) return;
+    setSavingCorretor(true);
+    setErroCorretor("");
+    const res = await fetch("/api/admin/corretores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome: editando.name,
+        email: editando.email,
+        creci: corretorForm.creci,
+        estado: corretorForm.estado,
+        cidade: corretorForm.cidade || "",
+        categoria: corretorForm.categoria,
+        bio: "",
+        especialidades: [],
+        aprovado: true,
+        userId: editando._id,
+      }),
+    });
+    const data = await res.json();
+    setSavingCorretor(false);
+    if (!res.ok) {
+      setErroCorretor(data.error ?? "Erro ao criar corretor parceiro");
+      return;
+    }
+    setEditando((prev) => prev ? { ...prev, isCorretor: true, corretorId: data.id } : prev);
+    setShowCorretorForm(false);
+    onRefresh();
+  }
 
   async function criarAfiliado() {
     if (!editando) return;
@@ -297,6 +343,102 @@ export default function AdminUsuarios({
                         </span>
                       ))}
                     </div>
+                  )}
+                </div>
+
+                {/* Corretor Parceiro */}
+                <div className="border-t border-gray-100 pt-3">
+                  <p className={LABEL}>Corretor parceiro</p>
+                  {editando?.isCorretor ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs px-3 py-1.5 rounded-full font-medium">
+                        🏠 Corretor parceiro ativo
+                      </span>
+                      <a
+                        href={`/admin?tab=corretores`}
+                        className="text-xs text-gray-400 hover:underline"
+                      >
+                        Gerencie na aba Corretores
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      {!showCorretorForm ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowCorretorForm(true)}
+                          className="mt-1 text-xs text-blue-600 hover:underline font-medium"
+                        >
+                          + Tornar corretor parceiro
+                        </button>
+                      ) : (
+                        <div className="mt-2 space-y-2 bg-blue-50 rounded-xl p-3">
+                          <p className="text-xs text-blue-700 font-medium mb-2">Cadastrar {editando?.name} como corretor parceiro</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className={LABEL}>CRECI *</label>
+                              <input
+                                value={corretorForm.creci}
+                                onChange={(e) => setCorretorForm((p) => ({ ...p, creci: e.target.value }))}
+                                className={INPUT}
+                                placeholder="123456-F"
+                              />
+                            </div>
+                            <div>
+                              <label className={LABEL}>Estado *</label>
+                              <select
+                                value={corretorForm.estado}
+                                onChange={(e) => setCorretorForm((p) => ({ ...p, estado: e.target.value }))}
+                                className={INPUT}
+                              >
+                                <option value="">Selecione</option>
+                                {["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"].map((uf) => (
+                                  <option key={uf} value={uf}>{uf}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className={LABEL}>Cidade</label>
+                              <input
+                                value={corretorForm.cidade}
+                                onChange={(e) => setCorretorForm((p) => ({ ...p, cidade: e.target.value }))}
+                                className={INPUT}
+                                placeholder="Opcional"
+                              />
+                            </div>
+                            <div>
+                              <label className={LABEL}>Categoria</label>
+                              <select
+                                value={corretorForm.categoria}
+                                onChange={(e) => setCorretorForm((p) => ({ ...p, categoria: e.target.value }))}
+                                className={INPUT}
+                              >
+                                <option value="corretor_geral">Corretor geral</option>
+                                <option value="credenciado_caixa">Credenciado Caixa</option>
+                              </select>
+                            </div>
+                          </div>
+                          {erroCorretor && <p className="text-xs text-red-600">{erroCorretor}</p>}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={criarCorretor}
+                              disabled={savingCorretor || !corretorForm.creci || !corretorForm.estado}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
+                            >
+                              {savingCorretor ? "Cadastrando..." : "Cadastrar como parceiro"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowCorretorForm(false); setErroCorretor(""); }}
+                              className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -495,6 +637,9 @@ export default function AdminUsuarios({
                           ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Premium</span>
                           : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Gratuito</span>
                         }
+                        {u.isCorretor && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">🏠 Cor.</span>
+                        )}
                         {u.isAfiliado && (
                           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">🤝 Afil.</span>
                         )}

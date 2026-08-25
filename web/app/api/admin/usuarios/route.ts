@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
 
   const analises = client.db(process.env.MONGODB_DB).collection("analises_viabilidade");
 
-  const [total, premium, comTelefone, recentes, contagemAnalises] = await Promise.all([
+  const corretores = client.db(process.env.MONGODB_DB).collection("corretores");
+
+  const [total, premium, comTelefone, recentes, contagemAnalises, corretoresComUserId] = await Promise.all([
     col.countDocuments({}),
     col.countDocuments({ plano: "premium" }),
     col.countDocuments({ telefone: { $nin: [null, ""] } }),
@@ -26,23 +28,32 @@ export async function GET(req: NextRequest) {
     analises.aggregate([
       { $group: { _id: "$userId", count: { $sum: 1 } } },
     ]).toArray(),
+    corretores.find({ userId: { $exists: true, $ne: null } }, { projection: { userId: 1 } }).toArray(),
   ]);
 
   const analisesPorUser = Object.fromEntries(contagemAnalises.map((r) => [r._id, r.count]));
+  const corretorPorUserId = Object.fromEntries(
+    corretoresComUserId.map((c) => [c.userId as string, c._id.toString()])
+  );
 
   return NextResponse.json({
     total,
     premium,
     comTelefone,
     gratuito: total - premium,
-    recentes: recentes.map((u) => ({
-      ...u,
-      _id: u._id.toString(),
-      totalFavoritos: Array.isArray(u.favoritos) ? u.favoritos.length : 0,
-      totalAnalises: analisesPorUser[u._id.toString()] ?? 0,
-      isAfiliado: u.isAfiliado ?? false,
-      afiliadoId: u.afiliadoId ?? null,
-    })),
+    recentes: recentes.map((u) => {
+      const uid = u._id.toString();
+      return {
+        ...u,
+        _id: uid,
+        totalFavoritos: Array.isArray(u.favoritos) ? u.favoritos.length : 0,
+        totalAnalises: analisesPorUser[uid] ?? 0,
+        isAfiliado: u.isAfiliado ?? false,
+        afiliadoId: u.afiliadoId ?? null,
+        isCorretor: !!corretorPorUserId[uid],
+        corretorId: corretorPorUserId[uid] ?? null,
+      };
+    }),
   });
 }
 
