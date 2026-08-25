@@ -226,12 +226,21 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
   }));
   const breakevenMes = chartData.find((d) => d.roi >= 0)?.mes ?? null;
 
+  // IR da renda fixa: tabela regressiva BR baseada no prazo
+  const irRf = meses <= 6 ? 22.5 : meses <= 12 ? 20 : meses <= 24 ? 17.5 : 15;
+
+  function retornoIndiceNetPct(taxaAnual: number, irPct: number): number {
+    if (meses <= 0) return 0;
+    const bruto = (Math.pow(1 + taxaAnual / 100, meses / 12) - 1) * 100;
+    return bruto * (1 - irPct / 100);
+  }
+
   const indices = taxas
     ? [
-        { label: "CDI / SELIC", pct: retornoIndicePct(taxas.cdi), nota: `${taxas.cdi.toFixed(1)}% a.a.` },
-        { label: "IPCA", pct: retornoIndicePct(taxas.ipca), nota: `${taxas.ipca.toFixed(1)}% a.a.` },
-        { label: "Ibovespa", pct: retornoIndicePct(taxas.ibovespa), nota: "média 5 anos" },
-        { label: "IFIX", pct: retornoIndicePct(taxas.ifix), nota: "média 5 anos" },
+        { label: "CDI / SELIC", pct: retornoIndiceNetPct(taxas.cdi, irRf), nota: `${taxas.cdi.toFixed(1)}% a.a. · IR ${irRf}%` },
+        { label: "IPCA+", pct: retornoIndiceNetPct(taxas.ipca, irRf), nota: `${taxas.ipca.toFixed(1)}% a.a. · IR ${irRf}%` },
+        { label: "Ibovespa", pct: retornoIndiceNetPct(taxas.ibovespa, 15), nota: "média 5 anos · IR 15%" },
+        { label: "IFIX (FIIs)", pct: retornoIndicePct(taxas.ifix), nota: "média 5 anos · isento IR" },
       ]
     : [];
 
@@ -333,7 +342,7 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
       {taxas && r.totalDespesas > 0 && meses > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">vs. Mercado Financeiro</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">vs. Mercado Financeiro · líquido de IR</p>
             <span className="text-[10px] text-gray-300">{meses} meses</span>
           </div>
           <div className="space-y-3">
@@ -380,7 +389,7 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
                 </div>
               );
             })}
-            <p className="text-[10px] text-gray-300">Ibovespa e IFIX: médias históricas 5 anos</p>
+            <p className="text-[10px] text-gray-300">RF: tabela regressiva BR. Ações: 15%. FIIs: rendimentos isentos.</p>
           </div>
         </div>
       )}
