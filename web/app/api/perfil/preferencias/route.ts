@@ -7,7 +7,14 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { brasil, estados, cidades, alertas } = await req.json();
+  const {
+    brasil,
+    estados,
+    cidades,
+    alertas_novos_imoveis,
+    alertas_mudancas_favoritos,
+    alertas_clube_blc,
+  } = await req.json();
 
   const client = await clientPromise;
   await client
@@ -21,7 +28,11 @@ export async function PUT(req: NextRequest) {
             brasil: !!brasil,
             estados: estados ?? [],
             cidades: cidades ?? [],
-            alertas: alertas !== false,
+            // Legacy field kept as true after migration (individual fields take over)
+            alertas: true,
+            alertas_novos_imoveis: alertas_novos_imoveis !== false,
+            alertas_mudancas_favoritos: alertas_mudancas_favoritos !== false,
+            alertas_clube_blc: alertas_clube_blc !== false,
           },
         },
       }

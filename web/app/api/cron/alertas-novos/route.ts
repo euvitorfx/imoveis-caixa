@@ -66,7 +66,10 @@ export async function GET(req: NextRequest) {
     .find(
       {
         email: { $exists: true, $ne: null },
+        // Backwards compat: respect old `alertas: false` as master off
         "preferencias.alertas": { $ne: false },
+        // New granular field (default ON when not set)
+        "preferencias.alertas_novos_imoveis": { $ne: false },
         $or: [
           { "preferencias.brasil": true },
           { "preferencias.estados.0": { $exists: true } },

@@ -47,6 +47,15 @@ export default async function PerfilPage({
 
   const prefsIniciais = user?.preferencias ?? { brasil: false, estados: [], cidades: [] };
 
+  // Contar alertas ativos (novos campos ou legacy)
+  const prefs = user?.preferencias ?? {};
+  const legacyOn = prefs.alertas !== false;
+  const alertasAtivos = [
+    prefs.alertas_novos_imoveis ?? legacyOn,
+    prefs.alertas_mudancas_favoritos ?? legacyOn,
+    prefs.alertas_clube_blc ?? legacyOn,
+  ].filter(Boolean).length;
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Minha conta</h1>
@@ -100,16 +109,21 @@ export default async function PerfilPage({
           </div>
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-gray-500 text-xs mb-0.5">Alertas de e-mail</p>
-            <p className="font-semibold text-gray-400 text-xs">Em breve</p>
+            <p className="font-semibold text-gray-700">
+              {alertasAtivos === 0
+                ? <span className="text-gray-400 text-xs">Desativados</span>
+                : <>{alertasAtivos}<span className="text-gray-400 font-normal text-xs"> / 3 ativos</span></>
+              }
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Preferências de região */}
+      {/* Preferências de região e alertas */}
       <div className="bg-white rounded-2xl shadow p-6">
         <h2 className="font-semibold text-gray-800 mb-1">Regiões de interesse</h2>
         <p className="text-xs text-gray-400 mb-4">
-          Usadas para filtrar alertas de novos imóveis. Você receberá notificações apenas das regiões selecionadas.
+          Define quais regiões você acompanha e configura suas notificações por e-mail.
         </p>
         <PreferenciasForm inicial={prefsIniciais} />
       </div>

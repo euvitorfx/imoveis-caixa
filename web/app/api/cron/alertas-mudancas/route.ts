@@ -46,7 +46,10 @@ export async function GET(req: NextRequest) {
     .find(
       {
         email: { $exists: true, $ne: null },
+        // Backwards compat: respect old `alertas: false` as master off
         "preferencias.alertas": { $ne: false },
+        // New granular field (default ON when not set)
+        "preferencias.alertas_mudancas_favoritos": { $ne: false },
         favoritos: { $in: hdnsComMudanca },
       },
       { projection: { name: 1, email: 1, favoritos: 1 } }

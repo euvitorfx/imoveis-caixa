@@ -12,10 +12,25 @@ const ESTADOS: Record<string, string> = {
   TO:"Tocantins",
 };
 
-type Prefs = { brasil: boolean; estados: string[]; cidades: string[]; alertas?: boolean };
+type Prefs = {
+  brasil: boolean;
+  estados: string[];
+  cidades: string[];
+  alertas?: boolean; // legacy
+  alertas_novos_imoveis?: boolean;
+  alertas_mudancas_favoritos?: boolean;
+  alertas_clube_blc?: boolean;
+};
 
 export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
-  const [prefs, setPrefs] = useState<Prefs>(inicial);
+  // Derive initial alert values: new specific fields > legacy `alertas` > default ON
+  const legacyDefault = inicial.alertas !== false;
+  const [prefs, setPrefs] = useState<Prefs>({
+    ...inicial,
+    alertas_novos_imoveis: inicial.alertas_novos_imoveis ?? legacyDefault,
+    alertas_mudancas_favoritos: inicial.alertas_mudancas_favoritos ?? legacyDefault,
+    alertas_clube_blc: inicial.alertas_clube_blc ?? legacyDefault,
+  });
   const [cidadesMap, setCidadesMap] = useState<Record<string, string[]>>({});
   const [expandido, setExpandido] = useState<string | null>(null);
   // States explicitly in "cidades específicas" mode
@@ -93,7 +108,14 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
     const res = await fetch("/api/perfil/preferencias", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(prefs),
+      body: JSON.stringify({
+        brasil: prefs.brasil,
+        estados: prefs.estados,
+        cidades: prefs.cidades,
+        alertas_novos_imoveis: prefs.alertas_novos_imoveis,
+        alertas_mudancas_favoritos: prefs.alertas_mudancas_favoritos,
+        alertas_clube_blc: prefs.alertas_clube_blc,
+      }),
     });
     setSalvando(false);
     setMsg(res.ok ? "Preferências salvas!" : "Erro ao salvar.");
@@ -230,21 +252,55 @@ export default function PreferenciasForm({ inicial }: { inicial: Prefs }) {
         </div>
       )}
 
-      {/* Toggle de alertas por e-mail */}
-      <label className="flex items-center gap-3 cursor-pointer select-none pt-2 border-t border-gray-100">
-        <input
-          type="checkbox"
-          checked={prefs.alertas !== false}
-          onChange={(e) => setPrefs((p) => ({ ...p, alertas: e.target.checked }))}
-          className="w-4 h-4 rounded accent-amber-500"
-        />
-        <div>
-          <span className="text-sm font-medium text-gray-700">Receber alertas por e-mail</span>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Notificações diárias de novos imóveis na sua região
-          </p>
-        </div>
-      </label>
+      {/* Notificações por e-mail */}
+      <div className="pt-2 border-t border-gray-100 space-y-3">
+        <p className="text-sm font-medium text-gray-700">Notificações por e-mail</p>
+
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={prefs.alertas_novos_imoveis !== false}
+            onChange={(e) => setPrefs((p) => ({ ...p, alertas_novos_imoveis: e.target.checked }))}
+            className="w-4 h-4 mt-0.5 rounded accent-amber-500 shrink-0"
+          />
+          <div>
+            <span className="text-sm text-gray-700">Novos imóveis nas regiões marcadas</span>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Diário — imóveis adicionados nas últimas 24h que correspondem ao seu filtro de regiões
+            </p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={prefs.alertas_mudancas_favoritos !== false}
+            onChange={(e) => setPrefs((p) => ({ ...p, alertas_mudancas_favoritos: e.target.checked }))}
+            className="w-4 h-4 mt-0.5 rounded accent-amber-500 shrink-0"
+          />
+          <div>
+            <span className="text-sm text-gray-700">Atualizações em imóveis favoritados</span>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Quando preço, modalidade ou status de um imóvel favoritado muda
+            </p>
+          </div>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={prefs.alertas_clube_blc !== false}
+            onChange={(e) => setPrefs((p) => ({ ...p, alertas_clube_blc: e.target.checked }))}
+            className="w-4 h-4 mt-0.5 rounded accent-amber-500 shrink-0"
+          />
+          <div>
+            <span className="text-sm text-gray-700">Movimentações do Clube BLC</span>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Atualizações do seu processo: análise, aprovação, conclusão e mensagens do assessor
+            </p>
+          </div>
+        </label>
+      </div>
 
       <div className="flex items-center gap-3">
         <button
