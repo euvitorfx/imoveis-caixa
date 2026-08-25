@@ -249,7 +249,7 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
         <p className={`text-3xl font-extrabold tabular-nums ${positivo ? "text-green-700" : "text-red-700"}`}>
           {brl(lucro)}
         </p>
-        <div className="flex justify-center gap-4 mt-2">
+        <div className="flex justify-center gap-4 mt-2 flex-wrap">
           <span className={`text-xs font-semibold ${positivo ? "text-green-600" : "text-red-600"}`}>
             ROI {r.roi.toFixed(2)}%
           </span>
@@ -259,6 +259,18 @@ function PainelResultados({ r, meses, taxas, dados }: { r: ResultadoAnalise; mes
             </span>
           )}
         </div>
+        {r.tir && (
+          <div className="flex justify-center gap-1 mt-1">
+            <span className="text-[11px] text-gray-400">TIR</span>
+            <span className={`text-[11px] font-semibold tabular-nums ${positivo ? "text-green-600" : "text-red-500"}`}>
+              {r.tir.mensal.toFixed(2)}% a.m.
+            </span>
+            <span className="text-[11px] text-gray-300">/</span>
+            <span className={`text-[11px] font-semibold tabular-nums ${positivo ? "text-green-600" : "text-red-500"}`}>
+              {r.tir.anual.toFixed(1)}% a.a.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Ponto de equilíbrio */}

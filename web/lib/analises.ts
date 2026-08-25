@@ -43,6 +43,7 @@ export interface ResultadoAnalise {
   roi: number;
   roiMensal: number;
   roiPorMes: { mes: number; roi: number; lucro: number }[];
+  tir: { mensal: number; anual: number } | null;
 }
 
 export interface AnaliseViabilidade {
@@ -81,6 +82,31 @@ export const DADOS_PADRAO: DadosAnalise = {
   percIR: 15,
 };
 
+function irr(cashFlows: number[]): number | null {
+  if (cashFlows.length < 2) return null;
+
+  function npv(r: number) {
+    return cashFlows.reduce((s, cf, t) => s + cf / (1 + r) ** t, 0);
+  }
+  function npvPrime(r: number) {
+    return cashFlows.reduce((s, cf, t) => s - (t * cf) / (1 + r) ** (t + 1), 0);
+  }
+
+  for (const guess of [0.02, 0.005, 0.1]) {
+    let r = guess;
+    for (let i = 0; i < 300; i++) {
+      const f = npv(r);
+      const df = npvPrime(r);
+      if (Math.abs(df) < 1e-14) break;
+      const rNew = r - f / df;
+      if (!isFinite(rNew) || rNew <= -1) break;
+      if (Math.abs(rNew - r) < 1e-10) return rNew;
+      r = rNew;
+    }
+  }
+  return null;
+}
+
 export function calcular(d: DadosAnalise): ResultadoAnalise {
   const p = (v: number) => v / 100;
 
@@ -118,7 +144,23 @@ export function calcular(d: DadosAnalise): ResultadoAnalise {
     return { mes, roi: roiM, lucro };
   });
 
-  return { leiloeiro, escritura, itbi, registro, totalAquisicao, totalManutencao, totalDespesas, corretagem, saldoPosVenda, ir, lucroLiquido, roi, roiMensal, roiPorMes };
+  // TIR: fluxo mensal de caixa — investimento no mês 0, manutenção meses 1..N, venda no mês N
+  let tir: { mensal: number; anual: number } | null = null;
+  if (totalAquisicao > 0 && d.valorVenda > 0) {
+    const netSale = d.valorVenda - corretagem - ir;
+    const cfs: number[] = [-totalAquisicao];
+    for (let t = 1; t < meses; t++) cfs.push(-manutMensal);
+    cfs.push(netSale - manutMensal);
+    const tirMensal = irr(cfs);
+    if (tirMensal !== null && isFinite(tirMensal) && tirMensal > -1) {
+      tir = {
+        mensal: tirMensal * 100,
+        anual: ((1 + tirMensal) ** 12 - 1) * 100,
+      };
+    }
+  }
+
+  return { leiloeiro, escritura, itbi, registro, totalAquisicao, totalManutencao, totalDespesas, corretagem, saldoPosVenda, ir, lucroLiquido, roi, roiMensal, roiPorMes, tir };
 }
 
 // Dado um ROI alvo (%), retorna o valorCompra máximo que ainda atinge esse ROI.
