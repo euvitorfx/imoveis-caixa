@@ -255,7 +255,7 @@ export default async function DetalheImovel({
       "@type": "Offer",
       price:         imovel.preco,
       priceCurrency: "BRL",
-      availability:  "https://schema.org/InStock",
+      availability:  imovel.ativo === false ? "https://schema.org/Discontinued" : "https://schema.org/InStock",
       url:           imovel.urlDetalhe,
       seller: { "@type": "Organization", name: "Caixa Econômica Federal" },
     },
@@ -277,6 +277,25 @@ export default async function DetalheImovel({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* Banner: imóvel indisponível na Caixa */}
+      {imovel.ativo === false && (
+        <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 px-5 py-4">
+          <p className="font-semibold text-orange-800 text-sm mb-1">
+            ⚠️ Este imóvel não está mais disponível na Caixa
+          </p>
+          <p className="text-orange-700 text-sm">
+            A Caixa Econômica Federal removeu este imóvel do portal de vendas.
+            As informações abaixo são apenas para referência histórica.
+          </p>
+          <a
+            href={`/imoveis/${imovel.estado.toLowerCase()}`}
+            className="inline-block mt-3 text-xs font-semibold text-orange-700 underline"
+          >
+            Ver imóveis disponíveis em {imovel.estado} →
+          </a>
+        </div>
+      )}
 
       {/* Botão de retorno ao filtro (quando vindo de alerta por e-mail) */}
       {volta && (

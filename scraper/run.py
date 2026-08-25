@@ -3,8 +3,7 @@
 Scraper completo — Caixa Imóveis → MongoDB
 -------------------------------------------
 Uso:
-  python run.py                    # todos os 27 estados
-  python run.py --estados RN SP    # estados específicos
+  python run.py                    # baixa CSV geral (Brasil todo) — padrão
   python run.py --headless         # sem abrir janela (GitHub Actions)
   python run.py --sem-detalhes     # só lista básica, sem enriquecer detalhe
   python run.py --debug            # salva respostas brutas em debug/
@@ -13,40 +12,34 @@ Uso:
 import sys
 import time
 from datetime import datetime, timezone
+from collections import defaultdict
 
 from dotenv import load_dotenv
 
 from mongo import ensure_indexes, upsert_imoveis, upsert_cidades, marcar_inativos, total_por_estado, registrar_sync, get_db
-from scraper import CaixaScraper, ALL_ESTADOS
+from scraper import CaixaScraper
 from geocoder import geocode_batch
 
 load_dotenv()
 
 
 def parse_args():
-    args      = sys.argv[1:]
-    estados   = ALL_ESTADOS
-    headless  = "--headless"      in args
-    debug     = "--debug"         in args
-    sem_det   = "--sem-detalhes"  in args
-    sem_geo   = "--sem-geocode"   in args
-
-    if "--estados" in args:
-        idx = args.index("--estados")
-        estados = [e.upper() for e in args[idx + 1:] if not e.startswith("--")]
-
-    return estados, headless, debug, sem_det, sem_geo
+    args     = sys.argv[1:]
+    headless = "--headless"     in args
+    debug    = "--debug"        in args
+    sem_det  = "--sem-detalhes" in args
+    sem_geo  = "--sem-geocode"  in args
+    return headless, debug, sem_det, sem_geo
 
 
 def main():
-    estados, headless, debug, sem_detalhes, sem_geocode = parse_args()
+    headless, debug, sem_detalhes, sem_geocode = parse_args()
 
     inicio = datetime.now(timezone.utc)
     print()
     print("=" * 60)
     print("  Caixa Imóveis → MongoDB")
     print(f"  Início: {inicio.strftime('%d/%m/%Y %H:%M:%S')} UTC")
-    print(f"  Estados: {', '.join(estados)}")
     print(f"  Modo: {'headless' if headless else 'com janela'}")
     print("=" * 60)
 
@@ -54,49 +47,55 @@ def main():
 
     scraper = CaixaScraper(headless=headless, debug=debug)
     totais  = {"inseridos": 0, "atualizados": 0, "erros": 0, "imoveis": 0}
-    falhas  = []   # estados que falharam mesmo após retry
 
     try:
-        for i, estado in enumerate(estados, 1):
-            print(f"\n[{i}/{len(estados)}] Estado: {estado}")
-            t0 = time.time()
-
-            # Retry automático: tenta até 2 vezes antes de desistir
-            props = []
-            for tentativa in range(1, 3):
-                props = scraper.scrape_estado(estado, com_fotos=not sem_detalhes)
-                if props:
-                    break
-                if tentativa == 1:
-                    print(f"  ⚠ {estado}: download falhou, nova tentativa em 10s...")
-                    time.sleep(10)
-
+        # ── Download único: CSV geral (Brasil todo) ───────────────────────────
+        # Mais confiável que 27 downloads individuais por estado.
+        # Se falhar, tenta mais 2 vezes antes de desistir.
+        props = []
+        for tentativa in range(1, 4):
+            props = scraper.scrape_brasil(com_fotos=not sem_detalhes)
             if props:
-                stats = upsert_imoveis(props)
-                upsert_cidades(props)
-                hdns  = [p["hdnImovel"] for p in props if p.get("hdnImovel")]
-                inat  = marcar_inativos(estado, hdns)
+                break
+            print(f"  ⚠ Download geral falhou (tentativa {tentativa}/3), nova tentativa em 15s...")
+            time.sleep(15)
 
-                totais["inseridos"]   += stats["inseridos"]
-                totais["atualizados"] += stats["atualizados"]
-                totais["erros"]       += stats["erros"]
-                totais["imoveis"]     += len(props)
+        if not props:
+            print("  ✗ Download do CSV geral falhou após 3 tentativas. Encerrando.")
+            return
 
-                elapsed = time.time() - t0
-                print(
-                    f"  ✓ {estado}: {len(props)} imóveis | "
-                    f"+{stats['inseridos']} novos | "
-                    f"~{stats['atualizados']} atualizados | "
-                    f"{inat or 0} marcados inativos | "
-                    f"{elapsed:.0f}s"
-                )
-            else:
-                falhas.append(estado)
-                print(f"  ✗ {estado}: falhou após 2 tentativas — inativos NÃO atualizados")
+        print(f"\n  {len(props):,} imóveis baixados. Upserting no MongoDB...")
+        stats = upsert_imoveis(props)
+        upsert_cidades(props)
 
-            # Pausa entre estados para não sobrecarregar o servidor
-            if i < len(estados):
-                time.sleep(2)
+        totais["inseridos"]   = stats["inseridos"]
+        totais["atualizados"] = stats["atualizados"]
+        totais["erros"]       = stats["erros"]
+        totais["imoveis"]     = len(props)
+
+        # ── Marcar inativos por estado ────────────────────────────────────────
+        # Agrupa hdnImovel por estado e, para cada estado presente no CSV,
+        # marca como inativos os imóveis daquele estado que não apareceram.
+        por_estado: dict[str, list[str]] = defaultdict(list)
+        for p in props:
+            estado = p.get("estado")
+            hdn    = p.get("hdnImovel")
+            if estado and hdn:
+                por_estado[estado].append(hdn)
+
+        total_inativos = 0
+        for estado, hdns in sorted(por_estado.items()):
+            n = marcar_inativos(estado, hdns) or 0
+            if n:
+                print(f"  {estado}: {n} marcado(s) inativo(s)")
+            total_inativos += n
+
+        print(
+            f"\n  ✓ {len(props):,} imóveis | "
+            f"+{stats['inseridos']} novos | "
+            f"~{stats['atualizados']} atualizados | "
+            f"{total_inativos} marcados inativos"
+        )
 
     except KeyboardInterrupt:
         print("\n  Interrompido pelo usuário.")
@@ -125,8 +124,6 @@ def main():
     print(f"  Atualizados         : {totais['atualizados']:,}")
     print(f"  Erros               : {totais['erros']:,}")
     print(f"  Duração             : ~{duracao} minutos")
-    if falhas:
-        print(f"  ⚠ Estados com falha : {', '.join(falhas)}")
     print()
     print("  Totais no banco por estado:")
     for uf, total in total_por_estado().items():
