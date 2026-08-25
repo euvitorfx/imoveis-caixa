@@ -8,6 +8,7 @@ import PreferenciasForm from "./PreferenciasForm";
 import EditarDadosForm from "./EditarDadosForm";
 import ExcluirContaForm from "./ExcluirContaForm";
 import ClubeBLCCard, { ClubeBLCCardComprador } from "./ClubeBLCCard";
+import AfiliadoDashboard from "./AfiliadoDashboard";
 
 async function getUserData(id: string) {
   const client = await clientPromise;
@@ -16,7 +17,7 @@ async function getUserData(id: string) {
     .collection("users")
     .findOne(
       { _id: new ObjectId(id) },
-      { projection: { name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, favoritos: 1, foto: 1, preferencias: 1 } }
+      { projection: { name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, favoritos: 1, foto: 1, preferencias: 1, isAfiliado: 1 } }
     );
 }
 
@@ -118,6 +119,9 @@ export default async function PerfilPage({
 
       {/* Clube BLC — comprador */}
       <ClubeBLCCardComprador />
+
+      {/* Dashboard de afiliado — visível apenas para influencers cadastrados */}
+      {user?.isAfiliado && <AfiliadoDashboard />}
 
       {/* Links */}
       <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-0.5">

@@ -18,6 +18,7 @@ export interface ProcessoClube {
   numeroProcessoCaixa: string;
   status: ProcessoStatus;
   abertoPor: "comprador" | "corretor";
+  valorComissaoBLC?: number;
   criadoEm: string;
   atualizadoEm: string;
 }

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailBoasVindas } from "@/emails/boasVindas";
+import { getAfiliadoByCodigo } from "@/lib/afiliados";
 
 export async function POST(req: NextRequest) {
   const { nome, email, telefone, senha } = await req.json();
@@ -24,6 +25,18 @@ export async function POST(req: NextRequest) {
 
   const senhaHash = await bcrypt.hash(senha, 12);
 
+  // Verificar referência de afiliado
+  const refCode = req.cookies.get("blc_ref")?.value;
+  let afiliadoRefId: string | undefined;
+  let codigoAfiliadoRef: string | undefined;
+  if (refCode) {
+    const afiliado = await getAfiliadoByCodigo(refCode);
+    if (afiliado) {
+      afiliadoRefId = afiliado._id;
+      codigoAfiliadoRef = afiliado.codigo;
+    }
+  }
+
   await col.insertOne({
     name: nome,
     email: email.toLowerCase(),
@@ -33,6 +46,7 @@ export async function POST(req: NextRequest) {
     plano: "gratuito",
     favoritos: [],
     criadoEm: new Date(),
+    ...(afiliadoRefId && { afiliadoRefId, codigoAfiliadoRef }),
   });
 
   // Envia e-mail de boas-vindas aguardando a conclusão (await garante que

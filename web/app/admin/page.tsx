@@ -8,13 +8,14 @@ import AdminUsuarios from "./AdminUsuarios";
 import AdminParceirosCRM from "./AdminParceirosCRM";
 import AdminProcessos from "./AdminProcessos";
 import AdminCobertura from "./AdminCobertura";
+import AdminAfiliados from "./AdminAfiliados";
 
 function fmtData(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura";
+type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura" | "afiliados";
 
 type UserStats = {
   total: number;
@@ -359,6 +360,14 @@ export default function AdminPage() {
           }`}>
           🔗 Links UTM
         </button>
+        <button onClick={() => setTab("afiliados")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+            tab === "afiliados"
+              ? "border-blue-600 text-blue-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          🤝 Afiliados
+        </button>
       </div>
 
       {/* Blog Tab */}
@@ -443,6 +452,9 @@ export default function AdminPage() {
 
       {/* UTM Links Tab */}
       {tab === "utm" && <UtmLinksTab />}
+
+      {/* Afiliados Tab */}
+      {tab === "afiliados" && <AdminAfiliados />}
 
       {/* Corretores Tab */}
       {tab === "corretores" && (

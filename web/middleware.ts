@@ -9,7 +9,7 @@ const { auth } = NextAuth(authConfig);
 const GATE_EXEMPT = ["/perfil", "/login", "/cadastro"];
 
 export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolean } } | null }) => {
-  const { pathname } = req.nextUrl;
+  const { pathname, searchParams } = req.nextUrl;
 
   // Admin: proteção por cookie
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
@@ -20,6 +20,19 @@ export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolea
   }
 
   const logado = !!req.auth?.user;
+
+  // Rastreamento de afiliado: ?ref=CODIGO → cookie blc_ref por 1 ano
+  const refCode = searchParams.get("ref");
+  if (refCode) {
+    const res = NextResponse.next();
+    res.cookies.set("blc_ref", refCode.toUpperCase(), {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+    });
+    return res;
+  }
 
   // Área do usuário: requer sessão NextAuth
   if ((pathname.startsWith("/perfil") || pathname.startsWith("/favoritos")) && !logado) {
