@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     col.find({})
       .sort({ criadoEm: -1 })
       .limit(200)
-      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, preferencias: 1, favoritos: 1, totalSessoes: 1, totalPageviews: 1, ultimoAcesso: 1 })
+      .project({ _id: 1, name: 1, email: 1, telefone: 1, plano: 1, criadoEm: 1, preferencias: 1, favoritos: 1, totalSessoes: 1, totalPageviews: 1, ultimoAcesso: 1, isAfiliado: 1, afiliadoId: 1 })
       .toArray(),
     analises.aggregate([
       { $group: { _id: "$userId", count: { $sum: 1 } } },
@@ -40,6 +40,8 @@ export async function GET(req: NextRequest) {
       _id: u._id.toString(),
       totalFavoritos: Array.isArray(u.favoritos) ? u.favoritos.length : 0,
       totalAnalises: analisesPorUser[u._id.toString()] ?? 0,
+      isAfiliado: u.isAfiliado ?? false,
+      afiliadoId: u.afiliadoId ?? null,
     })),
   });
 }

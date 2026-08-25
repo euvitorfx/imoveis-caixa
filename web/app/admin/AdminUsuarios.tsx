@@ -19,6 +19,8 @@ type UserRow = {
   totalSessoes?: number;
   totalPageviews?: number;
   ultimoAcesso?: string;
+  isAfiliado?: boolean;
+  afiliadoId?: string | null;
 };
 
 type UserStats = {
@@ -98,6 +100,12 @@ export default function AdminUsuarios({
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState("");
 
+  // Mini-form de afiliado dentro do modal de edição
+  const [showAfiliadoForm, setShowAfiliadoForm] = useState(false);
+  const [afiliadoForm, setAfiliadoForm] = useState({ codigo: "", percentualComissao: "" });
+  const [savingAfiliado, setSavingAfiliado] = useState(false);
+  const [erroAfiliado, setErroAfiliado] = useState("");
+
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "", estados: [] as string[], cidades: [] as string[] });
 
   // Filtros por coluna
@@ -133,10 +141,45 @@ export default function AdminUsuarios({
 
   function set(field: string, value: string) { setForm((p) => ({ ...p, [field]: value })); }
   function abrirNovo() { setForm({ nome: "", email: "", telefone: "", plano: "gratuito", senha: "", estados: [], cidades: [] }); setErro(""); setModal("novo"); }
-  function abrirEditar(u: UserRow) { setEditando(u); setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "", estados: u.preferencias?.estados ?? [], cidades: u.preferencias?.cidades ?? [] }); setErro(""); setModal("editar"); }
+  function abrirEditar(u: UserRow) {
+    setEditando(u);
+    setForm({ nome: u.name ?? "", email: u.email, telefone: u.telefone ?? "", plano: u.plano, senha: "", estados: u.preferencias?.estados ?? [], cidades: u.preferencias?.cidades ?? [] });
+    setErro("");
+    setShowAfiliadoForm(false);
+    setAfiliadoForm({ codigo: (u.name ?? "").split(" ")[0].toUpperCase().replace(/[^A-Z0-9]/g, ""), percentualComissao: "" });
+    setErroAfiliado("");
+    setModal("editar");
+  }
   function removerEstado(uf: string) { setForm((p) => ({ ...p, estados: p.estados.filter((e) => e !== uf) })); }
   function removerCidade(c: string) { setForm((p) => ({ ...p, cidades: p.cidades.filter((x) => x !== c) })); }
-  function fecharModal() { setModal(null); setEditando(null); setErro(""); }
+  function fecharModal() { setModal(null); setEditando(null); setErro(""); setShowAfiliadoForm(false); setErroAfiliado(""); }
+
+  async function criarAfiliado() {
+    if (!editando) return;
+    setSavingAfiliado(true);
+    setErroAfiliado("");
+    const res = await fetch("/api/admin/afiliados", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome: editando.name,
+        email: editando.email,
+        codigo: afiliadoForm.codigo.toUpperCase(),
+        percentualComissao: Number(afiliadoForm.percentualComissao),
+        userId: editando._id,
+      }),
+    });
+    const data = await res.json();
+    setSavingAfiliado(false);
+    if (!res.ok) {
+      setErroAfiliado(data.error ?? "Erro ao criar afiliado");
+      return;
+    }
+    // Atualiza o editando localmente para refletir o novo status
+    setEditando((prev) => prev ? { ...prev, isAfiliado: true } : prev);
+    setShowAfiliadoForm(false);
+    onRefresh();
+  }
 
   async function salvar() {
     setSaving(true); setErro("");
@@ -254,6 +297,76 @@ export default function AdminUsuarios({
                         </span>
                       ))}
                     </div>
+                  )}
+                </div>
+
+                {/* Programa de Afiliados */}
+                <div className="border-t border-gray-100 pt-3">
+                  <p className={LABEL}>Programa de afiliados</p>
+                  {editando?.isAfiliado ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-full font-medium">
+                        🤝 Afiliado ativo
+                      </span>
+                      <span className="text-xs text-gray-400">Gerencie na aba Afiliados</span>
+                    </div>
+                  ) : (
+                    <>
+                      {!showAfiliadoForm ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowAfiliadoForm(true)}
+                          className="mt-1 text-xs text-blue-600 hover:underline font-medium"
+                        >
+                          + Tornar afiliado
+                        </button>
+                      ) : (
+                        <div className="mt-2 space-y-2 bg-blue-50 rounded-xl p-3">
+                          <p className="text-xs text-blue-700 font-medium mb-2">Criar registro de afiliado para {editando?.name}</p>
+                          <div>
+                            <label className={LABEL}>Código único *</label>
+                            <input
+                              value={afiliadoForm.codigo}
+                              onChange={(e) => setAfiliadoForm((p) => ({ ...p, codigo: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") }))}
+                              className={INPUT + " font-mono"}
+                              placeholder="EX: JOAO123"
+                            />
+                            <p className="text-xs text-gray-400 mt-0.5">Link: buscaleiloescaixa.com.br/?ref={afiliadoForm.codigo || "CODIGO"}</p>
+                          </div>
+                          <div>
+                            <label className={LABEL}>% de comissão BLC *</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.1}
+                              value={afiliadoForm.percentualComissao}
+                              onChange={(e) => setAfiliadoForm((p) => ({ ...p, percentualComissao: e.target.value }))}
+                              className={INPUT}
+                              placeholder="10"
+                            />
+                          </div>
+                          {erroAfiliado && <p className="text-xs text-red-600">{erroAfiliado}</p>}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={criarAfiliado}
+                              disabled={savingAfiliado || !afiliadoForm.codigo || !afiliadoForm.percentualComissao}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium"
+                            >
+                              {savingAfiliado ? "Criando..." : "Criar afiliado"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowAfiliadoForm(false); setErroAfiliado(""); }}
+                              className="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:bg-gray-50"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </>
@@ -377,10 +490,15 @@ export default function AdminUsuarios({
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{u.telefone || <span className="text-gray-300">—</span>}</td>
                     <td className="px-4 py-3">
-                      {u.plano === "premium"
-                        ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Premium</span>
-                        : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Gratuito</span>
-                      }
+                      <div className="flex flex-wrap gap-1">
+                        {u.plano === "premium"
+                          ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Premium</span>
+                          : <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Gratuito</span>
+                        }
+                        {u.isAfiliado && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">🤝 Afil.</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
                       {u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}
