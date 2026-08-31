@@ -1,16 +1,21 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import clientPromise from "@/lib/mongodb";
 import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
 import { Imovel } from "@/lib/types";
-
-export const dynamic = "force-dynamic";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
 import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, ESTADO_TEXTOS, fmtBRL } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
 
 const LIMIT = 24;
+
+const getCachedEstadoData = unstable_cache(
+  async (uf: string, page: number) => getData(uf, page),
+  ["estado-imoveis"],
+  { revalidate: 1800 }
+);
 
 export async function generateStaticParams() {
   return ALL_ESTADOS.map((estado) => ({ estado: estado.toLowerCase() }));
@@ -96,7 +101,7 @@ export default async function EstadoPage({
   if (!nomeEstado) notFound();
 
   const page = Math.max(1, parseInt(sp.page || "1"));
-  const data = await getData(uf, page);
+  const data = await getCachedEstadoData(uf, page);
 
   const breadcrumbLd = {
     "@context": "https://schema.org",

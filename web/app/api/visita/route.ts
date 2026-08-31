@@ -52,6 +52,28 @@ export async function POST(req: NextRequest) {
     const client = await clientPromise;
     const meta = client.db(process.env.MONGODB_DB).collection("_meta");
 
+    if (!novaSessao) {
+      // Fast path: only pageview increment — no findOne needed
+      meta.updateOne(
+        { key: "visitas" },
+        { $inc: { pageviews: 1 }, $setOnInsert: { key: "visitas" } },
+        { upsert: true },
+      ).catch(() => {});
+
+      // Track logged-in user activity (fire and forget)
+      auth().then((session) => {
+        if (session?.user?.id) {
+          client.db(process.env.MONGODB_DB).collection("users").updateOne(
+            { _id: new ObjectId(session.user.id) },
+            { $inc: { totalPageviews: 1 }, $set: { ultimoAcesso: new Date() } },
+          ).catch(() => {});
+        }
+      }).catch(() => {});
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Nova sessão: need to check if day/month rolled over
     const dataHoje = hojeUTC3();
     const mesHoje  = mesAtualUTC3();
 
@@ -60,23 +82,19 @@ export async function POST(req: NextRequest) {
     const diaIgual = doc?.diario?.data === dataHoje;
     const mesIgual = doc?.mensal?.mes  === mesHoje;
 
-    // pageviews: incrementa sempre (toda abertura de página)
     const incOp: Record<string, number> = { pageviews: 1 };
     const setOp: Record<string, unknown> = { key: "visitas" };
 
-    // diario e mensal: só incrementa em nova sessão
-    if (novaSessao) {
-      if (diaIgual) {
-        incOp["diario.count"] = 1;
-      } else {
-        setOp["diario"] = { data: dataHoje, count: 1 };
-      }
+    if (diaIgual) {
+      incOp["diario.count"] = 1;
+    } else {
+      setOp["diario"] = { data: dataHoje, count: 1 };
+    }
 
-      if (mesIgual) {
-        incOp["mensal.count"] = 1;
-      } else {
-        setOp["mensal"] = { mes: mesHoje, count: 1 };
-      }
+    if (mesIgual) {
+      incOp["mensal.count"] = 1;
+    } else {
+      setOp["mensal"] = { mes: mesHoje, count: 1 };
     }
 
     await meta.updateOne(
@@ -85,17 +103,15 @@ export async function POST(req: NextRequest) {
       { upsert: true },
     );
 
-    // Rastrear atividade do usuário logado
-    const session = await auth();
-    if (session?.user?.id) {
-      const users = client.db(process.env.MONGODB_DB).collection("users");
-      const inc: Record<string, number> = { totalPageviews: 1 };
-      if (novaSessao) inc.totalSessoes = 1;
-      await users.updateOne(
-        { _id: new ObjectId(session.user.id) },
-        { $inc: inc, $set: { ultimoAcesso: new Date() } },
-      );
-    }
+    // Track logged-in user activity (fire and forget)
+    auth().then((session) => {
+      if (session?.user?.id) {
+        client.db(process.env.MONGODB_DB).collection("users").updateOne(
+          { _id: new ObjectId(session.user.id) },
+          { $inc: { totalPageviews: 1, totalSessoes: 1 }, $set: { ultimoAcesso: new Date() } },
+        ).catch(() => {});
+      }
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (err) {

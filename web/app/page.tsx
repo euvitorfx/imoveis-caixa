@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
 import Filtros from "@/components/Filtros";
 import CardImovel from "@/components/CardImovel";
 import Paginacao from "@/components/Paginacao";
@@ -146,6 +147,17 @@ async function getTotalImoveis(): Promise<number> {
   }
 }
 
+const getCachedImoveis = unstable_cache(
+  async (sp: SearchParams) => queryImoveis(sp),
+  ["home-imoveis"],
+  { revalidate: 300 }
+);
+
+const getCachedTotal = unstable_cache(
+  async () => getTotalImoveis(),
+  ["home-total"],
+  { revalidate: 3600 }
+);
 
 export default async function HomePage({
   searchParams,
@@ -153,7 +165,7 @@ export default async function HomePage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const [data, totalImoveis] = await Promise.all([queryImoveis(sp), getTotalImoveis()]);
+  const [data, totalImoveis] = await Promise.all([getCachedImoveis(sp), getCachedTotal()]);
 
   const faqLd = {
     "@context": "https://schema.org",
