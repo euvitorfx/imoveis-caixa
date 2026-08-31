@@ -1,25 +1,42 @@
 ---
 name: project-fluid-cpu
-description: Vercel Fluid Active CPU atingiu 100% do free tier (4h); correção de polling aplicada em ago/2026; verificar resultado em set/2026
+description: Vercel Fluid Active CPU — picos em ago/2026; correções aplicadas em duas rodadas; verificar resultado em set/2026
 metadata: 
   node_type: memory
   type: project
   originSessionId: cbcc678a-f982-49a7-a6f3-07e3d61818a6
-  modified: 2026-08-19T11:59:48.794Z
+  modified: 2026-08-31T00:00:00.000Z
 ---
 
-Em agosto/2026 o Vercel enviou alerta de 100% do Fluid Active CPU (4h/mês, plano free).
+## Histórico de investigações e correções
 
-**Investigação em 19/08/2026:** Com apenas 6 visitas no dia e uso já em ~5 min, confirmou-se que o problema NÃO é tráfego de usuários. Causa real identificada:
+### Rodada 1 — 19/08/2026
+**Sintoma:** alerta de 100% do Fluid Active CPU (4h/mês, plano free) com apenas 6 visitas/dia.
 
-1. **Sitemap (principal culpado):** `sitemap.ts` com `revalidate=3600` carregava 25k+ documentos + 27 queries `distinct` a cada hora. Google crawlea o sitemap múltiplas vezes/dia → ~24 regenerações/dia × ~10s CPU = ~4 minutos/dia só do sitemap.
-
-2. **Status page polling (secundário):** 30s de intervalo enquanto aba aberta. Contribuição real menor do que estimado inicialmente.
-
-3. **Crons no `vercel.json`:** `alertas-novos` e `alertas-mudancas` rodam no Vercel Fluid, mas são quase 100% I/O bound (MongoDB + Resend) — contribuição de CPU ativa estimada em <5s/execução. Não vale migrar agora.
+**Causas identificadas:**
+1. `sitemap.ts` — revalidate=3600, carregava 25k+ docs + 27 queries `distinct` a cada hora. Crawlers Google regeneravam ~24×/dia.
+2. `/admin/status` polling — 30s de intervalo enquanto aba aberta.
 
 **Correções aplicadas:**
-- `sitemap.ts`: revalidate 3600 → 86400 (1h → 24h) — maior impacto, ~4 min/dia a menos
-- `/admin/status`: polling 30s → 120s + pause quando aba em segundo plano
+- `sitemap.ts`: revalidate 3600 → 86400
+- `/admin/status`: polling 30s → 120s + pause quando aba oculta
 
-**How to apply:** Monitorar dashboard Vercel (vercel.com/dashboard/usage) por 3–5 dias após 19/08/2026. Espera-se redução de ~80% no consumo. Se ainda alto, próximo passo é ISR nas páginas `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]` (atualmente force-dynamic, alto tráfego de crawlers).
+---
+
+### Rodada 2 — 31/08/2026
+**Sintoma:** uso dobrou a partir de 11/08/2026 (visto em screenshot do Vercel) apesar das correções anteriores.
+
+**Investigação:** identificadas páginas force-dynamic de alto tráfego rodando queries MongoDB a cada request:
+- Home `/` — force-dynamic, 2 MongoDB queries (find + count) em todo request
+- `/imoveis/[estado]` — force-dynamic, 4 queries paralelas por request (crawlers Google em 27 estados)
+- `/imoveis/[estado]/[cidade]` — force-dynamic, 3 queries + distinct por request (centenas de cidades)
+- `/api/visita POST` — chamado em todo page load; sempre fazia `findOne` no _meta + `updateOne` + `auth()` + `users.updateOne`
+
+**Correções aplicadas (commit 233aec9):**
+- `unstable_cache` (1800s) em `getData()` nas páginas `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]`
+- `unstable_cache` (300s) em `queryImoveis()` e (3600s) em `getTotalImoveis()` na home
+- `/api/visita POST`: fast path para `novaSessao=false` (maioria dos requests) — elimina `findOne`, faz apenas um `$inc` atômico; rastreamento do usuário logado é fire-and-forget
+
+**Por que `unstable_cache` funciona mesmo com force-dynamic:** o Next.js Data Cache é independente do Full Route Cache. Mesmo com a página re-renderizando por request (devido a `searchParams`), o resultado da função MongoDB é servido do cache por 30 min na maioria dos hits.
+
+**How to apply:** Monitorar dashboard Vercel em set/2026. Se ainda alto, próximo passo é verificar se há outros endpoints frequentes sem cache.
