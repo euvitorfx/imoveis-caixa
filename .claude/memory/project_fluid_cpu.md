@@ -39,8 +39,13 @@ Requests subsequentes à mesma URL são servidos do CDN — ZERO invocação de 
 - `searchParams` removido do Server Component (o link `?volta=` movido para `VoltaLink.tsx` client-side)
 - Resultado esperado: ~30k páginas de imóvel servidas do CDN; apenas o primeiro request por URL por hora invoca função serverless
 
-**Próximas correções pendentes (por ordem de impacto):**
-1. `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]` — remover `force-dynamic`, mover paginação `?page=N` para client-side, adicionar `revalidate = 1800`
-2. Home `/` — separar shell estático da listagem dinâmica (refactor maior)
+**Fix 2 aplicado (commit ad866af — 02/09/2026):**
+- `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]`: `searchParams` removido → ISR habilitado com `revalidate = 1800`
+- Novo componente `ListagemPaginada.tsx`: página 1 via initialData (ISR), páginas 2+ via fetch para `/api/imoveis/listagem`
+- Nova API route `/api/imoveis/listagem` com `revalidate = 1800`
+- Bug corrigido em `Paginacao.tsx`: caminho hardcoded `/?` → `usePathname()`
 
-**How to apply:** Monitorar dashboard Vercel nos dias seguintes ao deploy. Espera-se redução expressiva do Fluid CPU com a mudança das páginas de imóvel.
+**Próximas correções pendentes:**
+- Home `/` — separar shell estático da listagem dinâmica (refactor maior, não confirmado pelo usuário)
+
+**How to apply:** Monitorar dashboard Vercel nos dias seguintes ao deploy. Espera-se redução expressiva do Fluid CPU com as mudanças das páginas de imóvel + estado + cidade.
