@@ -1,42 +1,46 @@
 ---
 name: project-fluid-cpu
-description: Vercel Fluid Active CPU — picos em ago/2026; correções aplicadas em duas rodadas; verificar resultado em set/2026
+description: Vercel Fluid Active CPU — picos em ago/2026; 3 rodadas de investigação e correção
 metadata: 
   node_type: memory
   type: project
   originSessionId: cbcc678a-f982-49a7-a6f3-07e3d61818a6
-  modified: 2026-08-31T00:00:00.000Z
+  modified: 2026-09-02T00:00:00.000Z
 ---
 
-## Histórico de investigações e correções
+## O que conta como Fluid Active CPU (diagnóstico correto)
 
-### Rodada 1 — 19/08/2026
-**Sintoma:** alerta de 100% do Fluid Active CPU (4h/mês, plano free) com apenas 6 visitas/dia.
+Vercel Fluid CPU = tempo que o Node.js passa **executando JavaScript ativamente**.
+- NÃO conta: espera por MongoDB (I/O assíncrono), espera por rede
+- CONTA: renderização React Server Components (JSX→HTML), serialização, cálculos síncronos
 
-**Causas identificadas:**
-1. `sitemap.ts` — revalidate=3600, carregava 25k+ docs + 27 queries `distinct` a cada hora. Crawlers Google regeneravam ~24×/dia.
-2. `/admin/status` polling — 30s de intervalo enquanto aba aberta.
+A solução correta é **Full Route Cache (ISR/revalidate)**: resposta HTML armazenada no CDN do Vercel.
+Requests subsequentes à mesma URL são servidos do CDN — ZERO invocação de função serverless.
 
-**Correções aplicadas:**
-- `sitemap.ts`: revalidate 3600 → 86400
+`unstable_cache` (adicionado na Rodada 2) NÃO resolve o problema porque:
+- Economiza tempo de I/O MongoDB (que não conta)
+- O React Server Component ainda renderiza em todo request (que conta)
+
+## Rodada 1 — 19/08/2026
+**Causas e correções:**
+- `sitemap.ts`: revalidate 3600 → 86400 (carregava 25k docs por hora)
 - `/admin/status`: polling 30s → 120s + pause quando aba oculta
 
----
+## Rodada 2 — 31/08/2026 (diagnóstico incorreto)
+**Tentou**: `unstable_cache` para queries MongoDB nas páginas de estado/cidade/home + otimização `/api/visita`.
+**Resultado**: sem melhoria visível (conforme confirmado pelo usuário).
+**Por quê falhou**: MongoDB I/O não conta como Fluid CPU; a renderização React ainda ocorria em todo request.
 
-### Rodada 2 — 31/08/2026
-**Sintoma:** uso dobrou a partir de 11/08/2026 (visto em screenshot do Vercel) apesar das correções anteriores.
+## Rodada 3 — 02/09/2026 (diagnóstico correto)
+**Causa raiz identificada**: Páginas de imóvel `/imovel/[id]` sem `revalidate` + lendo `searchParams` (tornando-as dinâmicas). Com ~30k imóveis crawleados pelo Google, cada URL é renderizada em todo request: 4 queries MongoDB + renderização React completa.
 
-**Investigação:** identificadas páginas force-dynamic de alto tráfego rodando queries MongoDB a cada request:
-- Home `/` — force-dynamic, 2 MongoDB queries (find + count) em todo request
-- `/imoveis/[estado]` — force-dynamic, 4 queries paralelas por request (crawlers Google em 27 estados)
-- `/imoveis/[estado]/[cidade]` — force-dynamic, 3 queries + distinct por request (centenas de cidades)
-- `/api/visita POST` — chamado em todo page load; sempre fazia `findOne` no _meta + `updateOne` + `auth()` + `users.updateOne`
+**Correção aplicada (commit f46c192)**:
+- `export const revalidate = 3600` em `/imovel/[id]/page.tsx`
+- `searchParams` removido do Server Component (o link `?volta=` movido para `VoltaLink.tsx` client-side)
+- Resultado esperado: ~30k páginas de imóvel servidas do CDN; apenas o primeiro request por URL por hora invoca função serverless
 
-**Correções aplicadas (commit 233aec9):**
-- `unstable_cache` (1800s) em `getData()` nas páginas `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]`
-- `unstable_cache` (300s) em `queryImoveis()` e (3600s) em `getTotalImoveis()` na home
-- `/api/visita POST`: fast path para `novaSessao=false` (maioria dos requests) — elimina `findOne`, faz apenas um `$inc` atômico; rastreamento do usuário logado é fire-and-forget
+**Próximas correções pendentes (por ordem de impacto):**
+1. `/imoveis/[estado]` e `/imoveis/[estado]/[cidade]` — remover `force-dynamic`, mover paginação `?page=N` para client-side, adicionar `revalidate = 1800`
+2. Home `/` — separar shell estático da listagem dinâmica (refactor maior)
 
-**Por que `unstable_cache` funciona mesmo com force-dynamic:** o Next.js Data Cache é independente do Full Route Cache. Mesmo com a página re-renderizando por request (devido a `searchParams`), o resultado da função MongoDB é servido do cache por 30 min na maioria dos hits.
-
-**How to apply:** Monitorar dashboard Vercel em set/2026. Se ainda alto, próximo passo é verificar se há outros endpoints frequentes sem cache.
+**How to apply:** Monitorar dashboard Vercel nos dias seguintes ao deploy. Espera-se redução expressiva do Fluid CPU com a mudança das páginas de imóvel.
