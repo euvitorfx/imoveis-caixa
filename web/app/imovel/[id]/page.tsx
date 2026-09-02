@@ -1,12 +1,16 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Metadata } from "next";
 import clientPromise from "@/lib/mongodb";
 import { Imovel } from "@/lib/types";
 import { ObjectId } from "mongodb";
 import DetalheClient from "@/components/DetalheClient";
+import VoltaLink from "@/components/VoltaLink";
 import { SITE_URL, SITE_NAME, SITE_EMAIL, SITE_WHATSAPP } from "@/lib/config";
 import { getCorretoresAprovados, Corretor } from "@/lib/corretores";
 import AbrirProcessoBtn from "./AbrirProcessoBtn";
+
+export const revalidate = 3600;
 
 function fmt(v: number | null | undefined) {
   if (v == null) return "—";
@@ -162,14 +166,10 @@ export async function generateMetadata(
 
 export default async function DetalheImovel({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ volta?: string }>;
 }) {
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
-  // Aceita apenas caminhos internos para evitar open redirect
-  const volta = sp.volta?.match(/^\/imoveis\/[a-z]{2}(\/[a-z0-9-]+)?$/) ? sp.volta : null;
+  const { id } = await params;
 
   const [imovel, todosCorretores] = await Promise.all([
     getImovel(id),
@@ -298,14 +298,9 @@ export default async function DetalheImovel({
       )}
 
       {/* Botão de retorno ao filtro (quando vindo de alerta por e-mail) */}
-      {volta && (
-        <a
-          href={volta}
-          className="inline-flex items-center gap-1.5 mb-3 text-sm font-medium px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors"
-        >
-          ← Imóveis novos na sua região
-        </a>
-      )}
+      <Suspense>
+        <VoltaLink />
+      </Suspense>
 
       {/* Breadcrumb */}
       <nav className="text-sm mb-3 flex items-center gap-1.5 flex-wrap">
