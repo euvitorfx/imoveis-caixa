@@ -1,18 +1,20 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import clientPromise from "@/lib/mongodb";
-import CardImovel from "@/components/CardImovel";
-import Paginacao from "@/components/Paginacao";
+import ListagemPaginada from "@/components/ListagemPaginada";
 import { Imovel } from "@/lib/types";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
 import { slugify, ESTADO_NOMES, ALL_ESTADOS, ESTADO_BANDEIRAS, ESTADO_TEXTOS, fmtBRL } from "@/lib/utils";
 import BandeiraEstado from "@/components/BandeiraEstado";
 
+export const revalidate = 1800;
+
 const LIMIT = 24;
 
 const getCachedEstadoData = unstable_cache(
-  async (uf: string, page: number) => getData(uf, page),
+  async (uf: string) => getData(uf),
   ["estado-imoveis"],
   { revalidate: 1800 }
 );
@@ -44,14 +46,13 @@ export async function generateMetadata(
   };
 }
 
-async function getData(uf: string, page: number) {
+async function getData(uf: string) {
   const client = await clientPromise;
   const col    = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
   const filter = { ativo: true, estado: uf };
-  const skip   = (page - 1) * LIMIT;
 
   const [docs, total, cidades, stats] = await Promise.all([
-    col.find(filter).sort({ preco: 1 }).skip(skip).limit(LIMIT)
+    col.find(filter).sort({ preco: 1 }).limit(LIMIT)
       .project({
         _id: 1, hdnImovel: 1, estado: 1, cidade: 1, bairro: 1,
         endereco: 1, preco: 1, precoAval: 1, desconto: 1,
@@ -79,7 +80,7 @@ async function getData(uf: string, page: number) {
   return {
     imoveis:    docs.map((d) => ({ ...d, _id: d._id.toString() })) as Imovel[],
     total,
-    page,
+    page:       1,
     totalPages: Math.ceil(total / LIMIT),
     cidades,
     precoMedio: stats[0]?.media ?? null,
@@ -89,19 +90,15 @@ async function getData(uf: string, page: number) {
 
 export default async function EstadoPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ estado: string }>;
-  searchParams: Promise<{ page?: string }>;
 }) {
-  const { estado }  = await params;
-  const sp          = await searchParams;
-  const uf          = estado.toUpperCase();
-  const nomeEstado  = ESTADO_NOMES[uf];
+  const { estado } = await params;
+  const uf         = estado.toUpperCase();
+  const nomeEstado = ESTADO_NOMES[uf];
   if (!nomeEstado) notFound();
 
-  const page = Math.max(1, parseInt(sp.page || "1"));
-  const data = await getCachedEstadoData(uf, page);
+  const data = await getCachedEstadoData(uf);
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
@@ -133,12 +130,12 @@ export default async function EstadoPage({
           className="h-12 w-auto object-contain rounded shadow-sm flex-shrink-0"
         />
         <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Imóveis Caixa em {nomeEstado} ({uf})
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {data.total.toLocaleString("pt-BR")} imóveis disponíveis · Preço médio {fmtBRL(data.precoMedio)} · A partir de {fmtBRL(data.precoMin)}
-        </p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Imóveis Caixa em {nomeEstado} ({uf})
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {data.total.toLocaleString("pt-BR")} imóveis disponíveis · Preço médio {fmtBRL(data.precoMedio)} · A partir de {fmtBRL(data.precoMin)}
+          </p>
         </div>
       </div>
 
@@ -172,22 +169,14 @@ export default async function EstadoPage({
         </div>
       )}
 
-      {/* Cards */}
-      {data.imoveis.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-5xl mb-4">🔍</p>
-          <p>Nenhum imóvel encontrado em {nomeEstado}.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {data.imoveis.map((im) => (
-              <CardImovel key={im.hdnImovel} imovel={im} />
-            ))}
-          </div>
-          <Paginacao page={data.page} totalPages={data.totalPages} total={data.total} />
-        </>
-      )}
+      {/* Listagem com paginação client-side */}
+      <Suspense>
+        <ListagemPaginada
+          uf={uf}
+          initialData={{ imoveis: data.imoveis, total: data.total, page: 1, totalPages: data.totalPages }}
+          nomeLugar={nomeEstado}
+        />
+      </Suspense>
 
       {/* Link outros estados */}
       <div className="mt-10 pt-6 border-t">

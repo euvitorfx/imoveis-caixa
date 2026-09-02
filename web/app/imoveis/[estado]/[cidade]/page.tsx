@@ -1,20 +1,16 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import clientPromise from "@/lib/mongodb";
-import CardImovel from "@/components/CardImovel";
-import Paginacao from "@/components/Paginacao";
+import ListagemPaginada from "@/components/ListagemPaginada";
 import { Imovel } from "@/lib/types";
 import { SITE_URL, SITE_NAME } from "@/lib/config";
 import { slugify, ESTADO_NOMES, fmtBRL } from "@/lib/utils";
 
-const LIMIT = 24;
+export const revalidate = 1800;
 
-const getCachedCidadeData = unstable_cache(
-  async (uf: string, cidadeReal: string, page: number) => getData(uf, cidadeReal, page),
-  ["cidade-imoveis"],
-  { revalidate: 1800 }
-);
+const LIMIT = 24;
 
 async function getCidadeReal(uf: string, cidadeSlug: string): Promise<string | null> {
   const client = await clientPromise;
@@ -22,6 +18,12 @@ async function getCidadeReal(uf: string, cidadeSlug: string): Promise<string | n
   const cidades = await col.distinct("cidade", { estado: uf, ativo: true }) as string[];
   return cidades.find((c) => slugify(c) === cidadeSlug) ?? null;
 }
+
+const getCachedCidadeData = unstable_cache(
+  async (uf: string, cidadeReal: string) => getData(uf, cidadeReal),
+  ["cidade-imoveis"],
+  { revalidate: 1800 }
+);
 
 export async function generateMetadata(
   { params }: { params: Promise<{ estado: string; cidade: string }> }
@@ -49,14 +51,13 @@ export async function generateMetadata(
   };
 }
 
-async function getData(uf: string, cidadeReal: string, page: number) {
+async function getData(uf: string, cidadeReal: string) {
   const client = await clientPromise;
   const col    = client.db(process.env.MONGODB_DB).collection(process.env.MONGODB_COLLECTION!);
   const filter = { ativo: true, estado: uf, cidade: { $regex: `^${cidadeReal}$`, $options: "i" } };
-  const skip   = (page - 1) * LIMIT;
 
   const [docs, total, stats] = await Promise.all([
-    col.find(filter).sort({ preco: 1 }).skip(skip).limit(LIMIT)
+    col.find(filter).sort({ preco: 1 }).limit(LIMIT)
       .project({
         _id: 1, hdnImovel: 1, estado: 1, cidade: 1, bairro: 1,
         endereco: 1, preco: 1, precoAval: 1, desconto: 1,
@@ -77,7 +78,7 @@ async function getData(uf: string, cidadeReal: string, page: number) {
   return {
     imoveis:    docs.map((d) => ({ ...d, _id: d._id.toString() })) as Imovel[],
     total,
-    page,
+    page:       1,
     totalPages: Math.ceil(total / LIMIT),
     precoMedio: stats[0]?.media ?? null,
     precoMin:   stats[0]?.min   ?? null,
@@ -86,13 +87,10 @@ async function getData(uf: string, cidadeReal: string, page: number) {
 
 export default async function CidadePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ estado: string; cidade: string }>;
-  searchParams: Promise<{ page?: string }>;
 }) {
   const { estado, cidade } = await params;
-  const sp        = await searchParams;
   const uf        = estado.toUpperCase();
   const nomeEstado = ESTADO_NOMES[uf];
   if (!nomeEstado) notFound();
@@ -100,8 +98,7 @@ export default async function CidadePage({
   const cidadeReal = await getCidadeReal(uf, cidade);
   if (!cidadeReal) notFound();
 
-  const page = Math.max(1, parseInt(sp.page || "1"));
-  const data = await getCachedCidadeData(uf, cidadeReal, page);
+  const data = await getCachedCidadeData(uf, cidadeReal);
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
@@ -140,22 +137,15 @@ export default async function CidadePage({
         </p>
       </div>
 
-      {/* Cards */}
-      {data.imoveis.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-5xl mb-4">🔍</p>
-          <p>Nenhum imóvel encontrado em {cidadeReal}.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {data.imoveis.map((im) => (
-              <CardImovel key={im.hdnImovel} imovel={im} />
-            ))}
-          </div>
-          <Paginacao page={data.page} totalPages={data.totalPages} total={data.total} />
-        </>
-      )}
+      {/* Listagem com paginação client-side */}
+      <Suspense>
+        <ListagemPaginada
+          uf={uf}
+          cidadeSlug={cidade}
+          initialData={{ imoveis: data.imoveis, total: data.total, page: 1, totalPages: data.totalPages }}
+          nomeLugar={cidadeReal}
+        />
+      </Suspense>
 
       {/* Voltar para o estado */}
       <div className="mt-8 pt-4 border-t">
