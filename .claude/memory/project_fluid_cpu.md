@@ -45,7 +45,19 @@ Requests subsequentes à mesma URL são servidos do CDN — ZERO invocação de 
 - Nova API route `/api/imoveis/listagem` com `revalidate = 1800`
 - Bug corrigido em `Paginacao.tsx`: caminho hardcoded `/?` → `usePathname()`
 
-**Próximas correções pendentes:**
-- Home `/` — separar shell estático da listagem dinâmica (refactor maior, não confirmado pelo usuário)
+**Fix 3 aplicado (commit 69ece47 — 03/09/2026):**
+- Home `/`: removido `force-dynamic`; adicionado `revalidate = 300`
+- Novo componente `ListagemHome.tsx`: sem filtros → initialData (ISR), filtros ativos → fetch para `/api/imoveis/busca`
+- Nova API route `/api/imoveis/busca` com todos os filtros da home
+- `totalBusca` em HeroCarousel era passado mas nunca usado — simplificado
+
+**Páginas cobertas por ISR após as 3 rodadas:**
+- `/imovel/[id]` — revalidate 3600 (~30k páginas)
+- `/imoveis/[estado]` — revalidate 1800 (27 páginas)
+- `/imoveis/[estado]/[cidade]` — revalidate 1800 (centenas de páginas)
+- `/` (home) — revalidate 300 (página mais visitada)
+
+**Próximas correções:**
+- Nenhuma identificada ainda. Monitorar Vercel após deploy.
 
 **How to apply:** Monitorar dashboard Vercel nos dias seguintes ao deploy. Espera-se redução expressiva do Fluid CPU com as mudanças das páginas de imóvel + estado + cidade.
