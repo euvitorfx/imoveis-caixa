@@ -1,0 +1,54 @@
+name: Verificar & Reativar Imóveis
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry-run (só mostra o que faria, sem alterar o banco)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  verificar:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('scraper/requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r scraper/requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Verificar & Reativar
+        env:
+          MONGODB_URI:        ${{ secrets.MONGODB_URI }}
+          MONGODB_DB:         ${{ secrets.MONGODB_DB }}
+          MONGODB_COLLECTION: ${{ secrets.MONGODB_COLLECTION }}
+        run: |
+          cd scraper
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python verificar_reativar.py --dry-run
+          else
+            python verificar_reativar.py
+          fi
