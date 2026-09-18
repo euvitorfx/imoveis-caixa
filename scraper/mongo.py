@@ -201,6 +201,12 @@ def upsert_cidades(imoveis: list[dict]):
         db["cidades_caixa"].create_index([("uf", ASCENDING), ("cidade", ASCENDING)], unique=True)
 
 
+def get_total_ativo() -> int:
+    """Retorna o total de imóveis ativos no banco. Usado como baseline para o safeguard."""
+    col = get_db()[os.environ.get("MONGODB_COLLECTION", "imoveis")]
+    return col.count_documents({"ativo": True})
+
+
 def registrar_sync(total_imoveis: int):
     """Grava timestamp e total do último scrape completo na coleção _meta."""
     db  = get_db()

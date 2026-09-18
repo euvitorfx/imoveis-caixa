@@ -16,7 +16,7 @@ from collections import defaultdict
 
 from dotenv import load_dotenv
 
-from mongo import ensure_indexes, upsert_imoveis, upsert_cidades, marcar_inativos, total_por_estado, registrar_sync, get_db
+from mongo import ensure_indexes, upsert_imoveis, upsert_cidades, marcar_inativos, total_por_estado, registrar_sync, get_db, get_total_ativo
 from scraper import CaixaScraper
 from geocoder import geocode_batch
 
@@ -65,6 +65,25 @@ def main():
             return
 
         print(f"\n  {len(props):,} imóveis baixados. Upserting no MongoDB...")
+
+        # ── Safeguard: CSV suspeito? ───────────────────────────────────────────
+        # Se o CSV retornou menos de 70% do total ativo atual, pode ser download
+        # truncado. Nesse caso: atualiza os que vieram (upsert normal), mas NÃO
+        # marca ninguém como inativo para evitar apagar dados válidos.
+        LIMITE_SAFEGUARD = 0.70
+        total_ativo_antes = get_total_ativo()
+        csv_suspeito = (
+            total_ativo_antes > 0
+            and len(props) < total_ativo_antes * LIMITE_SAFEGUARD
+        )
+
+        if csv_suspeito:
+            print(
+                f"\n  ⚠ SAFEGUARD ATIVADO: CSV com {len(props):,} imóveis é "
+                f"< 70% dos {total_ativo_antes:,} ativos no banco. "
+                f"Atualizando os recebidos, mas PULANDO inativação."
+            )
+
         stats = upsert_imoveis(props)
         upsert_cidades(props)
 
@@ -76,22 +95,24 @@ def main():
         # ── Marcar inativos por estado ────────────────────────────────────────
         # Agrupa hdnImovel por estado e, para cada estado presente no CSV,
         # marca como inativos os imóveis daquele estado que não apareceram.
-        por_estado: dict[str, list[str]] = defaultdict(list)
-        for p in props:
-            estado = p.get("estado")
-            hdn    = p.get("hdnImovel")
-            if estado and hdn:
-                por_estado[estado].append(hdn)
-
         total_inativos = 0
-        for estado, hdns in sorted(por_estado.items()):
-            n = marcar_inativos(estado, hdns) or 0
-            if n:
-                print(f"  {estado}: {n} marcado(s) inativo(s)")
-            total_inativos += n
+        if not csv_suspeito:
+            por_estado: dict[str, list[str]] = defaultdict(list)
+            for p in props:
+                estado = p.get("estado")
+                hdn    = p.get("hdnImovel")
+                if estado and hdn:
+                    por_estado[estado].append(hdn)
+
+            for estado, hdns in sorted(por_estado.items()):
+                n = marcar_inativos(estado, hdns) or 0
+                if n:
+                    print(f"  {estado}: {n} marcado(s) inativo(s)")
+                total_inativos += n
 
         print(
-            f"\n  ✓ {len(props):,} imóveis | "
+            f"\n  {'⚠ SEM inativação (safeguard)' if csv_suspeito else '✓'} "
+            f"{len(props):,} imóveis | "
             f"+{stats['inseridos']} novos | "
             f"~{stats['atualizados']} atualizados | "
             f"{total_inativos} marcados inativos"
