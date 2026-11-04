@@ -8,8 +8,24 @@ const { auth } = NextAuth(authConfig);
 // Rotas que ficam acessíveis mesmo sem telefone cadastrado
 const GATE_EXEMPT = ["/perfil", "/login", "/cadastro"];
 
+// Crawlers legítimos — sempre permitidos
+const GOOD_BOTS_RE =
+  /googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|applebot|twitterbot|linkedinbot|facebot|ia_archiver|chatgpt-user|gptbot|anthropic-ai|claudebot|petalbot|semrushbot|ahrefsbot/i;
+
+// Bibliotecas HTTP e scrapers que se identificam honestamente
+const BAD_UA_RE =
+  /python-requests|python-urllib|python\/|go-http-client|libwww-perl|curl\/|wget\/|scrapy|httpx|aiohttp|node-fetch|java\/|okhttp|axios\/0\./i;
+
 export default auth((req: NextRequest & { auth?: { user?: { temTelefone?: boolean } } | null }) => {
   const { pathname, searchParams } = req.nextUrl;
+
+  // Bot detection — antes de qualquer lógica de auth
+  const ua = req.headers.get("user-agent") ?? "";
+  if (!GOOD_BOTS_RE.test(ua)) {
+    if (!ua.trim() || BAD_UA_RE.test(ua)) {
+      return new NextResponse(null, { status: 403 });
+    }
+  }
 
   // Admin: proteção por cookie
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
