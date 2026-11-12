@@ -91,6 +91,54 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     });
+
+    // Notificação interna ao atendimento
+    const adminUrl = `${SITE_URL}/admin`;
+    await resend.emails.send({
+      from: EMAIL_FROM,
+      to: "atendimento@buscaleiloescaixa.com.br",
+      subject: `💰 Nova venda — ${nivelLabel} · ${valorFmt}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0C1A25">
+          <div style="background:#01304D;padding:24px 28px;border-radius:12px 12px 0 0">
+            <h1 style="color:#F59E0B;font-size:20px;margin:0">Nova venda · BLC</h1>
+          </div>
+          <div style="background:#F4F9FC;padding:28px;border-radius:0 0 12px 12px;border:1px solid #CBD9E3">
+            <table style="width:100%;border-collapse:collapse;font-size:14px">
+              <tr>
+                <td style="padding:8px 0;color:#4A6070;width:120px">Cliente</td>
+                <td style="padding:8px 0;font-weight:600">${laudo.userName}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#4A6070">E-mail</td>
+                <td style="padding:8px 0"><a href="mailto:${laudo.userEmail}" style="color:#01304D">${laudo.userEmail}</a></td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#4A6070">Plano</td>
+                <td style="padding:8px 0;font-weight:600">${nivelLabel}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#4A6070">Valor</td>
+                <td style="padding:8px 0;font-weight:700;color:#01304D">${valorFmt}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#4A6070">Imóvel</td>
+                <td style="padding:8px 0">${laudo.imovelDescricao}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#4A6070">Laudo #</td>
+                <td style="padding:8px 0">${laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : laudo._id}</td>
+              </tr>
+            </table>
+            <div style="margin-top:24px;text-align:center">
+              <a href="${adminUrl}" style="background:#01304D;color:#F59E0B;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">
+                Abrir painel admin →
+              </a>
+            </div>
+          </div>
+        </div>
+      `,
+    });
   }
 
   return NextResponse.json({ ok: true });
