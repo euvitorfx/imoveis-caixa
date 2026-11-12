@@ -40,6 +40,7 @@ export interface Laudo {
   };
   observacoes?: string;
   pdfUrl?: string;
+  userPhone?: string | null; // enriquecido pelo endpoint admin
 }
 
 export const PRECOS: Record<1 | 2, number> = {

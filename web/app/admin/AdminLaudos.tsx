@@ -277,29 +277,52 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
           <p className="text-xs text-gray-400 px-4 py-4">Nenhum laudo pendente no momento.</p>
         ) : (
           <div className="divide-y">
-            {abandonados.map((l) => (
-              <div key={l._id} className="px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{l.imovelDescricao}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{l.userEmail}</p>
+            {abandonados.map((l) => {
+              const fone = l.userPhone?.replace(/\D/g, "");
+              const waLink = fone
+                ? `https://wa.me/55${fone}?text=${encodeURIComponent(`Olá, ${l.userName}! Vi que você iniciou um pedido de Laudo BLC para o imóvel "${l.imovelDescricao}" e ficou no aguardo do pagamento. Posso te ajudar a concluir?`)}`
+                : null;
+              const emailLink = `mailto:${l.userEmail}?subject=${encodeURIComponent("Seu Laudo BLC está aguardando")}&body=${encodeURIComponent(`Olá, ${l.userName}!\n\nVimos que você iniciou um pedido de Laudo BLC para o imóvel "${l.imovelDescricao}" mas o pagamento ainda não foi confirmado.\n\nPosso te ajudar a concluir?\n\nAtt,\nEquipe BLC`)}`;
+              return (
+                <div key={l._id} className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800">{l.userName}</p>
+                      <p className="text-xs text-gray-500">{l.userEmail}</p>
+                      {l.userPhone && (
+                        <p className="text-xs text-gray-500">{l.userPhone}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-bold" style={{ color: "#01304D" }}>
+                        {l.nivel === 1 ? "R$97" : "R$297"}
+                      </p>
+                      <p className="text-xs text-gray-400">{tempoDecorrido(l.criadoEm)}</p>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-semibold" style={{ color: "#01304D" }}>
-                      {l.nivel === 1 ? "R$97" : "R$297"}
-                    </p>
-                    <p className="text-xs text-gray-400">{tempoDecorrido(l.criadoEm)}</p>
+                  <p className="text-xs text-gray-400 truncate">{l.imovelDescricao}</p>
+                  <div className="flex gap-2 pt-0.5">
+                    {waLink && (
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                        style={{ backgroundColor: "#25D366" }}
+                      >
+                        💬 WhatsApp
+                      </a>
+                    )}
+                    <a
+                      href={emailLink}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      ✉ E-mail
+                    </a>
                   </div>
                 </div>
-                <a
-                  href={`mailto:${l.userEmail}?subject=Seu%20Laudo%20BLC%20está%20aguardando&body=Olá%2C%20vimos%20que%20você%20iniciou%20um%20pedido%20de%20Laudo%20BLC%20e%20gostaríamos%20de%20ajudar.`}
-                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold underline"
-                  style={{ color: "#01304D" }}
-                >
-                  ✉ Entrar em contato
-                </a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -314,12 +337,12 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
             {cliques.slice(0, 15).map((e) => (
               <div key={e._id} className="flex items-center justify-between px-4 py-2.5 gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-700 truncate">{e.userEmail}</p>
-                  <p className="text-xs text-gray-400 truncate">{e.imovelId}</p>
+                  <p className="text-xs font-semibold text-gray-800">{e.userName || e.userEmail}</p>
+                  {e.userName && <p className="text-xs text-gray-400">{e.userEmail}</p>}
                 </div>
                 <div className="text-right shrink-0">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
-                    {e.nivel === 2 ? "Consulta" : "Digital"}
+                    {e.nivel === 2 ? "R$297" : "R$97"}
                   </span>
                   <p className="text-xs text-gray-400 mt-0.5">{tempoDecorrido(e.criadoEm)}</p>
                 </div>

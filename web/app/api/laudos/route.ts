@@ -19,8 +19,20 @@ export async function GET(req: NextRequest) {
     const token = req.cookies.get("admin_token")?.value;
     if (!token || token !== process.env.ADMIN_SECRET)
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
     const laudos = await getLaudosAdmin();
-    return NextResponse.json(laudos);
+
+    // Enriquecer com telefone dos usuários para follow-up
+    const userIds = [...new Set(laudos.map((l) => l.userId).filter(Boolean))];
+    const usersCol = (await clientPromise).db(process.env.MONGODB_DB).collection("users");
+    const users = await usersCol
+      .find({ _id: { $in: userIds.map((id) => { try { return new ObjectId(id); } catch { return null; } }).filter(Boolean) as ObjectId[] } })
+      .project({ _id: 1, telefone: 1, name: 1 })
+      .toArray();
+    const phoneMap = Object.fromEntries(users.map((u) => [u._id.toString(), u.telefone ?? null]));
+
+    const enriched = laudos.map((l) => ({ ...l, userPhone: phoneMap[l.userId] ?? null }));
+    return NextResponse.json(enriched);
   }
 
   const session = await auth();
