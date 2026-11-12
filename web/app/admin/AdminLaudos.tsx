@@ -173,7 +173,7 @@ function FinanceiroTab({ laudos }: { laudos: Laudo[] }) {
   );
 }
 
-type Evento = { _id: string; tipo: string; userId: string; userEmail: string; imovelId: string; nivel?: number; criadoEm: string };
+type Evento = { _id: string; tipo: string; userId: string; userEmail: string; userName?: string; imovelId: string; nivel?: number; criadoEm: string };
 
 function tempoDecorrido(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
