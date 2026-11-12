@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 type CheckoutData = {
   qrCode: string;
@@ -20,15 +20,43 @@ type LaudoInfo = {
 export default function CheckoutPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [laudo, setLaudo] = useState<LaudoInfo | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagandoCartao, setPagandoCartao] = useState(false);
+  const [voltandoDoCartao, setVoltandoDoCartao] = useState(false);
 
-  // Buscar info do laudo
+  const pagoParam = searchParams.get("pago");
+  const erroParam = searchParams.get("erro");
+
+  const checkStatus = useCallback(async () => {
+    const r = await fetch(`/api/laudos/${id}/status`);
+    const data = await r.json();
+    if (data.status && data.status !== "aguardando_pagamento") {
+      router.replace(`/laudos/${id}`);
+    }
+  }, [id, router]);
+
+  // Buscar info do laudo e gerar QR PIX
   useEffect(() => {
+    // Se voltou do MP com pago=1, polling imediato
+    if (pagoParam === "1") {
+      setVoltandoDoCartao(true);
+      setLoading(false);
+      // Polling agressivo por 20s esperando webhook
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        await checkStatus();
+        if (attempts >= 20) clearInterval(poll);
+      }, 1000);
+      return () => clearInterval(poll);
+    }
+
     fetch(`/api/laudos/${id}`)
       .then((r) => r.json())
       .then((data) => {
@@ -39,12 +67,10 @@ export default function CheckoutPage() {
           preco: data.preco,
           status: data.status,
         });
-        // Se já pago, redirecionar
         if (data.status !== "aguardando_pagamento") {
           router.replace(`/laudos/${id}`);
           return;
         }
-        // Gerar QR code PIX
         return fetch("/api/laudos/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -59,17 +85,10 @@ export default function CheckoutPage() {
       })
       .catch(() => setError("Erro ao carregar checkout"))
       .finally(() => setLoading(false));
-  }, [id, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
-  // Polling do status de pagamento a cada 5s
-  const checkStatus = useCallback(async () => {
-    const r = await fetch(`/api/laudos/${id}/status`);
-    const data = await r.json();
-    if (data.status && data.status !== "aguardando_pagamento") {
-      router.replace(`/laudos/${id}`);
-    }
-  }, [id, router]);
-
+  // Polling de status enquanto QR code estiver visível
   useEffect(() => {
     if (!checkout) return;
     const interval = setInterval(checkStatus, 5000);
@@ -83,15 +102,64 @@ export default function CheckoutPage() {
     setTimeout(() => setCopied(false), 3000);
   }
 
+  async function pagarCartao() {
+    setPagandoCartao(true);
+    try {
+      const r = await fetch("/api/laudos/cartao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ laudoId: id }),
+      });
+      const data = await r.json();
+      if (data.initPoint) {
+        window.location.href = data.initPoint;
+      } else {
+        setError(data.error ?? "Erro ao abrir pagamento com cartão");
+        setPagandoCartao(false);
+      }
+    } catch {
+      setError("Erro ao conectar ao servidor");
+      setPagandoCartao(false);
+    }
+  }
+
   const valorFmt = laudo
     ? (laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
     : "";
+
+  // Voltando do MP após cartão
+  if (voltandoDoCartao) {
+    return (
+      <div className="max-w-md mx-auto text-center py-20 space-y-3">
+        <div className="text-4xl">⏳</div>
+        <p className="font-semibold text-gray-700">Confirmando seu pagamento...</p>
+        <p className="text-sm text-gray-400">Aguarde, isso pode levar alguns segundos.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
       <div className="max-w-md mx-auto text-center py-20">
         <div className="text-4xl mb-4">⏳</div>
         <p className="text-gray-500">Gerando QR code PIX...</p>
+      </div>
+    );
+  }
+
+  if (erroParam === "pagamento") {
+    return (
+      <div className="max-w-md mx-auto text-center py-20 space-y-3">
+        <div className="text-4xl">❌</div>
+        <p className="font-semibold text-gray-700">Pagamento não concluído</p>
+        <p className="text-sm text-gray-400">O pagamento foi cancelado ou recusado. Você pode tentar novamente.</p>
+        <button
+          onClick={() => router.replace(`/laudos/checkout/${id}`)}
+          className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+          style={{ backgroundColor: "#01304D" }}
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -126,38 +194,69 @@ export default function CheckoutPage() {
       {/* Valor */}
       <div className="bg-white rounded-2xl shadow p-5 flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wide">Valor</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wide">Valor total</p>
           <p className="text-3xl font-bold" style={{ color: "#01304D" }}>{valorFmt}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-400">Pagamento via</p>
-          <p className="font-bold text-gray-700">PIX</p>
-          <p className="text-xs text-gray-400">instantâneo</p>
+          <p className="text-xs text-gray-400">Pagamento seguro via</p>
+          <p className="font-bold text-gray-700">Mercado Pago</p>
         </div>
       </div>
 
-      {checkout && (
-        <>
-          {/* QR Code */}
-          <div className="bg-white rounded-2xl shadow p-5 text-center">
-            <p className="text-sm font-semibold text-gray-700 mb-4">
-              Escaneie o QR code com o app do seu banco
-            </p>
-            {checkout.qrCodeUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={checkout.qrCodeUrl}
-                alt="QR Code PIX"
-                className="w-48 h-48 mx-auto border border-gray-100 rounded-xl"
-              />
-            ) : (
-              <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
-                <span className="text-gray-400 text-sm">QR code indisponível</span>
-              </div>
-            )}
+      {/* Opções de pagamento */}
+      <div className="bg-white rounded-2xl shadow overflow-hidden">
+        <div className="px-5 pt-4 pb-2">
+          <p className="text-sm font-semibold text-gray-700">Escolha como pagar</p>
+        </div>
 
-            <div className="mt-4">
-              <p className="text-xs text-gray-400 mb-2">Ou copie o código Pix Copia e Cola:</p>
+        {/* Cartão */}
+        <div className="px-5 pb-4">
+          <button
+            onClick={pagarCartao}
+            disabled={pagandoCartao}
+            className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 font-semibold text-sm transition-all disabled:opacity-60"
+            style={{ borderColor: "#01304D", color: "#01304D" }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">💳</span>
+              <div className="text-left">
+                <p className="font-bold">Cartão de crédito</p>
+                <p className="text-xs font-normal text-gray-400">Visa, Mastercard, Elo e outros</p>
+              </div>
+            </div>
+            <span>{pagandoCartao ? "Aguarde..." : "→"}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 px-5 pb-4">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-xs text-gray-400 shrink-0">ou pague com PIX</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        {/* PIX */}
+        {checkout && (
+          <div className="px-5 pb-5 space-y-4">
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-700 mb-3">
+                Escaneie o QR code com o app do seu banco
+              </p>
+              {checkout.qrCodeUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={checkout.qrCodeUrl}
+                  alt="QR Code PIX"
+                  className="w-44 h-44 mx-auto border border-gray-100 rounded-xl"
+                />
+              ) : (
+                <div className="w-44 h-44 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
+                  <span className="text-gray-400 text-sm">QR code indisponível</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-400 mb-1.5 text-center">Ou use o Pix Copia e Cola:</p>
               <div className="flex gap-2">
                 <input
                   value={checkout.qrCode}
@@ -174,27 +273,29 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
+            <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
               <span>🔄</span>
               <span>Verificando pagamento automaticamente...</span>
             </p>
           </div>
+        )}
+      </div>
 
-          {/* Instruções */}
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-            <p className="font-semibold text-blue-800 mb-1">Como pagar com PIX</p>
-            <ol className="text-blue-700 space-y-1 text-xs list-decimal list-inside">
-              <li>Abra o app do seu banco</li>
-              <li>Escolha &ldquo;Pagar com PIX&rdquo;</li>
-              <li>Escaneie o QR code ou cole o código</li>
-              <li>Confirme o pagamento</li>
-            </ol>
-          </div>
-        </>
+      {/* Instruções PIX */}
+      {checkout && (
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+          <p className="font-semibold text-blue-800 mb-1">Como pagar com PIX</p>
+          <ol className="text-blue-700 space-y-1 text-xs list-decimal list-inside">
+            <li>Abra o app do seu banco</li>
+            <li>Escolha &ldquo;Pagar com PIX&rdquo;</li>
+            <li>Escaneie o QR code ou cole o código</li>
+            <li>Confirme o pagamento</li>
+          </ol>
+        </div>
       )}
 
       <p className="text-center text-xs text-gray-400">
-        Pagamento processado com segurança via Pagar.me
+        Pagamento processado com segurança via Mercado Pago
       </p>
     </div>
   );

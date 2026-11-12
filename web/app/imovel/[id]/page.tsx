@@ -10,6 +10,7 @@ import { SITE_URL, SITE_NAME, SITE_EMAIL, SITE_WHATSAPP } from "@/lib/config";
 import { getCorretoresAprovados, Corretor } from "@/lib/corretores";
 import AbrirProcessoBtn from "./AbrirProcessoBtn";
 import SolicitarLaudoBtn from "@/components/SolicitarLaudoBtn";
+import LaudoPopup from "@/components/LaudoPopup";
 
 export const revalidate = 3600;
 
@@ -274,6 +275,7 @@ export default async function DetalheImovel({
 
   return (
     <div className="max-w-4xl mx-auto">
+      <LaudoPopup imovelId={imovel._id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -501,7 +503,7 @@ export default async function DetalheImovel({
           </div>
 
           {/* Laudo BLC */}
-          <div className="mb-4">
+          <div id="solicitar-laudo" className="mb-4">
             <SolicitarLaudoBtn
               imovelId={imovel._id}
               imovelDescricao={titulo}
