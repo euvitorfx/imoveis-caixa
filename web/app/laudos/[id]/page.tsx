@@ -59,6 +59,7 @@ export default async function LaudoPage({ params }: Params) {
       <div className="rounded-2xl p-5" style={{ backgroundColor: "#01304D" }}>
         <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#F59E0B" }}>
           {laudo.nivel === 1 ? "Laudo Digital BLC" : "Laudo BLC + Consulta"}
+          {laudo.numero && <span className="ml-2 opacity-70">· #{String(laudo.numero).padStart(4, "0")}</span>}
         </p>
         <h1 className="text-white font-bold text-xl leading-tight">
           {laudo.imovelDescricao}

@@ -296,7 +296,9 @@ export default function AdminLaudos() {
             </div>
 
             <p className="text-xs text-gray-400 mt-2">
-              <span className="font-mono">#{laudo._id!.slice(-8).toUpperCase()}</span>
+              <span className="font-mono">
+                {laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`}
+              </span>
               {" · "}{new Date(laudo.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
               {laudo.nivel === 1 ? "Digital" : "+ Consulta"} ·{" "}
               {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}

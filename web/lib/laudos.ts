@@ -15,9 +15,21 @@ function col() {
   );
 }
 
+async function nextLaudoNumero(): Promise<number> {
+  const client = await clientPromise;
+  const counters = client.db(process.env.MONGODB_DB).collection("counters");
+  const r = await counters.findOneAndUpdate(
+    { _id: "laudos" as unknown as ObjectId },
+    { $inc: { seq: 1 } },
+    { upsert: true, returnDocument: "after" }
+  );
+  return (r?.seq as number) ?? 1;
+}
+
 export async function createLaudo(data: Omit<Laudo, "_id">): Promise<string> {
+  const numero = await nextLaudoNumero();
   const c = await col();
-  const result = await c.insertOne(data as Omit<Laudo, "_id"> & { _id?: ObjectId });
+  const result = await c.insertOne({ ...data, numero } as Omit<Laudo, "_id"> & { _id?: ObjectId });
   return result.insertedId.toString();
 }
 

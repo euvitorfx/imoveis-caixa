@@ -162,7 +162,9 @@ export default async function PerfilPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{laudo.imovelDescricao}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      <span className="font-mono">#{laudo._id!.slice(-8).toUpperCase()}</span>
+                      <span className="font-mono">
+                        {laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`}
+                      </span>
                       {" · "}{laudo.nivel === 1 ? "Digital" : "+ Consulta"} · {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </p>
                   </div>

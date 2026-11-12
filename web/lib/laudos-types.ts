@@ -27,6 +27,7 @@ export interface Laudo {
   nivel: 1 | 2;
   preco: number; // centavos: 9700 | 29700
   status: LaudoStatus;
+  numero?: number; // sequencial global: #0001, #0002...
   mpPaymentId?: string;
   paidAt?: string;
   criadoEm: string;
