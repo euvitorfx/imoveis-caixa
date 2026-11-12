@@ -32,19 +32,19 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
       onClick={fechar}
     >
       <div
-        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        style={{ maxHeight: "90vh" }}
+        className="w-full rounded-2xl overflow-hidden shadow-2xl"
+        style={{ maxWidth: 460 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header navy */}
-        <div className="px-5 pt-5 pb-4 shrink-0" style={{ backgroundColor: "#01304D" }}>
+        <div className="px-6 pt-5 pb-4" style={{ backgroundColor: "#01304D" }}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#F59E0B" }}>
                 Novo serviço
               </p>
               <h2 className="text-white font-bold text-xl leading-tight mb-1">Laudo BLC</h2>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
                 Análise profissional antes de você arrematar
               </p>
             </div>
@@ -58,100 +58,70 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
           </div>
         </div>
 
-        {/* Body scrollável */}
-        <div className="bg-white overflow-y-auto px-5 py-4 space-y-4">
+        {/* Body */}
+        <div className="bg-white px-6 py-5 space-y-4">
 
-          {/* 4 blocos */}
+          {/* 4 blocos em grid 2×2 */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
               O que está incluído
             </p>
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                {
-                  icon: "📊",
-                  titulo: "Análise de mercado",
-                  desc: "Comparativo de preços na região e estimativa do valor real do imóvel",
-                },
-                {
-                  icon: "📋",
-                  titulo: "Análise da matrícula",
-                  desc: "Verificação de ônus, pendências e histórico de proprietários",
-                },
-                {
-                  icon: "⚖️",
-                  titulo: "Análise jurídica",
-                  desc: "Riscos legais, dívidas, execuções fiscais e situação do ocupante",
-                },
-                {
-                  icon: "💰",
-                  titulo: "Viabilidade financeira",
-                  desc: "Simulação de ROI, custos estimados de posse e prazo de retorno",
-                },
+                { icon: "📊", titulo: "Mercado", desc: "Comparativo de preços e valor real do imóvel" },
+                { icon: "📋", titulo: "Matrícula", desc: "Ônus, pendências e histórico de proprietários" },
+                { icon: "⚖️", titulo: "Jurídica", desc: "Riscos legais, dívidas e situação do ocupante" },
+                { icon: "💰", titulo: "Viabilidade", desc: "ROI, custos estimados e prazo de retorno" },
               ].map(({ icon, titulo, desc }) => (
-                <div
-                  key={titulo}
-                  className="flex gap-3 items-start rounded-xl border border-gray-100 px-3 py-2.5"
-                >
-                  <span className="text-base shrink-0 mt-0.5">{icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 leading-tight">{titulo}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-snug">{desc}</p>
-                  </div>
+                <div key={titulo} className="rounded-xl border border-gray-100 p-3">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{icon} {titulo}</p>
+                  <p className="text-xs text-gray-500 leading-snug">{desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Planos */}
+          {/* Planos lado a lado */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
               Escolha seu plano
             </p>
-            <div className="space-y-2">
+            <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 1.5fr" }}>
 
               {/* Digital */}
-              <div className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-3">
+              <div className="rounded-xl border border-gray-100 p-3 flex flex-col justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-gray-800">Laudo digital</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Relatório completo em PDF</p>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">Laudo digital</p>
+                  <p className="text-xs text-gray-400 mb-3">Relatório completo em PDF</p>
                 </div>
-                <p className="text-lg font-bold shrink-0" style={{ color: "#01304D" }}>R$97</p>
+                <p className="text-xl font-bold" style={{ color: "#01304D" }}>R$97</p>
               </div>
 
               {/* Digital + Consulta */}
-              <div
-                className="rounded-xl px-3 py-3"
-                style={{ backgroundColor: "#FEF3C7", border: "1.5px solid #F59E0B" }}
-              >
+              <div className="rounded-xl p-3" style={{ backgroundColor: "#FEF3C7", border: "1.5px solid #F59E0B" }}>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-sm font-bold" style={{ color: "#92400E" }}>
-                        Digital + consulta ao vivo
-                      </p>
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: "#F59E0B", color: "#78350F" }}
-                      >
-                        Mais completo
-                      </span>
-                    </div>
-                    <p className="text-xs" style={{ color: "#B45309" }}>
-                      Tudo do digital, mais:
+                    <span
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full inline-block mb-1"
+                      style={{ backgroundColor: "#F59E0B", color: "#78350F" }}
+                    >
+                      Mais completo
+                    </span>
+                    <p className="text-sm font-bold leading-tight" style={{ color: "#92400E" }}>
+                      Digital + consulta ao vivo
                     </p>
                   </div>
-                  <p className="text-lg font-bold shrink-0" style={{ color: "#92400E" }}>R$297</p>
+                  <p className="text-xl font-bold shrink-0" style={{ color: "#92400E" }}>R$297</p>
                 </div>
-                <ul className="space-y-1.5">
+                <ul className="space-y-1">
                   {[
-                    "30 min ao vivo com Vítor Valença, especialista em leilões",
-                    "Tire dúvidas específicas sobre este imóvel",
-                    "Estratégia personalizada de lance e arrematação",
-                    "Orientação no pós-arrematação",
+                    "30 min ao vivo com especialista",
+                    "Dúvidas sobre este imóvel",
+                    "Estratégia de lance",
+                    "Orientação pós-arrematação",
                   ].map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-xs" style={{ color: "#92400E" }}>
-                      <span className="shrink-0 mt-0.5" style={{ color: "#D97706" }}>✓</span>
+                    <li key={item} className="flex gap-1.5 text-xs" style={{ color: "#92400E" }}>
+                      <span className="shrink-0" style={{ color: "#D97706" }}>✓</span>
                       <span>{item}</span>
                     </li>
                   ))}
@@ -162,10 +132,10 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
           </div>
 
           {/* CTAs */}
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2">
             <button
               onClick={fechar}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 shrink-0"
             >
               Depois
             </button>
