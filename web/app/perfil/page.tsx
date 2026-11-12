@@ -5,6 +5,7 @@ import clientPromise from "@/lib/mongodb";
 import { getCorretorByUserId } from "@/lib/corretores";
 import { getLaudosByUser, STATUS_LABEL } from "@/lib/laudos";
 import type { LaudoStatus } from "@/lib/laudos";
+import ExcluirLaudoBtn from "@/components/ExcluirLaudoBtn";
 import FotoForm from "./FotoForm";
 import PreferenciasForm from "./PreferenciasForm";
 import EditarDadosForm from "./EditarDadosForm";
@@ -172,6 +173,11 @@ export default async function PerfilPage({
                     {STATUS_LABEL[laudo.status]}
                   </span>
                 </a>
+                {laudo.status === "aguardando_pagamento" && (
+                  <div className="px-3 pb-2">
+                    <ExcluirLaudoBtn laudoId={laudo._id!} />
+                  </div>
+                )}
               );
             })}
           </div>
