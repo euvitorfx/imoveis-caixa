@@ -12,9 +12,6 @@ import { ObjectId } from "mongodb";
 
 // GET /api/laudos — lista laudos do usuário logado (ou todos para admin)
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
 
@@ -25,6 +22,9 @@ export async function GET(req: NextRequest) {
     const laudos = await getLaudosAdmin();
     return NextResponse.json(laudos);
   }
+
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   const laudos = await getLaudosByUser(session.user.id);
   return NextResponse.json(laudos);
