@@ -163,9 +163,15 @@ export default async function LaudoPage({ params }: Params) {
                 </div>
 
                 {bloco.status === "concluido" && bloco.conteudo && (
-                  <p className="mt-2 text-xs text-gray-600 line-clamp-3">
-                    {bloco.conteudo.slice(0, 200)}...
-                  </p>
+                  laudo.status === "entregue" ? (
+                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {bloco.conteudo}
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-gray-500 italic">
+                      Análise concluída — disponível quando o laudo for entregue.
+                    </p>
+                  )
                 )}
               </div>
             )
