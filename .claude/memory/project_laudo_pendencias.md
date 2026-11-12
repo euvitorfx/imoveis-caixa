@@ -25,7 +25,7 @@ Produto lançado em 12/nov/2026. Fluxo de compra e pagamento funcionando. Gaps i
 
 5. ~~**Prazo estimado visível**~~ ✅ resolvido em 12/nov/2026 — card verde em `/laudos/[id]` quando status é `pago` ou `em_producao`.
 
-6. **Numeração sequencial corrigida** — Fix de dado: laudo #1 (criado antes do contador existir) não tem `numero`. Laudos novos recebem número corretamente. Pendente: migration manual no MongoDB para corrigir laudo antigo sem `numero`.
+6. ~~**Numeração sequencial corrigida**~~ ✅ resolvido em 12/nov/2026 — migration `web/scripts/fix-laudo-numero.mjs` executada; 1 laudo antigo sem numero recebeu #0003; counter agora em 3. Laudos novos já recebem numero corretamente.
 
 7. ~~**Novo PIX se QR code expirar**~~ ✅ resolvido em 12/nov/2026 — checkout detecta expiração a cada 30s, exibe botão "Gerar novo QR Code"; backend usa idempotency key com bucket de 1h para permitir renovação sem duplicar cobranças.
 
