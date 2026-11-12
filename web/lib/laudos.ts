@@ -27,8 +27,7 @@ export interface Laudo {
   nivel: 1 | 2; // 1 = R$97 digital, 2 = R$297 + call
   preco: number; // em centavos: 9700 | 29700
   status: LaudoStatus;
-  pagarmeOrderId?: string;
-  pagarmeChargeId?: string;
+  mpPaymentId?: string;
   paidAt?: string;
   criadoEm: string;
   atualizadoEm: string;
@@ -89,9 +88,9 @@ export async function updateLaudo(id: string, update: Partial<Laudo>): Promise<v
   );
 }
 
-export async function getLaudoByPagarmeOrderId(orderId: string): Promise<Laudo | null> {
+export async function getLaudoByMpPaymentId(paymentId: string): Promise<Laudo | null> {
   const c = await col();
-  const doc = await c.findOne({ pagarmeOrderId: orderId });
+  const doc = await c.findOne({ mpPaymentId: paymentId });
   if (!doc) return null;
   return { ...doc, _id: doc._id!.toString() } as unknown as Laudo;
 }

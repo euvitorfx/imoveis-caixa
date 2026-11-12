@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getLaudoById, updateLaudo, PRECOS } from "@/lib/laudos";
 
-function pagarmeAuth() {
-  const key = process.env.PAGARME_API_KEY;
-  if (!key) throw new Error("PAGARME_API_KEY não definida");
-  return `Basic ${Buffer.from(key + ":").toString("base64")}`;
+function mpAuth() {
+  const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!token) throw new Error("MERCADOPAGO_ACCESS_TOKEN não definida");
+  return `Bearer ${token}`;
 }
 
 // POST /api/laudos/checkout
 // Body: { laudoId }
-// Cria uma ordem PIX no Pagar.me e retorna os dados do QR code
+// Cria um pagamento PIX no Mercado Pago e retorna os dados do QR code
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
@@ -22,112 +22,98 @@ export async function POST(req: NextRequest) {
   if (!laudo) return NextResponse.json({ error: "Laudo não encontrado" }, { status: 404 });
   if (laudo.userId !== session.user.id) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
-  // Se já tem um orderId do Pagar.me, busca o status atual
-  if (laudo.pagarmeOrderId) {
+  // Se já tem um pagamento MP pendente, reutiliza
+  if (laudo.mpPaymentId) {
     try {
       const existing = await fetch(
-        `https://api.pagar.me/core/v5/orders/${laudo.pagarmeOrderId}`,
-        { headers: { Authorization: pagarmeAuth() } }
+        `https://api.mercadopago.com/v1/payments/${laudo.mpPaymentId}`,
+        { headers: { Authorization: mpAuth() } }
       );
-      const data = await existing.json();
-      const charge = data.charges?.[0];
-      const tx = charge?.last_transaction;
-      if (tx?.qr_code) {
-        return NextResponse.json({
-          orderId: data.id,
-          chargeId: charge.id,
-          qrCode: tx.qr_code,
-          qrCodeUrl: tx.qr_code_url,
-          expiresAt: tx.expires_at,
-          status: data.status,
-        });
+      if (existing.ok) {
+        const data = await existing.json();
+        const tx = data.point_of_interaction?.transaction_data;
+        if (tx?.qr_code && data.status === "pending") {
+          return NextResponse.json({
+            orderId: String(data.id),
+            qrCode: tx.qr_code,
+            qrCodeUrl: tx.qr_code_base64
+              ? `data:image/png;base64,${tx.qr_code_base64}`
+              : "",
+            expiresAt: data.date_of_expiration ?? "",
+            status: data.status,
+          });
+        }
       }
     } catch {
-      // fall through to create new order
+      // cria novo pagamento
     }
   }
 
-  // Criar nova ordem no Pagar.me
-  const nivelLabel = laudo.nivel === 1 ? "Laudo Digital BLC" : "Laudo BLC + Consulta com Especialista";
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://www.buscaleiloescaixa.com.br";
+  const nivelLabel =
+    laudo.nivel === 1
+      ? "Laudo Digital BLC"
+      : "Laudo BLC + Consulta com Especialista";
 
-  const orderBody = {
-    items: [
-      {
-        amount: PRECOS[laudo.nivel],
-        description: nivelLabel,
-        quantity: 1,
-        code: `LAUDO-N${laudo.nivel}`,
-      },
-    ],
-    customer: {
-      name: laudo.userName || "Cliente BLC",
+  const [firstName, ...rest] = (laudo.userName || "Cliente BLC").split(" ");
+
+  const paymentBody = {
+    transaction_amount: PRECOS[laudo.nivel] / 100, // MP usa BRL, não centavos
+    description: `${nivelLabel} — ${laudo.imovelDescricao.slice(0, 100)}`,
+    payment_method_id: "pix",
+    payer: {
       email: laudo.userEmail,
-      type: "individual",
+      first_name: firstName || "Cliente",
+      last_name: rest.join(" ") || "BLC",
     },
-    payments: [
-      {
-        payment_method: "pix",
-        pix: {
-          expires_in: 3600, // 1 hora
-          additional_information: [
-            { name: "Imóvel", value: laudo.imovelDescricao.slice(0, 50) },
-          ],
-        },
-      },
-    ],
-    metadata: {
-      laudo_id: laudoId,
-      user_id: session.user.id,
-      imovel_id: laudo.imovelId,
-    },
-    closed: false,
-    antifraud_enabled: false,
+    external_reference: laudoId,
+    date_of_expiration: new Date(Date.now() + 3600 * 1000).toISOString(),
   };
 
   let res: Response;
   try {
-    res = await fetch("https://api.pagar.me/core/v5/orders", {
+    res = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
-        Authorization: pagarmeAuth(),
+        Authorization: mpAuth(),
         "Content-Type": "application/json",
+        "X-Idempotency-Key": laudoId,
       },
-      body: JSON.stringify(orderBody),
+      body: JSON.stringify(paymentBody),
     });
   } catch (err) {
-    console.error("[laudos/checkout] Pagar.me fetch error:", err);
-    return NextResponse.json({ error: "Erro ao conectar com gateway de pagamento" }, { status: 502 });
+    console.error("[laudos/checkout] MP fetch error:", err);
+    return NextResponse.json(
+      { error: "Erro ao conectar com gateway de pagamento" },
+      { status: 502 }
+    );
   }
 
   if (!res.ok) {
     const errBody = await res.text();
-    console.error("[laudos/checkout] Pagar.me error:", res.status, errBody);
-    return NextResponse.json({ error: "Erro no gateway de pagamento", detail: errBody }, { status: 502 });
+    console.error("[laudos/checkout] MP error:", res.status, errBody);
+    return NextResponse.json(
+      { error: "Erro no gateway de pagamento" },
+      { status: 502 }
+    );
   }
 
   const data = await res.json();
-  const charge = data.charges?.[0];
-  const tx = charge?.last_transaction;
+  const tx = data.point_of_interaction?.transaction_data;
 
   if (!tx?.qr_code) {
     console.error("[laudos/checkout] QR code não retornado:", JSON.stringify(data));
-    return NextResponse.json({ error: "QR code PIX não gerado pelo gateway" }, { status: 502 });
+    return NextResponse.json({ error: "QR code PIX não gerado" }, { status: 502 });
   }
 
-  // Salvar IDs no laudo
-  await updateLaudo(laudoId, {
-    pagarmeOrderId: data.id,
-    pagarmeChargeId: charge.id,
-  });
+  await updateLaudo(laudoId, { mpPaymentId: String(data.id) });
 
   return NextResponse.json({
-    orderId: data.id,
-    chargeId: charge.id,
+    orderId: String(data.id),
     qrCode: tx.qr_code,
-    qrCodeUrl: tx.qr_code_url,
-    expiresAt: tx.expires_at,
+    qrCodeUrl: tx.qr_code_base64
+      ? `data:image/png;base64,${tx.qr_code_base64}`
+      : "",
+    expiresAt: data.date_of_expiration ?? "",
     status: data.status,
-    baseUrl,
   });
 }
