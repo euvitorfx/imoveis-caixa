@@ -327,24 +327,35 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
         )}
       </div>
 
-      {/* Cliques recentes por imóvel */}
-      {cliques.length > 0 && (
+      {/* Todos os eventos — lista detalhada por usuário */}
+      {eventos.length > 0 && (
         <div className="bg-white rounded-xl border overflow-hidden">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
-            Cliques recentes nos planos
+            Atividade detalhada — últimos {dias} dias
           </p>
           <div className="divide-y">
-            {cliques.slice(0, 15).map((e) => (
-              <div key={e._id} className="flex items-center justify-between px-4 py-2.5 gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-gray-800">{e.userName || e.userEmail}</p>
-                  {e.userName && <p className="text-xs text-gray-400">{e.userEmail}</p>}
+            {eventos.slice(0, 30).map((e) => (
+              <div key={e._id} className="flex items-start justify-between px-4 py-3 gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">
+                    {e.userName || e.userEmail}
+                  </p>
+                  {e.userName && (
+                    <p className="text-xs text-gray-400">{e.userEmail}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{e.imovelId}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
-                    {e.nivel === 2 ? "R$297" : "R$97"}
+                <div className="text-right shrink-0 space-y-1">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full block ${
+                    e.tipo === "clicou_plano"
+                      ? e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {e.tipo === "clicou_plano"
+                      ? `Clicou · ${e.nivel === 2 ? "R$297" : "R$97"}`
+                      : "Visualizou"}
                   </span>
-                  <p className="text-xs text-gray-400 mt-0.5">{tempoDecorrido(e.criadoEm)}</p>
+                  <p className="text-xs text-gray-400">{tempoDecorrido(e.criadoEm)}</p>
                 </div>
               </div>
             ))}
