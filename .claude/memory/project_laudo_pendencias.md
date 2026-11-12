@@ -13,11 +13,11 @@ Produto lançado em 12/nov/2026. Fluxo de compra e pagamento funcionando. Gaps i
 
 ## Crítico — produto não funciona sem isso
 
-1. **Interface admin para produzir o laudo** — Tela no painel admin onde o admin clica em um laudo pago, muda status para "em_producao", preenche os 4 blocos (mercado, matrícula, jurídica, viabilidade) com texto, marca cada bloco como concluído e muda para "entregue". Sem isso o laudo não pode ser entregue.
+1. ~~**Interface admin para produzir o laudo**~~ ✅ já existia — tela com 4 blocos, textareas, botão "Marcar como entregue" no `AdminLaudos.tsx`.
 
-2. **E-mail de entrega ao cliente** — Quando admin marcar como "entregue", disparar e-mail automático com link direto para o laudo. Hoje só existe e-mail de confirmação de pagamento.
+2. ~~**E-mail de entrega ao cliente**~~ ✅ resolvido em 12/nov/2026 — `PATCH /api/laudos/[id]` dispara e-mail via Resend ao detectar transição para `status: "entregue"`.
 
-3. **Exibição completa do laudo na página do cliente** — `/laudos/[id]` trunca o conteúdo em 200 chars. Quando entregue, mostrar conteúdo completo ou redirecionar direto para o PDF.
+3. ~~**Exibição completa do laudo na página do cliente**~~ ✅ resolvido em 12/nov/2026 — `/laudos/[id]` agora mostra conteúdo completo (`whitespace-pre-wrap`) quando `status === "entregue"`; antes da entrega exibe aviso.
 
 ## Importante — melhora operação e experiência
 
