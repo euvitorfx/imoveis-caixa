@@ -155,29 +155,30 @@ export default async function PerfilPage({
                 cancelado:            "bg-gray-100 text-gray-500",
               };
               return (
-                <a
-                  key={laudo._id}
-                  href={`/laudos/${laudo._id}`}
-                  className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{laudo.imovelDescricao}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      <span className="font-mono">
-                        {laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`}
-                      </span>
-                      {" · "}{laudo.nivel === 1 ? "Digital" : "+ Consulta"} · {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </p>
-                  </div>
-                  <span className={`ml-3 shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${statusClass[laudo.status]}`}>
-                    {STATUS_LABEL[laudo.status]}
-                  </span>
-                </a>
-                {laudo.status === "aguardando_pagamento" && (
-                  <div className="px-3 pb-2">
-                    <ExcluirLaudoBtn laudoId={laudo._id!} />
-                  </div>
-                )}
+                <div key={laudo._id} className="border border-gray-100 rounded-xl overflow-hidden">
+                  <a
+                    href={`/laudos/${laudo._id}`}
+                    className="flex items-center justify-between px-3 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{laudo.imovelDescricao}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        <span className="font-mono">
+                          {laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`}
+                        </span>
+                        {" · "}{laudo.nivel === 1 ? "Digital" : "+ Consulta"} · {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </div>
+                    <span className={`ml-3 shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${statusClass[laudo.status]}`}>
+                      {STATUS_LABEL[laudo.status]}
+                    </span>
+                  </a>
+                  {laudo.status === "aguardando_pagamento" && (
+                    <div className="px-3 pb-2 border-t border-gray-50">
+                      <ExcluirLaudoBtn laudoId={laudo._id!} />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
