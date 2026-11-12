@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import { getCorretorByUserId } from "@/lib/corretores";
+import { getLaudosByUser, STATUS_LABEL } from "@/lib/laudos";
+import type { LaudoStatus } from "@/lib/laudos";
 import FotoForm from "./FotoForm";
 import PreferenciasForm from "./PreferenciasForm";
 import EditarDadosForm from "./EditarDadosForm";
@@ -29,10 +31,11 @@ export default async function PerfilPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [user, params, corretor] = await Promise.all([
+  const [user, params, corretor, laudos] = await Promise.all([
     getUserData(session.user.id),
     searchParams,
     getCorretorByUserId(session.user.id),
+    getLaudosByUser(session.user.id),
   ]);
 
   const obrigatorio = params.obrigatorio === "1";
@@ -136,6 +139,41 @@ export default async function PerfilPage({
 
       {/* Dashboard de afiliado — visível apenas para influencers cadastrados */}
       {user?.isAfiliado && <AfiliadoDashboard />}
+
+      {/* Meus Laudos */}
+      {laudos.length > 0 && (
+        <div className="bg-white rounded-2xl shadow p-5">
+          <h2 className="font-semibold text-gray-800 mb-3">Meus laudos</h2>
+          <div className="space-y-2">
+            {laudos.map((laudo) => {
+              const statusClass: Record<LaudoStatus, string> = {
+                aguardando_pagamento: "bg-yellow-100 text-yellow-700",
+                pago:                 "bg-blue-100 text-blue-700",
+                em_producao:          "bg-amber-100 text-amber-700",
+                entregue:             "bg-green-100 text-green-700",
+                cancelado:            "bg-gray-100 text-gray-500",
+              };
+              return (
+                <a
+                  key={laudo._id}
+                  href={`/laudos/${laudo._id}`}
+                  className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{laudo.imovelDescricao}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {laudo.nivel === 1 ? "Digital" : "+ Consulta"} · {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                  </div>
+                  <span className={`ml-3 shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${statusClass[laudo.status]}`}>
+                    {STATUS_LABEL[laudo.status]}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Links */}
       <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-0.5">
