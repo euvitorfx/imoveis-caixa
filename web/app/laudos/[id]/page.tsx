@@ -102,6 +102,24 @@ export default async function LaudoPage({ params }: Params) {
         </div>
       )}
 
+      {/* Prazo estimado */}
+      {(laudo.status === "pago" || laudo.status === "em_producao") && (
+        <div
+          className="rounded-xl p-4 text-sm flex items-start gap-3"
+          style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
+        >
+          <span className="text-lg shrink-0">⏱</span>
+          <div>
+            <p className="font-semibold text-green-800">
+              {laudo.status === "em_producao" ? "Em produção" : "Pagamento confirmado"}
+            </p>
+            <p className="text-green-700 text-xs mt-0.5">
+              Prazo estimado: <strong>até 2 dias úteis</strong>. Você receberá um e-mail quando o laudo estiver pronto.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Nível 2 — instrução de agendamento */}
       {laudo.nivel === 2 && laudo.status !== "aguardando_pagamento" && (
         <div

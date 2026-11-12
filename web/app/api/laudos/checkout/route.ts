@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: mpAuth(),
         "Content-Type": "application/json",
-        "X-Idempotency-Key": laudoId,
+        // Bucket de 1h: previne duplicatas mas permite novo QR após expiração
+      "X-Idempotency-Key": `${laudoId}-${Math.floor(Date.now() / 3_600_000)}`,
       },
       body: JSON.stringify(paymentBody),
     });

@@ -52,6 +52,44 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const statusAnterior = laudo.status;
   await updateLaudo(id, body);
 
+  // Dispara e-mail "em produção" quando admin inicia o trabalho
+  if (body.status === "em_producao" && statusAnterior !== "em_producao") {
+    const resend = getResend();
+    if (resend && laudo.userEmail) {
+      const nivelLabel = laudo.nivel === 1 ? "Laudo Digital" : "Laudo + Consulta com Especialista";
+      const laudoUrl = `${SITE_URL}/laudos/${id}`;
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: laudo.userEmail,
+        subject: `📋 Seu ${nivelLabel} BLC está em produção`,
+        html: `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0C1A25">
+            <div style="background:#01304D;padding:24px 28px;border-radius:12px 12px 0 0">
+              <h1 style="color:#F59E0B;font-size:20px;margin:0">Busca Leilões Caixa</h1>
+            </div>
+            <div style="background:#F4F9FC;padding:28px;border-radius:0 0 12px 12px;border:1px solid #CBD9E3">
+              <h2 style="font-size:18px;margin-top:0">Começamos a trabalhar no seu laudo! 📋</h2>
+              <p>Olá, <strong>${laudo.userName}</strong>!</p>
+              <p>Seu <strong>${nivelLabel}</strong> para o imóvel abaixo está em produção:</p>
+              <div style="background:white;border:1px solid #CBD9E3;border-radius:8px;padding:14px 16px;margin:16px 0">
+                <strong>${laudo.imovelDescricao}</strong>
+              </div>
+              <p>Prazo estimado: <strong>até 2 dias úteis</strong>. Você receberá um e-mail assim que estiver pronto.</p>
+              <div style="margin-top:24px;text-align:center">
+                <a href="${laudoUrl}" style="background:#F59E0B;color:#01304D;font-weight:700;padding:14px 28px;border-radius:8px;text-decoration:none;display:inline-block">
+                  Acompanhar meu laudo →
+                </a>
+              </div>
+              <p style="font-size:12px;color:#4A6070;margin-top:24px">
+                Dúvidas? <a href="mailto:atendimento@buscaleiloescaixa.com.br">atendimento@buscaleiloescaixa.com.br</a>
+              </p>
+            </div>
+          </div>
+        `,
+      });
+    }
+  }
+
   // Dispara e-mail de entrega quando admin marca como "entregue"
   if (body.status === "entregue" && statusAnterior !== "entregue") {
     const resend = getResend();

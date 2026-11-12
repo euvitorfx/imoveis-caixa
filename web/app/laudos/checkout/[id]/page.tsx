@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [pagandoCartao, setPagandoCartao] = useState(false);
   const [voltandoDoCartao, setVoltandoDoCartao] = useState(false);
+  const [pixExpirado, setPixExpirado] = useState(false);
 
   const pagoParam = searchParams.get("pago");
   const erroParam = searchParams.get("erro");
@@ -88,12 +89,43 @@ export default function CheckoutPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Polling de status enquanto QR code estiver visível
+  // Polling de status enquanto QR code estiver visível (para quando expirar)
   useEffect(() => {
-    if (!checkout) return;
+    if (!checkout || pixExpirado) return;
     const interval = setInterval(checkStatus, 5000);
     return () => clearInterval(interval);
-  }, [checkout, checkStatus]);
+  }, [checkout, checkStatus, pixExpirado]);
+
+  // Detectar expiração do QR PIX
+  useEffect(() => {
+    if (!checkout?.expiresAt) return;
+    const check = () => {
+      if (new Date(checkout.expiresAt) <= new Date()) setPixExpirado(true);
+    };
+    check();
+    const t = setInterval(check, 30_000);
+    return () => clearInterval(t);
+  }, [checkout?.expiresAt]);
+
+  async function gerarNovoQr() {
+    setPixExpirado(false);
+    setCheckout(null);
+    setLoading(true);
+    try {
+      const r = await fetch("/api/laudos/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ laudoId: id }),
+      });
+      const data = await r.json();
+      if (data.error) { setError(data.error); return; }
+      setCheckout(data);
+    } catch {
+      setError("Erro ao gerar novo QR code");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function copiar() {
     if (!checkout?.qrCode) return;
@@ -255,28 +287,44 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div>
-              <p className="text-xs text-gray-400 mb-1.5 text-center">Ou use o Pix Copia e Cola:</p>
-              <div className="flex gap-2">
-                <input
-                  value={checkout.qrCode}
-                  readOnly
-                  className="flex-1 text-xs border rounded-lg px-3 py-2 text-gray-700 bg-gray-50 truncate"
-                />
+            {!pixExpirado && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1.5 text-center">Ou use o Pix Copia e Cola:</p>
+                <div className="flex gap-2">
+                  <input
+                    value={checkout.qrCode}
+                    readOnly
+                    className="flex-1 text-xs border rounded-lg px-3 py-2 text-gray-700 bg-gray-50 truncate"
+                  />
+                  <button
+                    onClick={copiar}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold text-white shrink-0 transition-colors"
+                    style={{ backgroundColor: copied ? "#059669" : "#01304D" }}
+                  >
+                    {copied ? "✓ Copiado" : "Copiar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {pixExpirado ? (
+              <div className="text-center space-y-3 py-2">
+                <p className="text-sm font-semibold text-red-500">⏰ QR Code expirado</p>
+                <p className="text-xs text-gray-400">O código PIX expirou. Gere um novo para continuar.</p>
                 <button
-                  onClick={copiar}
-                  className="px-3 py-2 rounded-lg text-xs font-semibold text-white shrink-0 transition-colors"
-                  style={{ backgroundColor: copied ? "#059669" : "#01304D" }}
+                  onClick={gerarNovoQr}
+                  className="w-full py-2.5 rounded-xl text-sm font-bold text-white"
+                  style={{ backgroundColor: "#01304D" }}
                 >
-                  {copied ? "✓ Copiado" : "Copiar"}
+                  🔄 Gerar novo QR Code
                 </button>
               </div>
-            </div>
-
-            <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
-              <span>🔄</span>
-              <span>Verificando pagamento automaticamente...</span>
-            </p>
+            ) : (
+              <p className="text-xs text-gray-400 text-center flex items-center justify-center gap-1">
+                <span>🔄</span>
+                <span>Verificando pagamento automaticamente...</span>
+              </p>
+            )}
           </div>
         )}
       </div>
