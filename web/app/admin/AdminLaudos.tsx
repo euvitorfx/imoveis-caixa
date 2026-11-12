@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { Laudo, LaudoStatus, BlocoStatus } from "@/lib/laudos";
-import { STATUS_LABEL, BLOCO_LABEL } from "@/lib/laudos";
+import type { Laudo, LaudoStatus, BlocoStatus } from "@/lib/laudos-types";
+import { STATUS_LABEL, BLOCO_LABEL } from "@/lib/laudos-types";
 
 function statusBadge(s: LaudoStatus) {
   const cls: Record<LaudoStatus, string> = {
