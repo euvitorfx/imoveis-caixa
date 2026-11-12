@@ -7,6 +7,7 @@ const COOLDOWN_MS = 8 * 60 * 60 * 1000;
 
 export default function LaudoPopup({ imovelId }: { imovelId: string }) {
   const [visible, setVisible] = useState(false);
+  const [entregues, setEntregues] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -16,6 +17,13 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
     } catch {
       setVisible(true);
     }
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/laudos/stats")
+      .then((r) => r.json())
+      .then((d) => { if (d.entregues > 0) setEntregues(d.entregues); })
+      .catch(() => {});
   }, []);
 
   function fechar() {
@@ -47,6 +55,11 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
                 Análise profissional antes de você arrematar
               </p>
+              {entregues !== null && (
+                <p className="text-xs mt-1.5 font-semibold" style={{ color: "#F59E0B" }}>
+                  🎯 {entregues} laudo{entregues !== 1 ? "s" : ""} já entregue{entregues !== 1 ? "s" : ""}
+                </p>
+              )}
             </div>
             <button
               onClick={fechar}
@@ -129,6 +142,19 @@ export default function LaudoPopup({ imovelId }: { imovelId: string }) {
               </div>
 
             </div>
+          </div>
+
+          {/* Ver exemplo */}
+          <div className="text-center">
+            <a
+              href="/laudos/exemplo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium underline"
+              style={{ color: "#64829A" }}
+            >
+              Ver exemplo de laudo →
+            </a>
           </div>
 
           {/* CTAs */}

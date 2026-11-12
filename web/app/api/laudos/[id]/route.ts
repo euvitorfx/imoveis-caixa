@@ -119,6 +119,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
                 </a>
               </div>
               ${laudo.nivel === 2 ? `<p style="margin-top:20px">Lembre-se de agendar sua consulta via WhatsApp: <a href="https://wa.me/5582987801819">+55 82 98780-1819</a></p>` : ""}
+              <div style="margin-top:28px;padding:16px;background:#F4F9FC;border-radius:8px;text-align:center">
+                <p style="margin:0 0 8px;font-size:14px;color:#0C1A25">O que achou do Laudo BLC?</p>
+                <a href="${SITE_URL}/laudos/avaliacao/${id}" style="font-size:13px;color:#01304D;font-weight:600;text-decoration:underline">
+                  ⭐ Avaliar em 1 minuto →
+                </a>
+              </div>
               <p style="font-size:12px;color:#4A6070;margin-top:24px">
                 Dúvidas? <a href="mailto:atendimento@buscaleiloescaixa.com.br">atendimento@buscaleiloescaixa.com.br</a>
               </p>

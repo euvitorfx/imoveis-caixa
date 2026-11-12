@@ -41,6 +41,7 @@ export interface Laudo {
   observacoes?: string;
   pdfUrl?: string;
   userPhone?: string | null; // enriquecido pelo endpoint admin
+  nps?: { nota: 1 | 2 | 3 | 4 | 5; comentario?: string; criadoEm: string };
 }
 
 export const PRECOS: Record<1 | 2, number> = {
