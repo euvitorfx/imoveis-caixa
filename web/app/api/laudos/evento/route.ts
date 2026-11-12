@@ -34,14 +34,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   const url = new URL(req.url);
-  const dias = Number(url.searchParams.get("dias") ?? "30");
-  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+  const desde = url.searchParams.get("desde") ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const ate = url.searchParams.get("ate");
+
+  const filtro: Record<string, unknown> = { criadoEm: { $gte: desde, ...(ate ? { $lte: ate } : {}) } };
 
   const client = await clientPromise;
   const eventos = await client
     .db(process.env.MONGODB_DB)
     .collection("eventos_laudo")
-    .find({ criadoEm: { $gte: desde } })
+    .find(filtro)
     .sort({ criadoEm: -1 })
     .limit(500)
     .toArray();

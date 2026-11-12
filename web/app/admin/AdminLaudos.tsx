@@ -189,27 +189,50 @@ function conv(a: number, b: number) {
   return `${Math.round((a / b) * 100)}%`;
 }
 
+type Periodo = "hoje" | "ontem" | "7" | "15" | "30" | "90";
+
+const PERIODO_LABELS: Record<Periodo, string> = {
+  hoje: "Hoje", ontem: "Ontem", "7": "7d", "15": "15d", "30": "30d", "90": "90d",
+};
+
+function getPeriodoRange(p: Periodo): { desde: string; ate?: string; label: string } {
+  const now = new Date();
+  if (p === "hoje") {
+    const inicio = new Date(now); inicio.setHours(0, 0, 0, 0);
+    return { desde: inicio.toISOString(), label: "hoje" };
+  }
+  if (p === "ontem") {
+    const inicio = new Date(now); inicio.setDate(inicio.getDate() - 1); inicio.setHours(0, 0, 0, 0);
+    const fim = new Date(now); fim.setDate(fim.getDate() - 1); fim.setHours(23, 59, 59, 999);
+    return { desde: inicio.toISOString(), ate: fim.toISOString(), label: "ontem" };
+  }
+  const dias = Number(p);
+  return { desde: new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString(), label: `últimos ${dias} dias` };
+}
+
 function FunilTab({ laudos }: { laudos: Laudo[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [dias, setDias] = useState(30);
+  const [periodo, setPeriodo] = useState<Periodo>("30");
   const [carregando, setCarregando] = useState(false);
 
-  const carregar = useCallback(async (d: number) => {
+  const carregar = useCallback(async (p: Periodo) => {
     setCarregando(true);
-    const r = await fetch(`/api/laudos/evento?dias=${d}`);
+    const { desde, ate } = getPeriodoRange(p);
+    const qs = ate ? `desde=${encodeURIComponent(desde)}&ate=${encodeURIComponent(ate)}` : `desde=${encodeURIComponent(desde)}`;
+    const r = await fetch(`/api/laudos/evento?${qs}`);
     const data = await r.json();
     setEventos(Array.isArray(data) ? data : []);
     setCarregando(false);
   }, []);
 
-  useEffect(() => { carregar(dias); }, [dias, carregar]);
+  useEffect(() => { carregar(periodo); }, [periodo, carregar]);
 
   const visualizacoes = eventos.filter((e) => e.tipo === "visualizou_botao");
   const cliques = eventos.filter((e) => e.tipo === "clicou_plano");
 
   // Laudos criados no mesmo período
-  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
-  const iniciados = laudos.filter((l) => l.criadoEm >= desde);
+  const { desde, ate } = getPeriodoRange(periodo);
+  const iniciados = laudos.filter((l) => l.criadoEm >= desde && (!ate || l.criadoEm <= ate));
   const pagos = iniciados.filter((l) => l.status !== "aguardando_pagamento" && l.status !== "cancelado");
 
   // Abandonados: aguardando pagamento há mais de 30 min
@@ -227,18 +250,18 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
   return (
     <div className="space-y-5">
       {/* Período */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400">Período:</span>
-        {[7, 15, 30, 90].map((d) => (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-xs text-gray-400 mr-1">Período:</span>
+        {(["hoje", "ontem", "7", "15", "30", "90"] as Periodo[]).map((p) => (
           <button
-            key={d}
-            onClick={() => setDias(d)}
+            key={p}
+            onClick={() => setPeriodo(p)}
             className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
-              dias === d ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              periodo === p ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
-            style={dias === d ? { backgroundColor: "#01304D" } : {}}
+            style={periodo === p ? { backgroundColor: "#01304D" } : {}}
           >
-            {d}d
+            {PERIODO_LABELS[p]}
           </button>
         ))}
         {carregando && <span className="text-xs text-gray-400 ml-1">🔄</span>}
@@ -247,7 +270,7 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
       {/* Funil */}
       <div className="bg-white rounded-xl border overflow-hidden">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
-          Funil de conversão — últimos {dias} dias
+          Funil de conversão — {getPeriodoRange(periodo).label}
         </p>
         <div className="divide-y">
           {[
@@ -331,7 +354,7 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
       {eventos.length > 0 && (
         <div className="bg-white rounded-xl border overflow-hidden">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
-            Atividade detalhada — últimos {dias} dias
+            Atividade detalhada — {getPeriodoRange(periodo).label}
           </p>
           <div className="divide-y">
             {eventos.slice(0, 30).map((e) => (
