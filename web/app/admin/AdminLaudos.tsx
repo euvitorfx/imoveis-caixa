@@ -22,9 +22,162 @@ function blocoIcon(s: BlocoStatus) {
 const BLOCO_KEYS = ["mercado", "matricula", "juridica", "viabilidade"] as const;
 type BlocoKey = (typeof BLOCO_KEYS)[number];
 
+function fmt(v: number) {
+  return (v / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function startOf(period: "day" | "week" | "month") {
+  const d = new Date();
+  if (period === "day") {
+    d.setHours(0, 0, 0, 0);
+  } else if (period === "week") {
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+  } else {
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+  }
+  return d;
+}
+
+function laudosPagosSince(laudos: Laudo[], since: Date) {
+  return laudos.filter(
+    (l) =>
+      (l.status === "pago" || l.status === "em_producao" || l.status === "entregue") &&
+      l.paidAt &&
+      new Date(l.paidAt) >= since
+  );
+}
+
+function FinanceiroTab({ laudos }: { laudos: Laudo[] }) {
+  const pagos = laudos.filter((l) => l.status !== "aguardando_pagamento" && l.status !== "cancelado");
+  const aguardando = laudos.filter((l) => l.status === "aguardando_pagamento");
+  const entregues = laudos.filter((l) => l.status === "entregue");
+
+  const receitaTotal = pagos.reduce((s, l) => s + l.preco, 0);
+
+  const hoje = laudosPagosSince(laudos, startOf("day"));
+  const semana = laudosPagosSince(laudos, startOf("week"));
+  const mes = laudosPagosSince(laudos, startOf("month"));
+
+  const cards = [
+    { label: "Hoje", laudos: hoje, cor: "#01304D" },
+    { label: "Esta semana", laudos: semana, cor: "#0369a1" },
+    { label: "Este mês", laudos: mes, cor: "#7c3aed" },
+  ];
+
+  // Últimas vendas
+  const ultimas = [...pagos]
+    .filter((l) => l.paidAt)
+    .sort((a, b) => new Date(b.paidAt!).getTime() - new Date(a.paidAt!).getTime())
+    .slice(0, 10);
+
+  return (
+    <div className="space-y-6">
+
+      {/* KPIs principais */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Receita total</p>
+          <p className="text-2xl font-bold" style={{ color: "#01304D" }}>{fmt(receitaTotal)}</p>
+          <p className="text-xs text-gray-400 mt-1">{pagos.length} laudo{pagos.length !== 1 ? "s" : ""} pago{pagos.length !== 1 ? "s" : ""}</p>
+        </div>
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Ticket médio</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {pagos.length ? fmt(Math.round(receitaTotal / pagos.length)) : "—"}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">{entregues.length} entregue{entregues.length !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
+
+      {/* Períodos */}
+      <div className="grid grid-cols-3 gap-3">
+        {cards.map(({ label, laudos: ls, cor }) => (
+          <div key={label} className="bg-white rounded-xl border p-3 text-center">
+            <p className="text-xs text-gray-400 mb-1">{label}</p>
+            <p className="text-xl font-bold" style={{ color: cor }}>
+              {fmt(ls.reduce((s, l) => s + l.preco, 0))}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">{ls.length} venda{ls.length !== 1 ? "s" : ""}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Status breakdown */}
+      <div className="bg-white rounded-xl border p-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Por status</p>
+        <div className="space-y-2">
+          {(Object.entries(STATUS_LABEL) as [LaudoStatus, string][]).map(([status, label]) => {
+            const count = laudos.filter((l) => l.status === status).length;
+            const receita = laudos.filter((l) => l.status === status).reduce((s, l) => s + l.preco, 0);
+            if (count === 0) return null;
+            return (
+              <div key={status} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge(status)}`}>
+                    {label}
+                  </span>
+                  <span className="text-xs text-gray-400">{count} pedido{count !== 1 ? "s" : ""}</span>
+                </div>
+                {receita > 0 && (
+                  <span className="text-xs font-semibold text-gray-700">{fmt(receita)}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Aguardando pagamento */}
+      {aguardando.length > 0 && (
+        <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
+          <p className="text-xs font-semibold text-yellow-800 mb-2">
+            ⏳ {aguardando.length} aguardando pagamento
+          </p>
+          {aguardando.map((l) => (
+            <p key={l._id} className="text-xs text-yellow-700 truncate">
+              · {l.imovelDescricao} — {l.userEmail}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Últimas vendas */}
+      {ultimas.length > 0 && (
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
+            Últimas vendas
+          </p>
+          <div className="divide-y">
+            {ultimas.map((l) => (
+              <div key={l._id} className="flex items-center justify-between px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{l.imovelDescricao}</p>
+                  <p className="text-xs text-gray-400">
+                    {l.userEmail} · {l.paidAt ? new Date(l.paidAt).toLocaleDateString("pt-BR") : "—"}
+                  </p>
+                </div>
+                <div className="text-right ml-3 shrink-0">
+                  <p className="text-sm font-bold" style={{ color: "#01304D" }}>{fmt(l.preco)}</p>
+                  <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${statusBadge(l.status)}`}>
+                    {STATUS_LABEL[l.status]}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminLaudos() {
   const [laudos, setLaudos] = useState<Laudo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [view, setView] = useState<"financeiro" | "lista">("financeiro");
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [localBlocos, setLocalBlocos] = useState<Laudo["blocos"] | null>(null);
@@ -33,9 +186,19 @@ export default function AdminLaudos() {
 
   const fetchLaudos = useCallback(async () => {
     setLoading(true);
-    const r = await fetch("/api/laudos?admin=1");
-    const data = await r.json();
-    setLaudos(Array.isArray(data) ? data : []);
+    setErro(null);
+    try {
+      const r = await fetch("/api/laudos?admin=1");
+      const data = await r.json();
+      if (!r.ok) {
+        setErro(data.error ?? `Erro ${r.status}`);
+        setLaudos([]);
+      } else {
+        setLaudos(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      setErro("Erro de rede ao buscar laudos");
+    }
     setLoading(false);
   }, []);
 
@@ -68,14 +231,7 @@ export default function AdminLaudos() {
       }),
     });
     setSaving(false);
-    // Refresh list
     await fetchLaudos();
-    // Update selected
-    const updated = laudos.find((l) => l._id === selected);
-    if (updated) {
-      updated.blocos = localBlocos;
-      if (localStatus) updated.status = localStatus as LaudoStatus;
-    }
   }
 
   async function marcarEntregue() {
@@ -99,19 +255,28 @@ export default function AdminLaudos() {
   if (loading)
     return <p className="text-gray-400 text-sm py-4">Carregando laudos...</p>;
 
+  if (erro)
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <p className="font-semibold mb-1">Erro ao carregar laudos</p>
+        <p>{erro}</p>
+        <button onClick={fetchLaudos} className="mt-2 text-xs underline">Tentar novamente</button>
+      </div>
+    );
+
+  // Detalhe do laudo selecionado
   if (selected && localBlocos && selectedLaudo) {
     return (
       <div className="space-y-5">
-        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <button onClick={closeLaudo} className="text-xs text-gray-400 hover:text-gray-600 mb-1">
-              ← Voltar à lista
+              ← Voltar
             </button>
             <h3 className="font-bold text-gray-800">{selectedLaudo.imovelDescricao}</h3>
             <p className="text-xs text-gray-400 mt-0.5">
               {selectedLaudo.userEmail} · {selectedLaudo.nivel === 1 ? "Digital" : "+ Consulta"} ·{" "}
-              {(selectedLaudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              {fmt(selectedLaudo.preco)}
             </p>
           </div>
           <div className="flex gap-2 items-center flex-wrap justify-end">
@@ -134,13 +299,11 @@ export default function AdminLaudos() {
           </div>
         </div>
 
-        {/* Blocos */}
         <div className="space-y-4">
           {BLOCO_KEYS.map((key) => {
             const bloco = localBlocos[key];
             return (
               <div key={key} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                {/* Bloco header */}
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <span>{blocoIcon(bloco.status)}</span>
@@ -152,17 +315,13 @@ export default function AdminLaudos() {
                         key={s}
                         onClick={() =>
                           setLocalBlocos((prev) =>
-                            prev
-                              ? { ...prev, [key]: { ...prev[key], status: s } }
-                              : prev
+                            prev ? { ...prev, [key]: { ...prev[key], status: s } } : prev
                           )
                         }
                         className={`text-xs px-2 py-1 rounded-full font-medium transition-all ${
                           bloco.status === s
-                            ? s === "concluido"
-                              ? "bg-green-500 text-white"
-                              : s === "em_andamento"
-                              ? "bg-amber-500 text-white"
+                            ? s === "concluido" ? "bg-green-500 text-white"
+                              : s === "em_andamento" ? "bg-amber-500 text-white"
                               : "bg-gray-400 text-white"
                             : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                         }`}
@@ -172,16 +331,12 @@ export default function AdminLaudos() {
                     ))}
                   </div>
                 </div>
-
-                {/* Editor do bloco */}
                 <div className="p-4">
                   <textarea
                     value={bloco.conteudo ?? ""}
                     onChange={(e) =>
                       setLocalBlocos((prev) =>
-                        prev
-                          ? { ...prev, [key]: { ...prev[key], conteudo: e.target.value } }
-                          : prev
+                        prev ? { ...prev, [key]: { ...prev[key], conteudo: e.target.value } } : prev
                       )
                     }
                     placeholder={`Escreva aqui a análise de ${BLOCO_LABEL[key].toLowerCase()}...`}
@@ -194,10 +349,9 @@ export default function AdminLaudos() {
           })}
         </div>
 
-        {/* Observações */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-            Observações internas (não exibidas ao cliente)
+            Observações internas
           </label>
           <textarea
             value={localObs}
@@ -208,7 +362,6 @@ export default function AdminLaudos() {
           />
         </div>
 
-        {/* Ações */}
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={salvar}
@@ -216,9 +369,8 @@ export default function AdminLaudos() {
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
             style={{ backgroundColor: "#01304D" }}
           >
-            {saving ? "Salvando..." : "💾 Salvar alterações"}
+            {saving ? "Salvando..." : "💾 Salvar"}
           </button>
-
           {todosBlocosOk && localStatus !== "entregue" && (
             <button
               onClick={marcarEntregue}
@@ -234,78 +386,81 @@ export default function AdminLaudos() {
     );
   }
 
-  // Lista de laudos
+  // Lista / financeiro
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-gray-800">
-          Laudos ({laudos.length})
-        </h3>
-        <button onClick={fetchLaudos} className="text-xs text-gray-400 hover:text-gray-600">
-          🔄 Atualizar
+    <div className="space-y-4">
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b">
+        {(["financeiro", "lista"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg -mb-px border-b-2 transition-colors ${
+              view === v
+                ? "border-blue-600 text-blue-600 bg-white"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {v === "financeiro" ? "📊 Financeiro" : `📋 Laudos (${laudos.length})`}
+          </button>
+        ))}
+        <button onClick={fetchLaudos} className="ml-auto text-xs text-gray-400 hover:text-gray-600 px-2">
+          🔄
         </button>
       </div>
 
-      {laudos.length === 0 && (
-        <p className="text-gray-400 text-sm py-6 text-center">Nenhum laudo solicitado ainda.</p>
+      {view === "financeiro" && <FinanceiroTab laudos={laudos} />}
+
+      {view === "lista" && (
+        <div className="space-y-3">
+          {laudos.length === 0 && (
+            <p className="text-gray-400 text-sm py-6 text-center">Nenhum laudo ainda.</p>
+          )}
+          {laudos.map((laudo) => {
+            const blocosOk = BLOCO_KEYS.filter((k) => laudo.blocos[k].status === "concluido").length;
+            const num = laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`;
+            return (
+              <button
+                key={laudo._id}
+                onClick={() => openLaudo(laudo)}
+                className="w-full text-left bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-300 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-gray-800 truncate">{laudo.imovelDescricao}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{laudo.userEmail}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge(laudo.status)}`}>
+                      {STATUS_LABEL[laudo.status]}
+                    </span>
+                    <span className="text-xs text-gray-400">{blocosOk}/4 blocos</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-1">
+                  {BLOCO_KEYS.map((k) => (
+                    <div
+                      key={k}
+                      className="flex-1 h-1 rounded-full"
+                      style={{
+                        backgroundColor:
+                          laudo.blocos[k].status === "concluido" ? "#059669"
+                          : laudo.blocos[k].status === "em_andamento" ? "#F59E0B"
+                          : "#E5E7EB",
+                      }}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  <span className="font-mono">{num}</span>
+                  {" · "}{new Date(laudo.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
+                  {laudo.nivel === 1 ? "Digital" : "+ Consulta"} · {fmt(laudo.preco)}
+                </p>
+              </button>
+            );
+          })}
+        </div>
       )}
-
-      {laudos.map((laudo) => {
-        const blocosOk = BLOCO_KEYS.filter((k) => laudo.blocos[k].status === "concluido").length;
-        return (
-          <button
-            key={laudo._id}
-            onClick={() => openLaudo(laudo)}
-            className="w-full text-left bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-300 transition-colors"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold text-sm text-gray-800 truncate">
-                  {laudo.imovelDescricao}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5 truncate">
-                  {laudo.userEmail}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge(laudo.status)}`}>
-                  {STATUS_LABEL[laudo.status]}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {blocosOk}/4 blocos
-                </span>
-              </div>
-            </div>
-
-            {/* Progress bar dos blocos */}
-            <div className="mt-3 flex gap-1">
-              {BLOCO_KEYS.map((k) => (
-                <div
-                  key={k}
-                  className="flex-1 h-1 rounded-full"
-                  style={{
-                    backgroundColor:
-                      laudo.blocos[k].status === "concluido"
-                        ? "#059669"
-                        : laudo.blocos[k].status === "em_andamento"
-                        ? "#F59E0B"
-                        : "#E5E7EB",
-                  }}
-                />
-              ))}
-            </div>
-
-            <p className="text-xs text-gray-400 mt-2">
-              <span className="font-mono">
-                {laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`}
-              </span>
-              {" · "}{new Date(laudo.criadoEm).toLocaleDateString("pt-BR")} ·{" "}
-              {laudo.nivel === 1 ? "Digital" : "+ Consulta"} ·{" "}
-              {(laudo.preco / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-            </p>
-          </button>
-        );
-      })}
     </div>
   );
 }
