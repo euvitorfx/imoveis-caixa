@@ -37,6 +37,8 @@ Produto lançado em 12/nov/2026. Fluxo de compra e pagamento funcionando. Gaps i
 
 10. **NPS / depoimento após entrega** — No e-mail de entrega, link para avaliação rápida (1–5 estrelas + comentário). Usar como prova social.
 
+11. **Vídeo motion graphic no popup do Laudo BLC** — Vídeo curto de ~20s ao lado do popup explicando o produto com mockup animado do site. Tentativa anterior não agradou o usuário; recomeçar do zero com nova abordagem visual. Colocar via `<video autoplay muted loop>` no `web/components/LaudoPopup.tsx`, hospedar no R2.
+
 ## Arquivos relevantes
 
 - `web/app/admin/AdminLaudos.tsx` — painel admin (onde adicionar interface de produção)
