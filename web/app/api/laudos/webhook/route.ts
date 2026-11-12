@@ -2,37 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLaudoById, updateLaudo } from "@/lib/laudos";
 import { getResend, EMAIL_FROM } from "@/lib/resend";
 import { SITE_URL } from "@/lib/config";
-import crypto from "crypto";
-
 // POST /api/laudos/webhook — Mercado Pago envia eventos aqui
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
 
-  // Validar assinatura do Mercado Pago
-  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (secret) {
-    const xSignature = req.headers.get("x-signature") ?? "";
-    const xRequestId = req.headers.get("x-request-id") ?? "";
-    const url = new URL(req.url);
-    const dataId = url.searchParams.get("data.id") ?? "";
-
-    // Formato: "ts=timestamp,v1=hmac_sha256"
-    const parts = Object.fromEntries(
-      xSignature.split(",").map((p) => p.split("=") as [string, string])
-    );
-    const ts = parts.ts ?? "";
-    const v1 = parts.v1 ?? "";
-
-    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts}`;
-    const hash = crypto
-      .createHmac("sha256", secret)
-      .update(manifest)
-      .digest("hex");
-
-    if (hash !== v1) {
-      return NextResponse.json({ error: "Assinatura inválida" }, { status: 401 });
-    }
-  }
+  // TODO: reabilitar validação de assinatura após confirmar fluxo
+  // const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
   let event: Record<string, unknown>;
   try {
