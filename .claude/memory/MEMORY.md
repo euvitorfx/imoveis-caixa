@@ -10,4 +10,5 @@
 - [Feedback: callbackUrl](feedback_callbackurl.md) — Links de login em páginas protegidas sempre devem incluir ?callbackUrl=
 - [Roadmap de Features BLC](project_roadmap_features.md) — 62 features em 9 categorias aprovadas para implementar; artifact: https://claude.ai/code/artifact/868797d1-33f3-4c33-81c6-b8c32dc8fb44
 - [Fluid Active CPU — Monitoramento](project_fluid_cpu.md) — 100% do free tier atingido ago/2026; correção de polling aplicada; verificar resultado em set/2026
+- [Laudo BLC — Pendências pós-lançamento](project_laudo_pendencias.md) — 10 itens para resolver após lançamento de 12/nov/2026; item 1 (interface admin de produção) é bloqueante
 - [Sistema de Afiliados](project_afiliados.md) — Sprint 14; influencers ganham % comissão BLC via ?ref=; dashboard em /perfil para isAfiliado:true
