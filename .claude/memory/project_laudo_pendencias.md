@@ -31,11 +31,11 @@ Produto lançado em 12/nov/2026. Fluxo de compra e pagamento funcionando. Gaps i
 
 ## Conversão — aumenta vendas
 
-8. **Preview de laudo exemplo** — Laudo anonimizado de exemplo antes da compra ("Veja como fica"). Aumenta conversão.
+8. ~~**Preview de laudo exemplo**~~ ✅ resolvido em 12/nov/2026 — `/laudos/exemplo` com 4 blocos fictícios detalhados; link "Ver exemplo de laudo →" no popup (`LaudoPopup.tsx`).
 
-9. **Contagem de laudos entregues** — Prova social no popup e checkout: "X laudos entregues".
+9. ~~**Contagem de laudos entregues**~~ ✅ resolvido em 12/nov/2026 — `GET /api/laudos/stats` retorna contagem; popup exibe "🎯 X laudos já entregues" quando > 0.
 
-10. **NPS / depoimento após entrega** — No e-mail de entrega, link para avaliação rápida (1–5 estrelas + comentário). Usar como prova social.
+10. ~~**NPS / depoimento após entrega**~~ ✅ resolvido em 12/nov/2026 — `/laudos/avaliacao/[id]` com estrelas 1–5 + comentário; `POST /api/laudos/[id]/avaliacao` salva no MongoDB; e-mail de entrega inclui link "⭐ Avaliar em 1 minuto →".
 
 11. **Vídeo motion graphic no popup do Laudo BLC** — Vídeo curto de ~20s ao lado do popup explicando o produto com mockup animado do site. Tentativa anterior não agradou o usuário; recomeçar do zero com nova abordagem visual. Colocar via `<video autoplay muted loop>` no `web/components/LaudoPopup.tsx`, hospedar no R2.
 
