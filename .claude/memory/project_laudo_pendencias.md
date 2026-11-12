@@ -21,13 +21,13 @@ Produto lançado em 12/nov/2026. Fluxo de compra e pagamento funcionando. Gaps i
 
 ## Importante — melhora operação e experiência
 
-4. **E-mail "laudo em produção"** — Quando admin iniciar a produção, enviar e-mail ao cliente: "Começamos a trabalhar no seu laudo. Prazo estimado: X dias úteis."
+4. ~~**E-mail "laudo em produção"**~~ ✅ resolvido em 12/nov/2026 — dispara ao cliente quando admin muda status para `em_producao`, com prazo de 2 dias úteis.
 
-5. **Prazo estimado visível** — Mostrar "prazo estimado: X dias úteis" na página `/laudos/[id]` logo após o pagamento.
+5. ~~**Prazo estimado visível**~~ ✅ resolvido em 12/nov/2026 — card verde em `/laudos/[id]` quando status é `pago` ou `em_producao`.
 
-6. **Numeração sequencial corrigida** — Laudo #1 (primeiro comprado) não tem número; laudo #2 tem `numero: '1'`. Campo existe mas não está sendo aplicado consistentemente na criação.
+6. **Numeração sequencial corrigida** — Fix de dado: laudo #1 (criado antes do contador existir) não tem `numero`. Laudos novos recebem número corretamente. Pendente: migration manual no MongoDB para corrigir laudo antigo sem `numero`.
 
-7. **Novo PIX se QR code expirar** — QR PIX do MP expira em 30 minutos. Detectar expiração e gerar novo QR automaticamente no checkout.
+7. ~~**Novo PIX se QR code expirar**~~ ✅ resolvido em 12/nov/2026 — checkout detecta expiração a cada 30s, exibe botão "Gerar novo QR Code"; backend usa idempotency key com bucket de 1h para permitir renovação sem duplicar cobranças.
 
 ## Conversão — aumenta vendas
 
