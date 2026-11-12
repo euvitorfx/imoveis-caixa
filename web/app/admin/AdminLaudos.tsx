@@ -212,7 +212,7 @@ function getPeriodoRange(p: Periodo): { desde: string; ate?: string; label: stri
 
 function FunilTab({ laudos }: { laudos: Laudo[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [periodo, setPeriodo] = useState<Periodo>("30");
+  const [periodo, setPeriodo] = useState<Periodo>("hoje");
   const [carregando, setCarregando] = useState(false);
 
   const carregar = useCallback(async (p: Periodo) => {
