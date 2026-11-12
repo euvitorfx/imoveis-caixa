@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { getLaudoById, STATUS_LABEL, BLOCO_LABEL } from "@/lib/laudos";
 import type { LaudoStatus, BlocoStatus } from "@/lib/laudos";
+import ExcluirLaudoBtn from "@/components/ExcluirLaudoBtn";
 
 function statusColor(s: LaudoStatus) {
   const map: Record<LaudoStatus, string> = {
@@ -88,13 +89,16 @@ export default async function LaudoPage({ params }: Params) {
           <p className="text-sm" style={{ color: "#92400E" }}>
             Assim que o PIX for confirmado, seu laudo entrará em produção.
           </p>
-          <a
-            href={`/laudos/checkout/${id}`}
-            className="inline-block mt-2 text-xs font-semibold underline"
-            style={{ color: "#92400E" }}
-          >
-            Voltar ao QR code →
-          </a>
+          <div className="flex items-center justify-between mt-2">
+            <a
+              href={`/laudos/checkout/${id}`}
+              className="text-xs font-semibold underline"
+              style={{ color: "#92400E" }}
+            >
+              Voltar ao QR code →
+            </a>
+            <ExcluirLaudoBtn laudoId={id} />
+          </div>
         </div>
       )}
 

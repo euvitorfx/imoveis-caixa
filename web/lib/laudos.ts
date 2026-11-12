@@ -64,6 +64,12 @@ export async function updateLaudo(id: string, update: Partial<Laudo>): Promise<v
   );
 }
 
+export async function deleteLaudo(id: string): Promise<void> {
+  if (!ObjectId.isValid(id)) return;
+  const c = await col();
+  await c.deleteOne({ _id: new ObjectId(id) });
+}
+
 export async function getLaudoByMpPaymentId(paymentId: string): Promise<Laudo | null> {
   const c = await col();
   const doc = await c.findOne({ mpPaymentId: paymentId });
