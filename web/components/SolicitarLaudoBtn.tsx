@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -9,10 +9,29 @@ interface Props {
   imovelDescricao: string;
 }
 
+function logEvento(tipo: string, imovelId: string, nivel?: number) {
+  fetch("/api/laudos/evento", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tipo, imovelId, nivel }),
+  }).catch(() => {});
+}
+
 export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  // Registra visualização uma vez por sessão por imóvel
+  useEffect(() => {
+    if (!session) return;
+    try {
+      const key = `lv_${imovelId}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      logEvento("visualizou_botao", imovelId);
+    } catch {}
+  }, [session, imovelId]);
 
   if (status === "loading") return null;
 
@@ -32,6 +51,7 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
 
   async function handleClick(nivel: 1 | 2) {
     setLoading(true);
+    logEvento("clicou_plano", imovelId, nivel);
     try {
       const res = await fetch("/api/laudos", {
         method: "POST",

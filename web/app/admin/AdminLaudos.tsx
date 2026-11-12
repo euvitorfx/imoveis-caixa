@@ -173,11 +173,170 @@ function FinanceiroTab({ laudos }: { laudos: Laudo[] }) {
   );
 }
 
+type Evento = { _id: string; tipo: string; userId: string; userEmail: string; imovelId: string; nivel?: number; criadoEm: string };
+
+function tempoDecorrido(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  if (h >= 24) return `${Math.floor(h / 24)}d atrás`;
+  if (h >= 1) return `${h}h atrás`;
+  return `${m}min atrás`;
+}
+
+function conv(a: number, b: number) {
+  if (!b) return "—";
+  return `${Math.round((a / b) * 100)}%`;
+}
+
+function FunilTab({ laudos }: { laudos: Laudo[] }) {
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [dias, setDias] = useState(30);
+  const [carregando, setCarregando] = useState(false);
+
+  const carregar = useCallback(async (d: number) => {
+    setCarregando(true);
+    const r = await fetch(`/api/laudos/evento?dias=${d}`);
+    const data = await r.json();
+    setEventos(Array.isArray(data) ? data : []);
+    setCarregando(false);
+  }, []);
+
+  useEffect(() => { carregar(dias); }, [dias, carregar]);
+
+  const visualizacoes = eventos.filter((e) => e.tipo === "visualizou_botao");
+  const cliques = eventos.filter((e) => e.tipo === "clicou_plano");
+
+  // Laudos criados no mesmo período
+  const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
+  const iniciados = laudos.filter((l) => l.criadoEm >= desde);
+  const pagos = iniciados.filter((l) => l.status !== "aguardando_pagamento" && l.status !== "cancelado");
+
+  // Abandonados: aguardando pagamento há mais de 30 min
+  const THRESHOLD = 30 * 60 * 1000;
+  const abandonados = laudos
+    .filter((l) => l.status === "aguardando_pagamento" && Date.now() - new Date(l.criadoEm).getTime() > THRESHOLD)
+    .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
+
+  // Usuários únicos por etapa
+  const uniqViews = new Set(visualizacoes.map((e) => e.userId)).size;
+  const uniqCliques = new Set(cliques.map((e) => e.userId)).size;
+  const uniqIniciados = new Set(iniciados.map((l) => l.userId)).size;
+  const uniqPagos = new Set(pagos.map((l) => l.userId)).size;
+
+  return (
+    <div className="space-y-5">
+      {/* Período */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400">Período:</span>
+        {[7, 15, 30, 90].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDias(d)}
+            className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+              dias === d ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            style={dias === d ? { backgroundColor: "#01304D" } : {}}
+          >
+            {d}d
+          </button>
+        ))}
+        {carregando && <span className="text-xs text-gray-400 ml-1">🔄</span>}
+      </div>
+
+      {/* Funil */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
+          Funil de conversão — últimos {dias} dias
+        </p>
+        <div className="divide-y">
+          {[
+            { label: "Visualizaram o botão", n: uniqViews, cor: "#6366f1" },
+            { label: "Clicaram em um plano", n: uniqCliques, cor: "#F59E0B", conv: conv(uniqCliques, uniqViews) },
+            { label: "Iniciaram checkout", n: uniqIniciados, cor: "#3b82f6", conv: conv(uniqIniciados, uniqCliques) },
+            { label: "Pagaram", n: uniqPagos, cor: "#059669", conv: conv(uniqPagos, uniqIniciados) },
+          ].map(({ label, n, cor, conv: c }, i) => (
+            <div key={i} className="flex items-center px-4 py-3 gap-3">
+              <div className="w-2 h-8 rounded-full shrink-0" style={{ backgroundColor: cor }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-700">{label}</p>
+                {c && <p className="text-xs text-gray-400">conversão da etapa anterior: {c}</p>}
+              </div>
+              <p className="text-xl font-bold shrink-0" style={{ color: cor }}>{n}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Abandonados */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
+          ⚠️ Aguardando pagamento ({abandonados.length})
+        </p>
+        {abandonados.length === 0 ? (
+          <p className="text-xs text-gray-400 px-4 py-4">Nenhum laudo pendente no momento.</p>
+        ) : (
+          <div className="divide-y">
+            {abandonados.map((l) => (
+              <div key={l._id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{l.imovelDescricao}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{l.userEmail}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold" style={{ color: "#01304D" }}>
+                      {l.nivel === 1 ? "R$97" : "R$297"}
+                    </p>
+                    <p className="text-xs text-gray-400">{tempoDecorrido(l.criadoEm)}</p>
+                  </div>
+                </div>
+                <a
+                  href={`mailto:${l.userEmail}?subject=Seu%20Laudo%20BLC%20está%20aguardando&body=Olá%2C%20vimos%20que%20você%20iniciou%20um%20pedido%20de%20Laudo%20BLC%20e%20gostaríamos%20de%20ajudar.`}
+                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold underline"
+                  style={{ color: "#01304D" }}
+                >
+                  ✉ Entrar em contato
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cliques recentes por imóvel */}
+      {cliques.length > 0 && (
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
+            Cliques recentes nos planos
+          </p>
+          <div className="divide-y">
+            {cliques.slice(0, 15).map((e) => (
+              <div key={e._id} className="flex items-center justify-between px-4 py-2.5 gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-700 truncate">{e.userEmail}</p>
+                  <p className="text-xs text-gray-400 truncate">{e.imovelId}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                    {e.nivel === 2 ? "Consulta" : "Digital"}
+                  </span>
+                  <p className="text-xs text-gray-400 mt-0.5">{tempoDecorrido(e.criadoEm)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminLaudos() {
   const [laudos, setLaudos] = useState<Laudo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [view, setView] = useState<"financeiro" | "lista">("financeiro");
+  const [view, setView] = useState<"financeiro" | "funil" | "lista">("financeiro");
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [localBlocos, setLocalBlocos] = useState<Laudo["blocos"] | null>(null);
@@ -391,7 +550,7 @@ export default function AdminLaudos() {
     <div className="space-y-4">
       {/* Sub-tabs */}
       <div className="flex gap-1 border-b">
-        {(["financeiro", "lista"] as const).map((v) => (
+        {(["financeiro", "funil", "lista"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
@@ -401,7 +560,7 @@ export default function AdminLaudos() {
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            {v === "financeiro" ? "📊 Financeiro" : `📋 Laudos (${laudos.length})`}
+            {v === "financeiro" ? "📊 Financeiro" : v === "funil" ? "🔭 Funil" : `📋 Laudos (${laudos.length})`}
           </button>
         ))}
         <button onClick={fetchLaudos} className="ml-auto text-xs text-gray-400 hover:text-gray-600 px-2">
@@ -410,6 +569,8 @@ export default function AdminLaudos() {
       </div>
 
       {view === "financeiro" && <FinanceiroTab laudos={laudos} />}
+
+      {view === "funil" && <FunilTab laudos={laudos} />}
 
       {view === "lista" && (
         <div className="space-y-3">
