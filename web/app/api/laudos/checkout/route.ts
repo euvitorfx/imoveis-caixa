@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const errBody = await res.text();
     console.error("[laudos/checkout] MP error:", res.status, errBody);
     return NextResponse.json(
-      { error: "Erro no gateway de pagamento" },
+      { error: "Erro no gateway de pagamento", detail: errBody, status_code: res.status },
       { status: 502 }
     );
   }
