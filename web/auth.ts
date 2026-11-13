@@ -8,6 +8,7 @@ import clientPromise from "@/lib/mongodb";
 import { authConfig } from "./auth.config";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailBoasVindas } from "@/emails/boasVindas";
+import { emailNovoUsuario } from "@/emails/novoUsuario";
 import { getCorretorByUserId } from "@/lib/corretores";
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
@@ -103,6 +104,20 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error("[resend] ERRO boas-vindas OAuth:", msg);
+          }
+
+          // Notificação interna — novo cadastro via Google
+          try {
+            const { subject: subN, html: htmlN } = emailNovoUsuario(user.name, user.email, null);
+            await resend.emails.send({
+              from: EMAIL_FROM,
+              to: "atendimento@buscaleiloescaixa.com.br",
+              subject: subN,
+              html: htmlN,
+            });
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[resend] ERRO notificação novo usuário OAuth:", msg);
           }
         }
       }

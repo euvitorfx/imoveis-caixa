@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import clientPromise from "@/lib/mongodb";
 import { getResend, EMAIL_FROM, EMAIL_REPLY_TO } from "@/lib/resend";
 import { emailBoasVindas } from "@/emails/boasVindas";
+import { emailNovoUsuario } from "@/emails/novoUsuario";
 import { getAfiliadoByCodigo } from "@/lib/afiliados";
 
 export async function POST(req: NextRequest) {
@@ -68,6 +69,20 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[resend] ERRO ao enviar boas-vindas:", msg);
+    }
+
+    // Notificação interna — novo cadastro
+    try {
+      const { subject: subN, html: htmlN } = emailNovoUsuario(nome, email.toLowerCase(), telefone);
+      await resend.emails.send({
+        from: EMAIL_FROM,
+        to: "atendimento@buscaleiloescaixa.com.br",
+        subject: subN,
+        html: htmlN,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[resend] ERRO notificação novo usuário:", msg);
     }
   }
 
