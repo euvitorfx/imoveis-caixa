@@ -393,7 +393,7 @@ export default function AdminLaudos() {
   const [laudos, setLaudos] = useState<Laudo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [view, setView] = useState<"financeiro" | "funil" | "lista">("financeiro");
+  const [view, setView] = useState<"financeiro" | "funil" | "lista">("funil");
   const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [localBlocos, setLocalBlocos] = useState<Laudo["blocos"] | null>(null);
@@ -607,7 +607,7 @@ export default function AdminLaudos() {
     <div className="space-y-4">
       {/* Sub-tabs */}
       <div className="flex gap-1 border-b">
-        {(["financeiro", "funil", "lista"] as const).map((v) => (
+        {(["funil", "financeiro", "lista"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
