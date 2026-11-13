@@ -173,7 +173,8 @@ function FinanceiroTab({ laudos }: { laudos: Laudo[] }) {
   );
 }
 
-type Evento = { _id: string; tipo: string; userId: string; userEmail: string; userName?: string; imovelId: string; nivel?: number; criadoEm: string };
+type Evento = { _id: string; tipo: string; userId: string | null; anonId?: string | null; userEmail: string | null; userName?: string | null; imovelId: string; nivel?: number; criadoEm: string };
+type TipoUsuario = "todos" | "logados" | "nao_logados";
 
 function tempoDecorrido(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -213,6 +214,7 @@ function getPeriodoRange(p: Periodo): { desde: string; ate?: string; label: stri
 function FunilTab({ laudos }: { laudos: Laudo[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [periodo, setPeriodo] = useState<Periodo>("hoje");
+  const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("todos");
   const [carregando, setCarregando] = useState(false);
 
   const carregar = useCallback(async (p: Periodo) => {
@@ -227,12 +229,20 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
 
   useEffect(() => { carregar(periodo); }, [periodo, carregar]);
 
-  const visualizacoes = eventos.filter((e) => e.tipo === "visualizou_botao");
-  const cliques = eventos.filter((e) => e.tipo === "clicou_plano");
+  // Filtro por tipo de usuário
+  const eventosFiltrados = tipoUsuario === "logados"
+    ? eventos.filter((e) => !!e.userId)
+    : tipoUsuario === "nao_logados"
+    ? eventos.filter((e) => !e.userId)
+    : eventos;
 
-  // Laudos criados no mesmo período
+  const visualizacoes = eventosFiltrados.filter((e) => e.tipo === "visualizou_botao");
+  const cliques = eventosFiltrados.filter((e) => e.tipo === "clicou_plano");
+
+  // Laudos criados no mesmo período (sempre de logados)
   const { desde, ate } = getPeriodoRange(periodo);
-  const iniciados = laudos.filter((l) => l.criadoEm >= desde && (!ate || l.criadoEm <= ate));
+  const iniciados = tipoUsuario === "nao_logados" ? [] :
+    laudos.filter((l) => l.criadoEm >= desde && (!ate || l.criadoEm <= ate));
   const pagos = iniciados.filter((l) => l.status !== "aguardando_pagamento" && l.status !== "cancelado");
 
   // Abandonados: aguardando pagamento há mais de 30 min
@@ -241,9 +251,12 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
     .filter((l) => l.status === "aguardando_pagamento" && Date.now() - new Date(l.criadoEm).getTime() > THRESHOLD)
     .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
+  // ID único por evento: userId para logados, anonId para anônimos
+  const uid = (e: Evento) => e.userId ?? e.anonId ?? "?";
+
   // Usuários únicos por etapa
-  const uniqViews = new Set(visualizacoes.map((e) => e.userId)).size;
-  const uniqCliques = new Set(cliques.map((e) => e.userId)).size;
+  const uniqViews = new Set(visualizacoes.map(uid)).size;
+  const uniqCliques = new Set(cliques.map(uid)).size;
   const uniqIniciados = new Set(iniciados.map((l) => l.userId)).size;
   const uniqPagos = new Set(pagos.map((l) => l.userId)).size;
 
@@ -265,6 +278,27 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
           </button>
         ))}
         {carregando && <span className="text-xs text-gray-400 ml-1">🔄</span>}
+      </div>
+
+      {/* Filtro tipo de usuário */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-xs text-gray-400 mr-1">Usuários:</span>
+        {([
+          { v: "todos",       label: "Todos" },
+          { v: "logados",     label: "Logados" },
+          { v: "nao_logados", label: "Não logados" },
+        ] as { v: TipoUsuario; label: string }[]).map(({ v, label }) => (
+          <button
+            key={v}
+            onClick={() => setTipoUsuario(v)}
+            className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+              tipoUsuario === v ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            style={tipoUsuario === v ? { backgroundColor: "#01304D" } : {}}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Funil */}

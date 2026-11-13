@@ -9,11 +9,19 @@ interface Props {
   imovelDescricao: string;
 }
 
-function logEvento(tipo: string, imovelId: string, nivel?: number) {
+function getAnonId(): string {
+  try {
+    let id = localStorage.getItem("blc_anon");
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem("blc_anon", id); }
+    return id;
+  } catch { return "anon"; }
+}
+
+function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: string) {
   fetch("/api/laudos/evento", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tipo, imovelId, nivel }),
+    body: JSON.stringify({ tipo, imovelId, nivel, anonId }),
   }).catch(() => {});
 }
 
@@ -22,16 +30,17 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Registra visualização uma vez por sessão por imóvel
+  // Registra visualização uma vez por sessão por imóvel (logado ou não)
   useEffect(() => {
-    if (!session) return;
+    if (status === "loading") return;
     try {
       const key = `lv_${imovelId}`;
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
-      logEvento("visualizou_botao", imovelId);
+      const anonId = session ? undefined : getAnonId();
+      logEvento("visualizou_botao", imovelId, undefined, anonId);
     } catch {}
-  }, [session, imovelId]);
+  }, [status, session, imovelId]);
 
   if (status === "loading") return null;
 

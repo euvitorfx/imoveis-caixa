@@ -4,12 +4,16 @@ import clientPromise from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ ok: false }, { status: 401 });
-
   const body = await req.json();
-  const { tipo, imovelId, nivel } = body;
+  const { tipo, imovelId, nivel, anonId } = body;
 
   if (!tipo || !imovelId) return NextResponse.json({ ok: false }, { status: 400 });
+
+  // Sem sessão: só permite visualizou_botao com anonId
+  if (!session?.user?.id) {
+    if (tipo !== "visualizou_botao" || !anonId)
+      return NextResponse.json({ ok: false }, { status: 401 });
+  }
 
   const client = await clientPromise;
   await client
@@ -17,9 +21,10 @@ export async function POST(req: NextRequest) {
     .collection("eventos_laudo")
     .insertOne({
       tipo,
-      userId: session.user.id,
-      userEmail: session.user.email ?? "",
-      userName: session.user.name ?? "",
+      userId: session?.user?.id ?? null,
+      userEmail: session?.user?.email ?? null,
+      userName: session?.user?.name ?? null,
+      anonId: session ? null : (anonId ?? null),
       imovelId,
       nivel: nivel ?? null,
       criadoEm: new Date().toISOString(),
