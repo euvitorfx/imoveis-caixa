@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { useState, useMemo, useEffect } from "react";
+import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 
 type Preferencias = { brasil: boolean; estados: string[]; cidades: string[] };
 
@@ -34,6 +37,20 @@ type UserStats = {
 };
 
 type ModalMode = "novo" | "editar" | null;
+
+type AnalyticsPeriod = "hoje" | "ontem" | "7d" | "15d" | "30d";
+const ANALYTICS_LABELS: Record<AnalyticsPeriod, string> = {
+  hoje: "Hoje", ontem: "Ontem", "7d": "7 dias", "15d": "15 dias", "30d": "30 dias",
+};
+
+type AnalyticsData = {
+  cadastros: Record<AnalyticsPeriod, number>;
+  ativos: Record<AnalyticsPeriod, number>;
+  planilhas: Record<AnalyticsPeriod, number>;
+  comFavoritos: number;
+  cadastrosPorDia: { dia: string; count: number }[];
+  analisesPorDia: { dia: string; count: number }[];
+};
 
 function Modal({ title, onClose, wide, children }: { title: string; onClose: () => void; wide?: boolean; children: React.ReactNode }) {
   return (
@@ -98,6 +115,16 @@ export default function AdminUsuarios({
 }) {
   const [modal, setModal] = useState<ModalMode>(null);
   const [editando, setEditando] = useState<UserRow | null>(null);
+
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>("7d");
+
+  useEffect(() => {
+    fetch("/api/admin/usuarios/analytics")
+      .then((r) => r.json())
+      .then((d) => setAnalytics(d))
+      .catch(() => {});
+  }, []);
   const [senhaTemp, setSenhaTemp] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState("");
@@ -277,6 +304,20 @@ export default function AdminUsuarios({
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  const chartData = useMemo(() => {
+    if (!analytics) return [];
+    const map: Record<string, { dia: string; cadastros: number; planilhas: number }> = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      map[key] = { dia: key, cadastros: 0, planilhas: 0 };
+    }
+    analytics.cadastrosPorDia.forEach(({ dia, count }) => { if (map[dia]) map[dia].cadastros = count; });
+    analytics.analisesPorDia.forEach(({ dia, count }) => { if (map[dia]) map[dia].planilhas = count; });
+    return Object.values(map);
+  }, [analytics]);
 
   if (loading) return <p className="text-gray-400 text-center py-10">Carregando...</p>;
   if (!stats) return <p className="text-gray-400 text-center py-10">Erro ao carregar dados.</p>;
@@ -523,6 +564,77 @@ export default function AdminUsuarios({
           </div>
         </Modal>
       )}
+
+      {/* Analytics de uso */}
+      <div className="space-y-4 mb-6">
+        {/* Seletor de período */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-gray-400 mr-1">Período:</span>
+          {(["hoje", "ontem", "7d", "15d", "30d"] as AnalyticsPeriod[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setAnalyticsPeriod(p)}
+              className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                analyticsPeriod === p ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              style={analyticsPeriod === p ? { backgroundColor: "#01304D" } : {}}
+            >
+              {ANALYTICS_LABELS[p]}
+            </button>
+          ))}
+        </div>
+
+        {/* Cards de métricas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Novos cadastros", value: analytics?.cadastros[analyticsPeriod], icon: "👤", color: "#01304D" },
+            { label: "Usuários ativos", value: analytics?.ativos[analyticsPeriod], icon: "⚡", color: "#3b82f6" },
+            { label: "Planilhas criadas", value: analytics?.planilhas[analyticsPeriod], icon: "📊", color: "#8b5cf6" },
+            { label: "Com favoritos", value: analytics?.comFavoritos, icon: "♥", color: "#ef4444", nota: "total acumulado" },
+          ].map(({ label, value, icon, color, nota }) => (
+            <div key={label} className="bg-white rounded-xl border p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-base">{icon}</span>
+                {nota && <span className="text-xs text-gray-300">{nota}</span>}
+              </div>
+              <p className="text-2xl font-bold" style={{ color }}>
+                {value ?? <span className="text-gray-200 text-lg">—</span>}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Gráfico — cadastros e planilhas por dia */}
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            Atividade diária — últimos 30 dias
+          </p>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={chartData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="dia"
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  tickFormatter={(v: string) => v.slice(5)}
+                  interval={4}
+                />
+                <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} />
+                <Tooltip
+                  labelFormatter={(v: string) => new Date(v + "T12:00:00").toLocaleDateString("pt-BR")}
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="cadastros" name="Cadastros" fill="#01304D" radius={[2, 2, 0, 0]} maxBarSize={16} />
+                <Bar dataKey="planilhas" name="Planilhas" fill="#8b5cf6" radius={[2, 2, 0, 0]} maxBarSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-xs text-gray-300 text-center py-8">Carregando dados...</p>
+          )}
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
