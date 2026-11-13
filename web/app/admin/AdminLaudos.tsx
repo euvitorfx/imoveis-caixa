@@ -268,28 +268,61 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
       </div>
 
       {/* Funil */}
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
-          Funil de conversão — {getPeriodoRange(periodo).label}
-        </p>
-        <div className="divide-y">
-          {[
-            { label: "Visualizaram o botão", n: uniqViews, cor: "#6366f1" },
-            { label: "Clicaram em um plano", n: uniqCliques, cor: "#F59E0B", conv: conv(uniqCliques, uniqViews) },
-            { label: "Iniciaram checkout", n: uniqIniciados, cor: "#3b82f6", conv: conv(uniqIniciados, uniqCliques) },
-            { label: "Pagaram", n: uniqPagos, cor: "#059669", conv: conv(uniqPagos, uniqIniciados) },
-          ].map(({ label, n, cor, conv: c }, i) => (
-            <div key={i} className="flex items-center px-4 py-3 gap-3">
-              <div className="w-2 h-8 rounded-full shrink-0" style={{ backgroundColor: cor }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-700">{label}</p>
-                {c && <p className="text-xs text-gray-400">conversão da etapa anterior: {c}</p>}
-              </div>
-              <p className="text-xl font-bold shrink-0" style={{ color: cor }}>{n}</p>
+      {(() => {
+        const fSteps = [
+          { label: "Visualizaram o botão", n: uniqViews,     cor: "#6366f1", drop: null as string | null },
+          { label: "Clicaram em um plano", n: uniqCliques,   cor: "#F59E0B", drop: conv(uniqCliques, uniqViews) },
+          { label: "Iniciaram checkout",   n: uniqIniciados, cor: "#3b82f6", drop: conv(uniqIniciados, uniqCliques) },
+          { label: "Pagaram",              n: uniqPagos,     cor: "#059669", drop: conv(uniqPagos, uniqIniciados) },
+        ];
+        const top = uniqViews || 1;
+        return (
+          <div className="bg-white rounded-xl border overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Funil de conversão — {getPeriodoRange(periodo).label}
+              </p>
+              {uniqViews > 0 && (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}>
+                  {conv(uniqPagos, uniqViews)} geral
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="p-4 space-y-1.5">
+              {fSteps.map(({ label, n, cor, drop }, i) => {
+                const pct = Math.round((n / top) * 100);
+                const barW = n > 0 ? Math.max(pct, 5) : 0;
+                return (
+                  <div key={i}>
+                    <div className="relative h-11 rounded-xl overflow-hidden" style={{ backgroundColor: `${cor}1A` }}>
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-xl"
+                        style={{ width: `${barW}%`, backgroundColor: `${cor}40`, transition: "width 0.4s ease" }}
+                      />
+                      <div className="absolute inset-0 flex items-center px-3 gap-2.5">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cor }} />
+                        <span className="text-sm font-medium text-gray-700 flex-1 truncate">{label}</span>
+                        <span className="text-lg font-bold shrink-0" style={{ color: cor }}>{n}</span>
+                        <span className="text-xs text-gray-400 w-9 text-right shrink-0">
+                          {n > 0 ? `${pct}%` : "—"}
+                        </span>
+                      </div>
+                    </div>
+                    {i < fSteps.length - 1 && (
+                      <div className="flex items-center gap-1.5 pl-3 py-0.5">
+                        <span className="text-xs" style={{ color: "#D1D5DB" }}>▼</span>
+                        <span className="text-xs" style={{ color: drop && drop !== "—" ? "#059669" : "#9CA3AF" }}>
+                          {drop && drop !== "—" ? `${drop} avançaram` : "sem dados"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Abandonados */}
       <div className="bg-white rounded-xl border overflow-hidden">
