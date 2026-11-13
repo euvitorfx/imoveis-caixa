@@ -175,6 +175,7 @@ function FinanceiroTab({ laudos }: { laudos: Laudo[] }) {
 
 type Evento = { _id: string; tipo: string; userId: string | null; anonId?: string | null; userEmail: string | null; userName?: string | null; imovelId: string; nivel?: number; criadoEm: string };
 type TipoUsuario = "todos" | "logados" | "nao_logados";
+type TipoEvento  = "todos" | "visualizou_botao" | "clicou_plano";
 
 function tempoDecorrido(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -215,6 +216,7 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [periodo, setPeriodo] = useState<Periodo>("hoje");
   const [tipoUsuario, setTipoUsuario] = useState<TipoUsuario>("todos");
+  const [tipoEvento, setTipoEvento] = useState<TipoEvento>("todos");
   const [carregando, setCarregando] = useState(false);
 
   const carregar = useCallback(async (p: Periodo) => {
@@ -417,41 +419,79 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
         )}
       </div>
 
-      {/* Todos os eventos — lista detalhada por usuário */}
-      {eventos.length > 0 && (
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 border-b">
-            Atividade detalhada — {getPeriodoRange(periodo).label}
-          </p>
-          <div className="divide-y">
-            {eventos.slice(0, 30).map((e) => (
-              <div key={e._id} className="flex items-start justify-between px-4 py-3 gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-800 leading-tight">
-                    {e.userName || e.userEmail}
-                  </p>
-                  {e.userName && (
-                    <p className="text-xs text-gray-400">{e.userEmail}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">{e.imovelId}</p>
-                </div>
-                <div className="text-right shrink-0 space-y-1">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full block ${
-                    e.tipo === "clicou_plano"
-                      ? e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-500"
-                  }`}>
-                    {e.tipo === "clicou_plano"
-                      ? `Clicou · ${e.nivel === 2 ? "R$297" : "R$97"}`
-                      : "Visualizou"}
-                  </span>
-                  <p className="text-xs text-gray-400">{tempoDecorrido(e.criadoEm)}</p>
-                </div>
+      {/* Atividade detalhada */}
+      {eventosFiltrados.length > 0 && (() => {
+        const listaFiltrada = tipoEvento === "todos"
+          ? eventosFiltrados
+          : eventosFiltrados.filter((e) => e.tipo === tipoEvento);
+        const LIMIT = 50;
+        return (
+          <div className="bg-white rounded-xl border overflow-hidden">
+            {/* Header com filtro e contagem */}
+            <div className="flex items-center justify-between px-4 py-3 border-b flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Atividade detalhada
+                </p>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                  {listaFiltrada.length}
+                </span>
               </div>
-            ))}
+              <div className="flex gap-1 flex-wrap">
+                {([
+                  { v: "todos",           label: "Todos" },
+                  { v: "visualizou_botao", label: "Visualizou" },
+                  { v: "clicou_plano",    label: "Clicou" },
+                ] as { v: TipoEvento; label: string }[]).map(({ v, label }) => (
+                  <button
+                    key={v}
+                    onClick={() => setTipoEvento(v)}
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-medium transition-colors ${
+                      tipoEvento === v ? "text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    }`}
+                    style={tipoEvento === v ? { backgroundColor: "#01304D" } : {}}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Rows */}
+            <div className="divide-y">
+              {listaFiltrada.slice(0, LIMIT).map((e) => (
+                <div key={e._id} className="flex items-start justify-between px-4 py-3 gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800 leading-tight">
+                      {e.userName || e.userEmail || (e.anonId ? `anônimo ···${e.anonId.slice(-6)}` : "—")}
+                    </p>
+                    {e.userName && e.userEmail && (
+                      <p className="text-xs text-gray-400">{e.userEmail}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">{e.imovelId}</p>
+                  </div>
+                  <div className="text-right shrink-0 space-y-1">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full block ${
+                      e.tipo === "clicou_plano"
+                        ? e.nivel === 2 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {e.tipo === "clicou_plano"
+                        ? `Clicou · ${e.nivel === 2 ? "R$297" : "R$97"}`
+                        : "Visualizou"}
+                    </span>
+                    <p className="text-xs text-gray-400">{tempoDecorrido(e.criadoEm)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {listaFiltrada.length > LIMIT && (
+              <p className="text-xs text-gray-400 text-center py-3 border-t">
+                Mostrando {LIMIT} de {listaFiltrada.length} registros
+              </p>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
