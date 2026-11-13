@@ -9,9 +9,10 @@ export async function POST(req: NextRequest) {
 
   if (!tipo || !imovelId) return NextResponse.json({ ok: false }, { status: 400 });
 
-  // Sem sessão: só permite visualizou_botao com anonId
+  // Sem sessão: permite visualizou_botao e clicou_plano com anonId
   if (!session?.user?.id) {
-    if (tipo !== "visualizou_botao" || !anonId)
+    const tiposPermitidos = ["visualizou_botao", "clicou_plano"];
+    if (!tiposPermitidos.includes(tipo) || !anonId)
       return NextResponse.json({ ok: false }, { status: 401 });
   }
 

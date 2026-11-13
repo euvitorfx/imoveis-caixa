@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "laudo_popup_last_shown";
-const COOLDOWN_MS = 8 * 60 * 60 * 1000;
+const COOLDOWN_MS = 4 * 60 * 60 * 1000;
 
 export default function LaudoPopup({ imovelId }: { imovelId: string }) {
   const [visible, setVisible] = useState(false);

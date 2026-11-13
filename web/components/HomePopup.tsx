@@ -34,6 +34,15 @@ const RECURSOS = [
     descricao: "Calcule o ROI, fluxo de caixa e potencial de retorno de qualquer imóvel. Salve e exporte em XLS.",
   },
   {
+    icone: "📋",
+    iconeCor: "#01304D",
+    titulo: "Laudo BLC",
+    badge: "novo",
+    badgeCor: "#92400e",
+    badgeBg: "#fef3c7",
+    descricao: "Análise profissional do imóvel antes de arrematar: mercado, matrícula, jurídica e viabilidade financeira.",
+  },
+  {
     icone: "★",
     iconeCor: "#01304D",
     titulo: "Clube BLC",

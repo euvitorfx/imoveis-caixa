@@ -76,6 +76,7 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
             href={`/login?callbackUrl=/imovel/${encodeURIComponent(imovelId)}`}
             className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-bold"
             style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
+            onClick={() => logEvento("clicou_plano", imovelId, undefined, getAnonId())}
           >
             <span>Solicitar análise</span>
             <span>a partir de R$97 →</span>
