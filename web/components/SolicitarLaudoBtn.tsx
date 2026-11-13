@@ -37,15 +37,42 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
 
   if (!session) {
     return (
-      <a
-        href={`/login?callbackUrl=/imovel/${encodeURIComponent(imovelId)}`}
-        className="flex items-center gap-2 font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
-        style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
-      >
-        <span>📋</span>
-        <span>Solicitar Laudo BLC</span>
-        <span className="text-xs font-normal opacity-70">a partir de R$97</span>
-      </a>
+      <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #F59E0B" }}>
+        <div className="px-4 py-3" style={{ backgroundColor: "#FEF3C7" }}>
+          <div className="flex items-center gap-2">
+            <span className="text-base">📋</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: "#01304D" }}>Laudo BLC</p>
+              <p className="text-xs" style={{ color: "#92400E" }}>
+                Análise profissional deste imóvel antes de arrematar
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white px-4 py-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-3">
+            {[
+              { icon: "📊", text: "Valor de mercado real" },
+              { icon: "📋", text: "Ônus e pendências" },
+              { icon: "⚖️", text: "Riscos jurídicos" },
+              { icon: "💰", text: "ROI e viabilidade" },
+            ].map(({ icon, text }) => (
+              <div key={text} className="flex items-center gap-1.5 text-xs text-gray-600">
+                <span>{icon}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+          <a
+            href={`/login?callbackUrl=/imovel/${encodeURIComponent(imovelId)}`}
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-bold"
+            style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
+          >
+            <span>Solicitar análise</span>
+            <span>a partir de R$97 →</span>
+          </a>
+        </div>
+      </div>
     );
   }
 
@@ -98,8 +125,11 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
             (e.currentTarget as HTMLButtonElement).style.color = "#01304D";
           }}
         >
-          <span>Laudo Digital</span>
-          <span className="font-bold">R$ 97</span>
+          <div className="flex flex-col items-start">
+            <span>Laudo Digital</span>
+            <span className="text-xs font-normal opacity-60">PDF completo em até 2 dias úteis</span>
+          </div>
+          <span className="font-bold shrink-0">R$ 97</span>
         </button>
 
         <button
