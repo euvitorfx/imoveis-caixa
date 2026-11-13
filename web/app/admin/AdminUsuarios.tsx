@@ -622,7 +622,7 @@ export default function AdminUsuarios({
                 />
                 <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} allowDecimals={false} />
                 <Tooltip
-                  labelFormatter={(v: string) => new Date(v + "T12:00:00").toLocaleDateString("pt-BR")}
+                  labelFormatter={(v) => typeof v === "string" ? new Date(v + "T12:00:00").toLocaleDateString("pt-BR") : String(v)}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                 />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
