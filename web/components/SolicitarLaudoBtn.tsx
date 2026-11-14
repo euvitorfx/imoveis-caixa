@@ -18,11 +18,17 @@ function getAnonId(): string {
 }
 
 function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: string) {
-  fetch("/api/laudos/evento", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tipo, imovelId, nivel, anonId }),
-  }).catch(() => {});
+  const payload = JSON.stringify({ tipo, imovelId, nivel, anonId });
+  // sendBeacon garante entrega mesmo quando a página está sendo descarregada (clique em link)
+  if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+    navigator.sendBeacon("/api/laudos/evento", new Blob([payload], { type: "application/json" }));
+  } else {
+    fetch("/api/laudos/evento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    }).catch(() => {});
+  }
 }
 
 export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) {
