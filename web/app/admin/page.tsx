@@ -10,13 +10,14 @@ import AdminProcessos from "./AdminProcessos";
 import AdminCobertura from "./AdminCobertura";
 import AdminAfiliados from "./AdminAfiliados";
 import AdminLaudos from "./AdminLaudos";
+import AdminMetricas from "./AdminMetricas";
 
 function fmtData(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-type Tab = "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura" | "afiliados" | "laudos";
+type Tab = "metricas" | "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura" | "afiliados" | "laudos";
 
 type UserStats = {
   total: number;
@@ -183,7 +184,7 @@ function UtmLinksTab() {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("usuarios");
+  const [tab, setTab] = useState<Tab>("metricas");
 
   // Blog state
   const [posts,     setPosts]     = useState<BlogPost[]>([]);
@@ -307,9 +308,17 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b">
+      <div className="flex gap-1 mb-6 border-b overflow-x-auto">
+        <button onClick={() => setTab("metricas")}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
+            tab === "metricas"
+              ? "border-amber-500 text-amber-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}>
+          📊 Métricas
+        </button>
         <button onClick={() => setTab("usuarios")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "usuarios"
               ? "border-blue-600 text-blue-600 bg-white"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -317,7 +326,7 @@ export default function AdminPage() {
           Usuários
         </button>
         <button onClick={() => setTab("corretores")}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 relative ${
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap relative ${
             tab === "corretores"
               ? "border-blue-600 text-blue-600 bg-white"
               : "border-transparent text-gray-500 hover:text-gray-700"
@@ -378,6 +387,9 @@ export default function AdminPage() {
           📋 Laudos
         </button>
       </div>
+
+      {/* Métricas Tab */}
+      {tab === "metricas" && <AdminMetricas />}
 
       {/* Blog Tab */}
       {tab === "blog" && (
