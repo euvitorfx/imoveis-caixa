@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { enqueueClick } from "@/components/FunilFlushQueue";
 
 interface Props {
   imovelId: string;
@@ -19,7 +20,7 @@ function getAnonId(): string {
 
 function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: string) {
   const payload = JSON.stringify({ tipo, imovelId, nivel, anonId });
-  // sendBeacon garante entrega mesmo quando a página está sendo descarregada (clique em link)
+  // sendBeacon: entrega mesmo durante unload (page reload)
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
     navigator.sendBeacon("/api/laudos/evento", new Blob([payload], { type: "application/json" }));
   } else {
@@ -27,6 +28,7 @@ function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: stri
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: payload,
+      keepalive: true,
     }).catch(() => {});
   }
 }
@@ -82,7 +84,12 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
             href={`/login?callbackUrl=/imovel/${encodeURIComponent(imovelId)}`}
             className="flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-bold"
             style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
-            onClick={() => logEvento("clicou_plano", imovelId, undefined, getAnonId())}
+            onClick={() => {
+              const anonId = getAnonId();
+              // Dupla proteção: fila no localStorage (flush na próxima página) + sendBeacon imediato
+              enqueueClick("clicou_plano", imovelId, undefined, anonId);
+              logEvento("clicou_plano", imovelId, undefined, anonId);
+            }}
           >
             <span>Solicitar análise</span>
             <span>a partir de R$97 →</span>

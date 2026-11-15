@@ -11,6 +11,7 @@ import NavAuthMobile from "@/components/NavAuthMobile";
 import MobileNav from "@/components/MobileNav";
 import Providers from "@/components/Providers";
 import PopupFeaturesUsuario from "@/components/PopupFeaturesUsuario";
+import FunilFlushQueue from "@/components/FunilFlushQueue";
 import { SITE_URL, SITE_NAME, SITE_EMAIL, SITE_WHATSAPP, SITE_INSTAGRAM, SITE_TIKTOK } from "@/lib/config";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
         <Providers>
+        <FunilFlushQueue />
         <PopupFeaturesUsuario />
         <RegistraVisita />
         <GoogleAnalytics />
