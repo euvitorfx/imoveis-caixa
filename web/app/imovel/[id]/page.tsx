@@ -644,73 +644,43 @@ export default async function DetalheImovel({
         </div>
       )}
 
-      {/* Corretores parceiros */}
-      <div className="mt-6 bg-white rounded-xl shadow p-5">
-        <h2 className="font-semibold text-gray-700 mb-1">
-          Corretores parceiros na sua proposta
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Já decidiu arrematar? Inclua um corretor parceiro BLC na sua proposta — ele acompanha o processo e recebe comissão da Caixa, sem custo extra para você.
-        </p>
-
-        {corretoresEstado.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {corretoresEstado.map((c: Corretor) => (
-              <a
-                key={c._id}
-                href={`/corretores/${c.slug}`}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#01304D] hover:bg-gray-50 transition-colors"
-              >
-                {c.foto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={c.foto}
-                    alt={c.nome}
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-gray-200"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-lg">
-                    👤
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 text-sm truncate">{c.nome}</p>
-                  <p className="text-xs text-gray-500">{c.cidade} · CRECI: {c.creci}</p>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  {c.categoria === "credenciado_caixa" && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                      Credenciado
-                    </span>
-                  )}
-                  {c.whatsapp && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                      WhatsApp
-                    </span>
-                  )}
-                </div>
-              </a>
+      {/* Corretor parceiro */}
+      <div className="mt-6 rounded-xl overflow-hidden" style={{ border: "1.5px solid #01304D" }}>
+        <div className="px-5 py-4" style={{ backgroundColor: "#01304D" }}>
+          <p className="font-bold text-white text-sm">Corretor parceiro Caixa</p>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+            Inclua na sua proposta e ganhe suporte + cashback
+          </p>
+        </div>
+        <div className="bg-white px-5 py-4">
+          <p className="text-sm text-gray-600 leading-relaxed mb-4">
+            Já escolheu este imóvel para arrematar ou comprar? Solicite a indicação de um
+            corretor credenciado Caixa parceiro do BLC. Ele acompanha todo o processo de arrematação
+            e pós-compra — e ao informar o código do parceiro na sua proposta, você garante acesso
+            ao <span className="font-medium" style={{ color: "#01304D" }}>cashback exclusivo do Clube BLC</span>.
+          </p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
+            {[
+              "Credenciado pela Caixa",
+              "Suporte no pós-arremate",
+              "Sem custo extra para você",
+              "Cashback Clube BLC",
+            ].map((b) => (
+              <div key={b} className="flex items-center gap-1.5 text-xs text-gray-600">
+                <span style={{ color: "#F59E0B" }}>✓</span> {b}
+              </div>
             ))}
-            <a href="/corretores" className="text-xs hover:underline mt-1" style={{ color: "#01304D" }}>
-              Ver todos os corretores parceiros →
-            </a>
           </div>
-        ) : null}
-
-        {corretoresEstado.length === 0 ? (
-          <div className="p-4 rounded-lg border border-gray-100 bg-gray-50">
-            <p className="text-sm text-gray-500">
-              Ainda não temos corretores parceiros cadastrados em{" "}
-              <span className="font-medium">{imovel.estado}</span>. Em breve ampliaremos nossa rede.
-            </p>
-            <p className="text-xs text-gray-400 mt-1.5">
-              É corretor credenciado Caixa neste estado?{" "}
-              <a href="/corretores" className="hover:underline font-medium" style={{ color: "#01304D" }}>
-                Cadastre-se como parceiro
-              </a>
-            </p>
-          </div>
-        ) : null}
+          <a
+            href={`https://wa.me/${SITE_WHATSAPP}?text=${encodeURIComponent(`Olá! Já escolhi o imóvel em ${imovel.cidade}/${imovel.estado} e gostaria de receber a indicação de um corretor parceiro Caixa para incluir na minha proposta e ter acesso ao cashback do Clube BLC.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "#01304D", color: "#fff" }}
+          >
+            Solicitar indicação de corretor
+          </a>
+        </div>
       </div>
     </div>
   );
