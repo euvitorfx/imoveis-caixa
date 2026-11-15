@@ -306,8 +306,8 @@ function FunilTab({ laudos }: { laudos: Laudo[] }) {
       {/* Funil */}
       {(() => {
         const fSteps = [
-          { label: "Visualizaram o botão", n: uniqViews,     cor: "#6366f1", drop: null as string | null },
-          { label: "Clicaram em um plano", n: uniqCliques,   cor: "#F59E0B", drop: conv(uniqCliques, uniqViews) },
+          { label: "Visualizaram o botão (únicos)", n: uniqViews,     cor: "#6366f1", drop: null as string | null },
+          { label: "Clicaram em um plano (únicos)", n: uniqCliques,   cor: "#F59E0B", drop: conv(uniqCliques, uniqViews) },
           { label: "Iniciaram checkout",   n: uniqIniciados, cor: "#3b82f6", drop: conv(uniqIniciados, uniqCliques) },
           { label: "Pagaram",              n: uniqPagos,     cor: "#059669", drop: conv(uniqPagos, uniqIniciados) },
         ];
