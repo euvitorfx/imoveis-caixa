@@ -37,18 +37,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center">
+    <div className="min-h-[70vh] flex items-center justify-center py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <a href="/"><img src="/logo.png" alt="Busca Leilões Caixa" className="h-16 mx-auto mb-4" /></a>
           <h1 className="text-2xl font-bold text-gray-800">Entrar na sua conta</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Não tem conta?{" "}
-            <a href="/cadastro" className="font-medium hover:underline" style={{ color: "#01304D" }}>
-              Cadastre-se grátis
-            </a>
-          </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-8">
@@ -114,6 +108,40 @@ function LoginForm() {
               {loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
+        </div>
+
+        {/* Cadastro — destaque */}
+        <div
+          className="mt-4 rounded-2xl p-5 border-2"
+          style={{ backgroundColor: "#FFFBEB", borderColor: "#F59E0B" }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl mt-0.5">🏠</span>
+            <div className="flex-1">
+              <p className="font-bold text-sm" style={{ color: "#01304D" }}>
+                Ainda não tem conta? É grátis
+              </p>
+              <ul className="mt-1.5 mb-3 space-y-1">
+                {[
+                  "Favoritos ilimitados",
+                  "Planilhas de viabilidade",
+                  "Alertas de novos imóveis",
+                  "Acesso ao Laudo BLC",
+                ].map((b) => (
+                  <li key={b} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span style={{ color: "#F59E0B" }}>✓</span> {b}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={`/cadastro${callbackUrl !== "/" ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`}
+                className="inline-flex items-center justify-center w-full py-2.5 rounded-xl font-bold text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
+              >
+                Criar conta grátis →
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>
