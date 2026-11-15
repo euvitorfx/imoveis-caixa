@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     agora: new Date().toISOString(),
     desde,
+    novos_clicks: novosClicks,
+    novos_views: novosViews,
     novos: { views: novosViews, clicks: novosClicks },
     totais: { views: totalViews, clicks: totalClicks, laudos: totalLaudos },
     ultimoClique: ultimoClique[0]
