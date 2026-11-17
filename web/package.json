@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "@auth/mongodb-adapter": "^3.11.3",
     "@react-pdf/renderer": "^4.5.1",
     "@vercel/analytics": "^2.0.1",

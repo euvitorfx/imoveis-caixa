@@ -619,6 +619,12 @@ export default function AdminLaudos() {
             >
               📄 Ver PDF
             </a>
+            <a
+              href={`/admin/laudos/${selected}/analise`}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400"
+            >
+              🤖 Análise IA
+            </a>
           </div>
         </div>
 
