@@ -5,18 +5,21 @@ function checkAdmin(req: NextRequest) {
   return req.cookies.get("admin_token")?.value === process.env.ADMIN_SECRET;
 }
 
+const BRT_OFFSET_MS = 3 * 60 * 60 * 1000; // UTC-3 (Brasília)
+
 function startOf(unit: "day" | "week" | "month") {
-  const d = new Date();
+  // Shift para BRT, zera meia-noite local, shift de volta para UTC
+  const brt = new Date(Date.now() - BRT_OFFSET_MS);
   if (unit === "day") {
-    d.setHours(0, 0, 0, 0);
+    brt.setUTCHours(0, 0, 0, 0);
   } else if (unit === "week") {
-    d.setDate(d.getDate() - 6);
-    d.setHours(0, 0, 0, 0);
+    brt.setUTCDate(brt.getUTCDate() - 6);
+    brt.setUTCHours(0, 0, 0, 0);
   } else {
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
+    brt.setUTCDate(1);
+    brt.setUTCHours(0, 0, 0, 0);
   }
-  return d.toISOString();
+  return new Date(brt.getTime() + BRT_OFFSET_MS).toISOString();
 }
 
 export async function GET(req: NextRequest) {
