@@ -305,6 +305,31 @@ export default function AnalisePage() {
         </div>
       )}
 
+      {/* Custo da análise */}
+      {analise?.uso && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-xs text-gray-500 flex gap-6 flex-wrap">
+          <span>
+            Modelo: <strong className="text-gray-700">{analise.uso.modelo}</strong>
+          </span>
+          <span>
+            Tokens entrada: <strong className="text-gray-700">{analise.uso.inputTokens.toLocaleString("pt-BR")}</strong>
+          </span>
+          <span>
+            Tokens saída: <strong className="text-gray-700">{analise.uso.outputTokens.toLocaleString("pt-BR")}</strong>
+          </span>
+          <span>
+            Custo:{" "}
+            <strong className="text-gray-700">
+              US$ {analise.uso.custoUSD.toFixed(4)}
+              {" "}
+              <span className="text-gray-400 font-normal">
+                (≈ R$ {(analise.uso.custoUSD * 5.5).toFixed(2)})
+              </span>
+            </strong>
+          </span>
+        </div>
+      )}
+
       {/* Estado idle — instrução */}
       {estado === "idle" && hasMatricula && (
         <div className="text-center py-16 text-gray-400 text-sm">

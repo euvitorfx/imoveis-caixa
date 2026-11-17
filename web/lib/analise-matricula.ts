@@ -22,6 +22,17 @@ export interface AtoRegistral {
   partes?: string[];
 }
 
+// Preços claude-opus-5-5 (USD por token)
+const PRECO_INPUT_POR_TOKEN  = 4.00  / 1_000_000;
+const PRECO_OUTPUT_POR_TOKEN = 20.00 / 1_000_000;
+
+export interface UsoTokens {
+  inputTokens: number;
+  outputTokens: number;
+  custoUSD: number;      // custo total calculado
+  modelo: string;
+}
+
 export interface AnaliseMatricula {
   // Identificação
   numeroMatricula?: string;
@@ -61,6 +72,7 @@ export interface AnaliseMatricula {
 
   // Meta
   limitacoes: string[];      // O que não foi possível verificar
+  uso?: UsoTokens;           // preenchido pelo helper, não pelo Claude
 }
 
 export async function analisarMatricula(
@@ -136,8 +148,10 @@ REGRAS IMPORTANTES:
 - Se a matrícula mencionar processos judiciais, liste nos alertas e no resumo jurídico.
 - Seja rigoroso: não classifique gravame como cancelado sem evidência explícita na matrícula.`;
 
+  const MODEL = "claude-opus-5-5";
+
   const response = await client.messages.create({
-    model: "claude-opus-4-5",
+    model: MODEL,
     max_tokens: 4096,
     messages: [
       {
@@ -162,9 +176,22 @@ REGRAS IMPORTANTES:
   // Remove markdown code fences caso o modelo coloque
   const cleaned = text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
 
+  let analise: AnaliseMatricula;
   try {
-    return JSON.parse(cleaned) as AnaliseMatricula;
+    analise = JSON.parse(cleaned) as AnaliseMatricula;
   } catch {
     throw new Error(`Falha ao parsear resposta do Claude: ${text.slice(0, 200)}`);
   }
+
+  // Anexa dados de uso/custo
+  const inputTokens  = response.usage.input_tokens;
+  const outputTokens = response.usage.output_tokens;
+  analise.uso = {
+    inputTokens,
+    outputTokens,
+    custoUSD: +(inputTokens * PRECO_INPUT_POR_TOKEN + outputTokens * PRECO_OUTPUT_POR_TOKEN).toFixed(6),
+    modelo: MODEL,
+  };
+
+  return analise;
 }

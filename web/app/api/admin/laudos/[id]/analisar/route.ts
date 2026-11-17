@@ -59,15 +59,28 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     tipo: imovel?.tipo as string | undefined ?? laudo.imovelData?.tipo as string | undefined,
   });
 
-  // Salva automaticamente nos blocos do laudo
+  // Salva blocos + registro de consumo no laudo
   const agora = new Date().toISOString();
+  const novaEntradaIA = {
+    tipo: "matricula",
+    modelo: analise.uso?.modelo ?? "claude-opus-5-5",
+    inputTokens: analise.uso?.inputTokens ?? 0,
+    outputTokens: analise.uso?.outputTokens ?? 0,
+    custoUSD: analise.uso?.custoUSD ?? 0,
+    em: agora,
+  };
+
+  // Acumula histórico de chamadas IA neste laudo
+  const historicoAtual = (laudo as unknown as Record<string, unknown>).analisesIA as typeof novaEntradaIA[] | undefined ?? [];
+
   await updateLaudo(id, {
     blocos: {
       ...laudo.blocos,
       matricula: { status: "concluido", conteudo: analise.resumoMatricula, atualizadoEm: agora },
-      juridica: { status: "concluido", conteudo: analise.resumoJuridico, atualizadoEm: agora },
+      juridica:  { status: "concluido", conteudo: analise.resumoJuridico,  atualizadoEm: agora },
     },
-  });
+    analisesIA: [...historicoAtual, novaEntradaIA],
+  } as Parameters<typeof updateLaudo>[1]);
 
   return NextResponse.json({ ok: true, analise });
 }
