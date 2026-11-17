@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLaudoById, updateLaudo } from "@/lib/laudos";
 import { analisarMatricula } from "@/lib/analise-matricula";
+import { uploadMatricula } from "@/lib/r2";
 import clientPromise from "@/lib/mongodb";
 
 const CAIXA_BASE_URL = "https://venda-imoveis.caixa.gov.br";
@@ -78,17 +79,39 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   }
 
   // Download do PDF
+  let pdfBuffer: Buffer;
   let pdfBase64: string;
   try {
     const res = await fetch(matriculaUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buffer = await res.arrayBuffer();
-    pdfBase64 = Buffer.from(buffer).toString("base64");
+    pdfBuffer = Buffer.from(await res.arrayBuffer());
+    pdfBase64 = pdfBuffer.toString("base64");
   } catch (e) {
     return NextResponse.json(
       { error: `Falha ao baixar o PDF de matrícula: ${e instanceof Error ? e.message : e}` },
       { status: 502 }
     );
+  }
+
+  // Upload do PDF para o R2 (idempotente — não re-faz se já existir)
+  const hdnImovel =
+    (imovel?.hdnImovel as string | undefined) ??
+    (laudo.imovelData?.hdnImovel as string | undefined);
+
+  let matriculaPdfR2Url: string | undefined;
+  if (hdnImovel) {
+    try {
+      matriculaPdfR2Url = await uploadMatricula(hdnImovel, pdfBuffer);
+      // Persiste no imóvel para uso futuro (PDF gerado, pré-visualização, etc.)
+      if (imovel?._id) {
+        await db.collection("imoveis").updateOne(
+          { _id: imovel._id as unknown as import("mongodb").ObjectId },
+          { $set: { matriculaPdfR2Url } }
+        );
+      }
+    } catch {
+      // Falha no upload não bloqueia a análise
+    }
   }
 
   // Análise com Claude
@@ -118,6 +141,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const historicoAtual = (laudo as unknown as Record<string, unknown>).analisesIA as typeof novaEntradaIA[] | undefined ?? [];
 
   await updateLaudo(id, {
+    ...(matriculaPdfR2Url ? { matriculaPdfR2Url } : {}),
     blocos: {
       ...laudo.blocos,
       matricula: { status: "concluido", conteudo: analise.resumoMatricula, atualizadoEm: agora },
