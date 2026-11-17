@@ -77,13 +77,43 @@ export interface AnaliseMatricula {
 
 export async function analisarMatricula(
   pdfBase64: string,
-  contexto?: { cidade?: string; estado?: string; tipo?: string }
+  contexto?: {
+    cidade?: string;
+    estado?: string;
+    tipo?: string;
+    dadosCaixa?: {
+      averbacaoLeiloes?: string; // "Averbado" | "Não Averbado"
+      ocupacao?: string;
+      modalidade?: string;
+    };
+  }
 ): Promise<AnaliseMatricula> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const ctx = contexto
-    ? `Contexto do imóvel: ${contexto.tipo ?? ""} em ${contexto.cidade ?? ""}/${contexto.estado ?? ""}.`
+  const dadosCaixaStr = contexto?.dadosCaixa
+    ? Object.entries(contexto.dadosCaixa)
+        .filter(([, v]) => v)
+        .map(([k, v]) => {
+          const labels: Record<string, string> = {
+            averbacaoLeiloes: "Averbação dos leilões negativos (site Caixa)",
+            ocupacao: "Situação de ocupação (site Caixa)",
+            modalidade: "Modalidade de venda (site Caixa)",
+          };
+          return `- ${labels[k] ?? k}: ${v}`;
+        })
+        .join("\n")
     : "";
+
+  const ctx = [
+    contexto?.tipo || contexto?.cidade || contexto?.estado
+      ? `Imóvel: ${contexto.tipo ?? ""} em ${contexto.cidade ?? ""}/${contexto.estado ?? ""}.`
+      : "",
+    dadosCaixaStr
+      ? `\nDados atuais do site da Caixa Econômica Federal (podem ser mais recentes que a matrícula):\n${dadosCaixaStr}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const prompt = `Você é um especialista em direito imobiliário e registral brasileiro. Analise esta matrícula de imóvel e extraia as informações em formato JSON estruturado.
 
@@ -146,7 +176,8 @@ REGRAS IMPORTANTES:
 - CPF: extraia exatamente como aparece no documento.
 - Inclua TODOS os atos registrais (R-1, R-2, AV-1, AV-2, etc.).
 - Se a matrícula mencionar processos judiciais, liste nos alertas e no resumo jurídico.
-- Seja rigoroso: não classifique gravame como cancelado sem evidência explícita na matrícula.`;
+- Seja rigoroso: não classifique gravame como cancelado sem evidência explícita na matrícula.
+- CRUZAMENTO COM DADOS DA CAIXA: Quando os "Dados atuais do site da Caixa" forem fornecidos acima, cruze-os com o que consta na matrícula. Se houver divergência (ex: matrícula não registra a averbação dos leilões mas a Caixa informa "Averbado"), gere um alerta específico explicando que a matrícula pode estar desatualizada e informe o que a Caixa declara. Nunca omita a divergência — ela é informação crítica para o comprador.`;
 
   const MODEL = "claude-opus-5-5";
 

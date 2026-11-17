@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const db = client.db(process.env.MONGODB_DB);
   const imovel = await db.collection("imoveis").findOne(
     { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
-    { projection: { matriculaUrl: 1, cidade: 1, estado: 1, tipo: 1 } }
+    { projection: { matriculaUrl: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
   );
 
   // Tenta também pelo stringId caso _id não bata diretamente
@@ -57,6 +57,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     cidade: imovel?.cidade as string | undefined ?? laudo.imovelData?.cidade as string | undefined,
     estado: imovel?.estado as string | undefined ?? laudo.imovelData?.uf as string | undefined,
     tipo: imovel?.tipo as string | undefined ?? laudo.imovelData?.tipo as string | undefined,
+    dadosCaixa: {
+      averbacaoLeiloes: imovel?.averbacaoLeiloes as string | undefined,
+      ocupacao: imovel?.ocupacao as string | undefined ?? laudo.imovelData?.ocupacao as string | undefined,
+      modalidade: imovel?.modalidade as string | undefined ?? laudo.imovelData?.modalidade as string | undefined,
+    },
   });
 
   // Salva blocos + registro de consumo no laudo

@@ -292,6 +292,11 @@ class CaixaScraper:
                 extras["dataLeilao1"] = m.group(1)
                 extras["dataLeilao1Date"] = _parse_date_br(m.group(1))
 
+            # Averbação dos leilões negativos
+            m = re.search(r"Averba[çc][aã]o dos leil[õo]es negativos[:\s]*(Averbado|N[aã]o Averbado)", text, re.I)
+            if m:
+                extras["averbacaoLeiloes"] = m.group(1).capitalize()
+
             # Suítes (da descrição detalhada na página)
             m = re.search(r"(\d+)\s*su[íi]te", text, re.I)
             if m:
