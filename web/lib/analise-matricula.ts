@@ -152,7 +152,7 @@ REGRAS IMPORTANTES:
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 16384,
     messages: [
       {
         role: "user",
@@ -171,7 +171,8 @@ REGRAS IMPORTANTES:
     ],
   });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
+  const textBlock = response.content.find((b) => b.type === "text");
+  const text = textBlock?.type === "text" ? textBlock.text : "";
 
   // Remove markdown code fences caso o modelo coloque
   const cleaned = text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
