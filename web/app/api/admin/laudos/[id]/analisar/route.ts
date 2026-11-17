@@ -3,6 +3,23 @@ import { getLaudoById, updateLaudo } from "@/lib/laudos";
 import { analisarMatricula } from "@/lib/analise-matricula";
 import clientPromise from "@/lib/mongodb";
 
+const CAIXA_BASE_URL = "https://venda-imoveis.caixa.gov.br";
+
+/** Busca a URL da matrícula PDF na página de detalhe da Caixa. */
+async function buscarMatriculaUrlNaCaixa(urlDetalhe: string): Promise<string | null> {
+  try {
+    const res = await fetch(urlDetalhe, { headers: { "User-Agent": "Mozilla/5.0" } });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match = html.match(/ExibeDoc\(['"]([^'"]*matricula[^'"]*\.pdf)['"]/i);
+    if (!match) return null;
+    const path = match[1];
+    return path.startsWith("/") ? `${CAIXA_BASE_URL}${path}` : path;
+  } catch {
+    return null;
+  }
+}
+
 type Ctx = { params: Promise<{ id: string }> };
 
 function checkAdmin(req: NextRequest) {
@@ -23,17 +40,39 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const db = client.db(process.env.MONGODB_DB);
   const imovel = await db.collection("imoveis").findOne(
     { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
-    { projection: { matriculaUrl: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
+    { projection: { matriculaUrl: 1, urlDetalhe: 1, hdnImovel: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
   );
 
-  // Tenta também pelo stringId caso _id não bata diretamente
-  const matriculaUrl: string | undefined =
+  // 1. Tenta matrícula já conhecida (banco ou snapshot do laudo)
+  let matriculaUrl: string | undefined =
     (imovel?.matriculaUrl as string | undefined) ??
     (laudo.imovelData?.matriculaUrl as string | undefined);
 
+  // 2. Se não tiver, busca ao vivo na página de detalhe da Caixa
+  if (!matriculaUrl) {
+    const urlDetalhe =
+      (imovel?.urlDetalhe as string | undefined) ??
+      (laudo.imovelData?.urlDetalhe as string | undefined) ??
+      (laudo.imovelData?.hdnImovel
+        ? `${CAIXA_BASE_URL}/sistema/detalhe-imovel.asp?hdnimovel=${laudo.imovelData.hdnImovel}`
+        : undefined);
+
+    if (urlDetalhe) {
+      matriculaUrl = (await buscarMatriculaUrlNaCaixa(urlDetalhe)) ?? undefined;
+    }
+
+    if (matriculaUrl && imovel?._id) {
+      // Persiste para não precisar buscar novamente
+      await db.collection("imoveis").updateOne(
+        { _id: imovel._id as unknown as import("mongodb").ObjectId },
+        { $set: { matriculaUrl } }
+      );
+    }
+  }
+
   if (!matriculaUrl) {
     return NextResponse.json(
-      { error: "Este imóvel não possui PDF de matrícula cadastrado." },
+      { error: "PDF de matrícula não encontrado na base de dados nem na página da Caixa." },
       { status: 400 }
     );
   }
