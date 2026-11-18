@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { getLaudoById } from "@/lib/laudos";
+import { PrintButton } from "./PrintButton";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -134,9 +135,7 @@ export default async function LaudoPdfPage({ params }: Params) {
         <a href={`/laudos/${id}`} style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid #CBD9E3", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
           ← Voltar
         </a>
-        <button onClick={() => window.print()} style={{ padding: "8px 20px", borderRadius: 10, background: "#01304D", color: "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer" }}>
-          📄 Imprimir / Salvar PDF
-        </button>
+        <PrintButton />
       </div>
 
       <div style={{ maxWidth: 820, margin: "0 auto", paddingBottom: 64, fontFamily: "system-ui, -apple-system, sans-serif" }}>
