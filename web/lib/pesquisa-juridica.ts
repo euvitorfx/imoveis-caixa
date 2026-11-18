@@ -89,7 +89,7 @@ export async function pesquisarProcessos(
   };
 }
 
-/** Formata resultado de pesquisa jurídica como Markdown para o laudo. */
+/** Formata resultado de pesquisa jurídica como Markdown para o laudo (detalhado). */
 export function formatarResultadoJuridico(resultados: ResultadoPesquisaJuridica[]): string {
   const linhas: string[] = ["## Pesquisa de Processos Judiciais\n"];
 
@@ -121,23 +121,42 @@ export function formatarResultadoJuridico(resultados: ResultadoPesquisaJuridica[
       .join(" · ");
     if (polos) linhas.push(`**Por polo:** ${polos}\n`);
 
-    // Lista até 10 processos mais recentes
-    const lista = r.processos.slice(0, 10);
-    for (const p of lista) {
-      const data = p.lastMovementDate ? new Date(p.lastMovementDate).toLocaleDateString("pt-BR") : "–";
+    for (const p of r.processos) {
+      const dataDistrib = p.noticeDate ? new Date(p.noticeDate).toLocaleDateString("pt-BR") : null;
+      const dataUltMov = p.lastMovementDate ? new Date(p.lastMovementDate).toLocaleDateString("pt-BR") : "–";
       const polo = p.documentPolarity === "ACTIVE" ? "**Autor**" : p.documentPolarity === "PASSIVE" ? "**Réu**" : "Neutro";
-      linhas.push(`**${p.number}**`);
-      linhas.push(`- Área: ${p.courtType ?? "–"} · Tribunal: ${p.courtName ?? "–"} · ${p.state ?? ""}`);
-      linhas.push(`- Assunto: ${p.mainSubject ?? "–"}`);
-      linhas.push(`- Polo: ${polo} · Status: ${p.status ?? "–"} · Última mov.: ${data}`);
-      if (p.aiSummary) linhas.push(`- Resumo IA: ${p.aiSummary}`);
-      linhas.push("");
-    }
+      const valor = p.value ? `R$ ${p.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : null;
 
-    if (r.total > 10) {
-      linhas.push(`_... e mais ${r.total - 10} processo(s) não exibidos._\n`);
+      linhas.push(`#### ${p.number}`);
+      linhas.push(`- **Área:** ${p.courtType ?? "–"} · **Tribunal:** ${p.courtName ?? "–"}${p.state ? ` · ${p.state}` : ""}`);
+      linhas.push(`- **Assunto:** ${p.mainSubject ?? "–"}`);
+      linhas.push(`- **Polo:** ${polo} · **Status:** ${p.status ?? "–"}`);
+      if (dataDistrib) linhas.push(`- **Distribuído em:** ${dataDistrib}`);
+      linhas.push(`- **Última movimentação:** ${dataUltMov}`);
+      if (valor) linhas.push(`- **Valor da causa:** ${valor}`);
+      if (p.author) linhas.push(`- **Autor:** ${p.author}`);
+      if (p.reu) linhas.push(`- **Réu:** ${p.reu}`);
+      if (p.aiSummary) linhas.push(`- **Resumo:** ${p.aiSummary}`);
+      linhas.push("");
     }
   }
 
+  return linhas.join("\n");
+}
+
+/** Serializa resultados de pesquisa jurídica para passar como contexto ao Claude. */
+export function serializarProcessosParaContexto(resultados: ResultadoPesquisaJuridica[]): string {
+  const linhas: string[] = [];
+  for (const r of resultados) {
+    if (r.erro || r.total === 0) continue;
+    linhas.push(`Pessoa: ${r.nome} (CPF ${r.cpfCnpj}) — ${r.total} processo(s)`);
+    for (const p of r.processos) {
+      const polo = p.documentPolarity === "ACTIVE" ? "Autor" : p.documentPolarity === "PASSIVE" ? "Réu" : "Neutro";
+      const valor = p.value ? ` | Valor: R$ ${p.value.toLocaleString("pt-BR")}` : "";
+      linhas.push(`  [${p.number}] ${p.courtType ?? ""} · ${p.courtName ?? ""} · Polo: ${polo} · Status: ${p.status ?? "–"}${valor}`);
+      linhas.push(`    Assunto: ${p.mainSubject ?? "–"}`);
+      if (p.aiSummary) linhas.push(`    Resumo: ${p.aiSummary}`);
+    }
+  }
   return linhas.join("\n");
 }

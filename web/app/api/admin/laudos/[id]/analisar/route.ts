@@ -3,6 +3,9 @@ import { getLaudoById, updateLaudo } from "@/lib/laudos";
 import { analisarMatricula } from "@/lib/analise-matricula";
 import { uploadMatricula } from "@/lib/r2";
 import clientPromise from "@/lib/mongodb";
+import { pesquisarProcessos, formatarResultadoJuridico, serializarProcessosParaContexto } from "@/lib/pesquisa-juridica";
+import type { ResultadoPesquisaJuridica } from "@/lib/pesquisa-juridica";
+import Anthropic from "@anthropic-ai/sdk";
 
 const CAIXA_BASE_URL = "https://venda-imoveis.caixa.gov.br";
 
@@ -41,15 +44,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const db = client.db(process.env.MONGODB_DB);
   const imovel = await db.collection("imoveis").findOne(
     { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
-    { projection: { matriculaUrl: 1, urlDetalhe: 1, hdnImovel: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
+    { projection: { matriculaUrl: 1, matriculaPdfR2Url: 1, urlDetalhe: 1, hdnImovel: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
   );
 
-  // 1. Tenta matrícula já conhecida (banco ou snapshot do laudo)
-  let matriculaUrl: string | undefined =
+  // 1. Tenta PDF já no R2 (evita re-download da Caixa)
+  const r2PdfUrl: string | undefined =
+    (imovel?.matriculaPdfR2Url as string | undefined) ??
+    ((laudo as unknown as Record<string, unknown>).matriculaPdfR2Url as string | undefined);
+
+  // 2. Tenta matrícula já conhecida (banco ou snapshot do laudo)
+  let matriculaUrl: string | undefined = r2PdfUrl ??
     (imovel?.matriculaUrl as string | undefined) ??
     (laudo.imovelData?.matriculaUrl as string | undefined);
 
-  // 2. Se não tiver, busca ao vivo na página de detalhe da Caixa
+  // 3. Se não tiver, busca ao vivo na página de detalhe da Caixa
   if (!matriculaUrl) {
     const urlDetalhe =
       (imovel?.urlDetalhe as string | undefined) ??
@@ -172,6 +180,90 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     },
     analisesIA: [...historicoAtual, novaEntradaIA],
   } as Parameters<typeof updateLaudo>[1]);
+
+  // ── Pesquisa jurídica automática ──────────────────────────────────────────
+  // Extrai pessoas com CPF da análise e busca processos
+  const pessoasParaPesquisar = new Map<string, string>();
+  for (const p of analise.pessoas ?? []) {
+    if (p.cpf) pessoasParaPesquisar.set(p.cpf, p.nome);
+    if (p.conjugeCpf && p.conjugeNome) pessoasParaPesquisar.set(p.conjugeCpf, p.conjugeNome);
+  }
+
+  if (pessoasParaPesquisar.size > 0 && process.env.CONSULTADEPROCESSOS_API_KEY) {
+    const resultadosPesquisa: ResultadoPesquisaJuridica[] = [];
+    for (const [cpf, nome] of pessoasParaPesquisar.entries()) {
+      const res = await pesquisarProcessos(cpf, nome);
+      resultadosPesquisa.push(res);
+    }
+
+    const temProcessos = resultadosPesquisa.some(r => r.total > 0);
+
+    // Gera seção de impacto com Claude se houver processos
+    let secaoImpacto = "";
+    if (temProcessos) {
+      const contextoProcessos = serializarProcessosParaContexto(resultadosPesquisa);
+      const clienteIA = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const resImpacto = await clienteIA.messages.create({
+        model: "claude-opus-5-5",
+        max_tokens: 4096,
+        messages: [{
+          role: "user",
+          content: `Você é especialista em direito imobiliário e leilões da Caixa Econômica Federal. Os seguintes processos foram encontrados em nome dos devedores de um imóvel em leilão:
+
+${contextoProcessos}
+
+Contexto do imóvel: ${analise.endereco ?? ""} — ${analise.municipio ?? ""}
+
+Para cada processo listado acima, escreva uma análise objetiva em Markdown com:
+1. Se o processo pode impactar a arrematação (SIM / NÃO / RISCO BAIXO)
+2. O motivo (em 1-3 frases)
+3. O que o arrematante deve fazer (se aplicável)
+
+Formato esperado:
+## Análise de Impacto dos Processos na Arrematação
+
+### [número do processo]
+- **Impacto:** SIM / NÃO / RISCO BAIXO
+- **Análise:** ...
+- **Recomendação:** ...
+
+Seja direto e técnico. Foque em processos que possam questionar a consolidação, penhorar o imóvel ou gerar ônus ao arrematante. Processos trabalhistas arquivados ou cíveis sem relação com o imóvel têm impacto mínimo — diga isso claramente.`,
+        }],
+      });
+
+      const blocoImpacto = resImpacto.content.find(b => b.type === "text");
+      secaoImpacto = blocoImpacto?.type === "text" ? blocoImpacto.text : "";
+
+      // Registra consumo da chamada de impacto
+      const entradaImpacto = {
+        tipo: "impacto_processos",
+        modelo: "claude-opus-5-5",
+        inputTokens: resImpacto.usage.input_tokens,
+        outputTokens: resImpacto.usage.output_tokens,
+        custoUSD: +(resImpacto.usage.input_tokens * 4 / 1_000_000 + resImpacto.usage.output_tokens * 20 / 1_000_000).toFixed(6),
+        em: agora,
+      };
+      await updateLaudo(id, {
+        analisesIA: [...((laudo as unknown as Record<string, unknown>).analisesIA as typeof entradaImpacto[] ?? []), novaEntradaIA, entradaImpacto],
+      } as Parameters<typeof updateLaudo>[1]);
+    }
+
+    // Monta bloco jurídica: análise AI + impacto + processos detalhados
+    const markdownProcessos = formatarResultadoJuridico(resultadosPesquisa);
+    const juridicaCompleta = [
+      analise.resumoJuridico,
+      secaoImpacto ? `\n\n---\n\n${secaoImpacto}` : "",
+      `\n\n---\n\n${markdownProcessos}`,
+    ].join("");
+
+    await updateLaudo(id, {
+      blocos: {
+        ...laudo.blocos,
+        juridica: { status: "concluido", conteudo: juridicaCompleta, atualizadoEm: agora },
+      },
+      pesquisaJuridicaEm: agora,
+    } as Parameters<typeof updateLaudo>[1]);
+  }
 
   return NextResponse.json({ ok: true, analise });
 }
