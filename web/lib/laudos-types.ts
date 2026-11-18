@@ -37,6 +37,7 @@ export interface Laudo {
     matricula: BlocoLaudo;
     juridica: BlocoLaudo;
     viabilidade: BlocoLaudo;
+    parecer?: BlocoLaudo;
   };
   observacoes?: string;
   pdfUrl?: string;
@@ -57,11 +58,12 @@ export const STATUS_LABEL: Record<LaudoStatus, string> = {
   cancelado: "Cancelado",
 };
 
-export const BLOCO_LABEL: Record<keyof Laudo["blocos"], string> = {
+export const BLOCO_LABEL: Record<string, string> = {
   mercado: "Análise de Mercado",
   matricula: "Análise da Matrícula",
   juridica: "Análise Jurídica",
   viabilidade: "Viabilidade Financeira",
+  parecer: "Parecer Final do Especialista",
 };
 
 export function blocoVazio(): BlocoLaudo {

@@ -19,7 +19,7 @@ function blocoIcon(s: BlocoStatus) {
   return s === "concluido" ? "✅" : s === "em_andamento" ? "🔄" : "⏳";
 }
 
-const BLOCO_KEYS = ["mercado", "matricula", "juridica", "viabilidade"] as const;
+const BLOCO_KEYS = ["mercado", "matricula", "juridica", "viabilidade", "parecer"] as const;
 type BlocoKey = (typeof BLOCO_KEYS)[number];
 
 function fmt(v: number) {
@@ -592,8 +592,9 @@ export default function AdminLaudos() {
   }
 
   const selectedLaudo = laudos.find((l) => l._id === selected);
+  const BLOCO_OBRIGATORIOS = ["mercado", "matricula", "juridica", "viabilidade"] as const;
   const todosBlocosOk = localBlocos
-    ? BLOCO_KEYS.every((k) => localBlocos[k].status === "concluido")
+    ? BLOCO_OBRIGATORIOS.every((k) => localBlocos[k].status === "concluido")
     : false;
 
   if (loading)
@@ -663,7 +664,7 @@ export default function AdminLaudos() {
 
         <div className="space-y-4">
           {BLOCO_KEYS.map((key) => {
-            const bloco = localBlocos[key];
+            const bloco = (localBlocos as Record<string, { status: BlocoStatus; conteudo?: string } | undefined>)[key] ?? { status: "pendente" as BlocoStatus };
             return (
               <div key={key} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
@@ -781,7 +782,7 @@ export default function AdminLaudos() {
             <p className="text-gray-400 text-sm py-6 text-center">Nenhum laudo ainda.</p>
           )}
           {laudos.map((laudo) => {
-            const blocosOk = BLOCO_KEYS.filter((k) => laudo.blocos[k].status === "concluido").length;
+            const blocosOk = BLOCO_OBRIGATORIOS.filter((k) => laudo.blocos[k].status === "concluido").length;
             const num = laudo.numero ? `#${String(laudo.numero).padStart(4, "0")}` : `#${laudo._id!.slice(-8).toUpperCase()}`;
             return (
               <button
@@ -802,7 +803,7 @@ export default function AdminLaudos() {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-1">
-                  {BLOCO_KEYS.map((k) => (
+                  {BLOCO_OBRIGATORIOS.map((k) => (
                     <div
                       key={k}
                       className="flex-1 h-1 rounded-full"

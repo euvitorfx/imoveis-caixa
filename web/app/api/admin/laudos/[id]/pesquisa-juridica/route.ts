@@ -33,12 +33,17 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   } else {
     // Tenta extrair do JSON completo da última análise de matrícula
     const analiseJson = (laudo as unknown as Record<string, unknown>).analiseMatriculaJson as
-      { pessoas?: { nome: string; cpf?: string; qualificacao?: string }[] } | undefined;
+      { pessoas?: { nome: string; cpf?: string; qualificacao?: string; estadoCivil?: string; conjugeNome?: string; conjugeCpf?: string }[] } | undefined;
 
     if (analiseJson?.pessoas?.length) {
-      pessoas = analiseJson.pessoas
-        .filter((p) => p.cpf)
-        .map((p) => ({ nome: p.nome, cpfCnpj: p.cpf! }));
+      const pessoasMap = new Map<string, string>();
+      for (const p of analiseJson.pessoas) {
+        if (p.cpf) pessoasMap.set(p.cpf, p.nome);
+        // Se for casado(a), inclui o cônjuge automaticamente
+        if (p.conjugeCpf && p.conjugeNome) pessoasMap.set(p.conjugeCpf, p.conjugeNome);
+        // Cônjuge sem CPF: anota na lista mas sem chave de CPF (será ignorado na pesquisa de processos)
+      }
+      pessoas = Array.from(pessoasMap.entries()).map(([cpfCnpj, nome]) => ({ nome, cpfCnpj }));
     }
   }
 

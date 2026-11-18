@@ -140,8 +140,26 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Acumula histórico de chamadas IA neste laudo
   const historicoAtual = (laudo as unknown as Record<string, unknown>).analisesIA as typeof novaEntradaIA[] | undefined ?? [];
 
-  // Extrai somente os campos necessários para pesquisa jurídica (sem os markdowns longos)
-  const { resumoMatricula: _rm, resumoJuridico: _rj, uso: _uso, ...analiseJsonParaSalvar } = analise;
+  // Extrai somente os campos estruturados para pesquisa jurídica (sem os markdowns longos)
+  const { resumoMatricula: _rm, resumoJuridico: _rj, parecerFinal: _pf, uso: _uso, ...analiseJsonParaSalvar } = analise;
+
+  // Salva análise no imóvel para reuso por outros laudos do mesmo imóvel
+  if (imovel?._id) {
+    await db.collection("imoveis").updateOne(
+      { _id: imovel._id as unknown as import("mongodb").ObjectId },
+      {
+        $set: {
+          analiseMatriculaCache: {
+            json: analiseJsonParaSalvar,
+            resumoMatricula: analise.resumoMatricula,
+            resumoJuridico: analise.resumoJuridico,
+            parecerFinal: analise.parecerFinal,
+            analisadoEm: agora,
+          },
+        },
+      }
+    );
+  }
 
   await updateLaudo(id, {
     ...(matriculaPdfR2Url ? { matriculaPdfR2Url } : {}),
@@ -150,6 +168,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       ...laudo.blocos,
       matricula: { status: "concluido", conteudo: analise.resumoMatricula, atualizadoEm: agora },
       juridica:  { status: "concluido", conteudo: analise.resumoJuridico,  atualizadoEm: agora },
+      parecer:   { status: "concluido", conteudo: analise.parecerFinal,    atualizadoEm: agora },
     },
     analisesIA: [...historicoAtual, novaEntradaIA],
   } as Parameters<typeof updateLaudo>[1]);
