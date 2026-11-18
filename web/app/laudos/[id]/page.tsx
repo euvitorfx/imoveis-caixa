@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { getLaudoById, STATUS_LABEL } from "@/lib/laudos";
 import type { LaudoStatus } from "@/lib/laudos";
 import ExcluirLaudoBtn from "@/components/ExcluirLaudoBtn";
@@ -45,6 +46,9 @@ export default async function LaudoPage({ params }: Params) {
   // Serializa o laudo para o Client Component (JSON.parse remove ObjectId e tipos não serializáveis)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const laudoParaViewer = JSON.parse(JSON.stringify(laudo)) as any;
+
+  const cookieStore = await cookies();
+  const canEdit = cookieStore.get("admin_token")?.value === process.env.ADMIN_SECRET;
 
   return (
     <div className="max-w-3xl mx-auto space-y-5 pb-16 px-4">
@@ -127,7 +131,7 @@ export default async function LaudoPage({ params }: Params) {
       {temConteudo && (
         <LaudoViewer
           laudo={laudoParaViewer}
-          canEdit={true}
+          canEdit={canEdit}
         />
       )}
 
