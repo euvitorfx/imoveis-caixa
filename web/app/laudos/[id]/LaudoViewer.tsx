@@ -361,15 +361,13 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {!extras.length && (
-              <button
-                onClick={handleAutoBuscar}
-                disabled={uploading}
-                style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
-              >
-                {uploading ? "Buscando…" : "Buscar automaticamente"}
-              </button>
-            )}
+            <button
+              onClick={handleAutoBuscar}
+              disabled={uploading}
+              style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+            >
+              {uploading ? "Buscando…" : "Buscar automaticamente"}
+            </button>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
