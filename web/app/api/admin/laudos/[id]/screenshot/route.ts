@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const puppeteer = (await import("puppeteer-core")).default;
 
     const executablePath = await chromium.executablePath(
-      "https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.tar"
+      "https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar"
     );
 
     const browser = await puppeteer.launch({
