@@ -107,7 +107,7 @@ const ctx = [
   dadosCaixaStr ? `\nDados atuais do site da Caixa Econômica Federal (podem ser mais recentes que a matrícula):\n${dadosCaixaStr}` : "",
 ].filter(Boolean).join("\n");
 
-const prompt = `Você é um especialista em direito imobiliário e registral brasileiro. Analise esta matrícula de imóvel e extraia as informações em formato JSON estruturado.
+const prompt = `Você é um especialista em direito imobiliário e registral brasileiro com 20 anos de experiência em leilões da Caixa Econômica Federal. Analise esta matrícula com profundidade técnica e produza um laudo completo em formato JSON.
 
 ${ctx}
 
@@ -124,7 +124,10 @@ Retorne SOMENTE um JSON válido com esta estrutura exata (sem markdown, sem expl
     {
       "nome": "string",
       "cpf": "string ou null — formato XXX.XXX.XXX-XX se encontrado",
-      "qualificacao": "ex-mutuário | cônjuge | fiduciante | credor | outro"
+      "qualificacao": "ex-mutuário | cônjuge | fiduciante | credor | outro",
+      "estadoCivil": "solteiro | casado | divorciado | viúvo | null — extraia da matrícula se mencionado",
+      "conjugeNome": "string ou null — nome do cônjuge se o documento mencionar",
+      "conjugeCpf": "string ou null — CPF do cônjuge se encontrado"
     }
   ],
   "atos": [
@@ -132,15 +135,15 @@ Retorne SOMENTE um JSON válido com esta estrutura exata (sem markdown, sem expl
       "identificador": "R-1 / AV-2 / etc",
       "tipo": "string",
       "data": "string ou null",
-      "descricao": "string resumida",
-      "partes": ["array de nomes"]
+      "descricao": "string detalhada — inclua valores, partes e consequências jurídicas",
+      "partes": ["array de nomes completos"]
     }
   ],
   "gravames": [
     {
       "tipo": "penhora | hipoteca | alienação fiduciária | indisponibilidade | outro",
       "status": "ativo | cancelado | indeterminado",
-      "descricao": "string",
+      "descricao": "string detalhada",
       "dataRegistro": "string ou null",
       "credor": "string ou null"
     }
@@ -150,26 +153,29 @@ Retorne SOMENTE um JSON válido com esta estrutura exata (sem markdown, sem expl
     "consolidada": true,
     "credor": "string ou null",
     "dataConsolidacao": "string ou null",
-    "observacoes": "string ou null"
+    "observacoes": "string detalhada sobre o processo de consolidação"
   },
   "alertas": [
     {
       "gravidade": "critico | alto | medio | baixo",
-      "descricao": "string clara e objetiva"
+      "descricao": "string clara, objetiva e específica — cite números, datas e partes envolvidas"
     }
   ],
-  "resumoMatricula": "Texto em Markdown com análise completa da situação registral. Inclua: titular atual, cadeia dominial resumida, gravames ativos, situação da alienação fiduciária e conclusão.",
-  "resumoJuridico": "Texto em Markdown com análise jurídica. Inclua: pessoas identificadas com CPFs, processos mencionados na matrícula, riscos jurídicos identificados e recomendações.",
-  "limitacoes": ["array de strings — o que não foi possível verificar ou estava ilegível"]
+  "resumoMatricula": "## Análise Registral\\n\\nTexto COMPLETO e DETALHADO em Markdown. Deve incluir:\\n1. Identificação do imóvel (matrícula, cartório, endereço, área)\\n2. Histórico de propriedade (cadeia dominial desde o registro de abertura)\\n3. Todos os atos registrais relevantes com datas e partes\\n4. Situação atual da alienação fiduciária\\n5. Gravames ativos e cancelados\\n6. Situação do imóvel perante o registro de imóveis\\n\\nUse cabeçalhos (##, ###), negrito para dados importantes, e seja detalhado.",
+  "resumoJuridico": "## Análise Jurídica\\n\\nTexto COMPLETO e DETALHADO em Markdown. Deve incluir:\\n1. Identificação de todas as pessoas (nome, CPF, qualificação, estado civil)\\n2. Se algum ex-mutuário for casado: analisar necessidade de outorga conjugal e riscos do cônjuge\\n3. Processos ou ações judiciais mencionados na matrícula\\n4. Riscos jurídicos identificados com análise fundamentada\\n5. Recomendações específicas para o arrematante\\n\\nUse cabeçalhos (##, ###), negrito para dados críticos.",
+  "parecerFinal": "## Parecer Final do Especialista\\n\\nTexto objetivo e direto. Deve conter:\\n1. **Conclusão geral**: a situação jurídica/registral do imóvel é REGULAR, IRREGULAR ou CRÍTICA e por quê\\n2. **Pontos de atenção prioritários**: liste em ordem de importância os 2-3 principais riscos\\n3. **Recomendação de compra**: RECOMENDADO, RECOMENDADO COM RESSALVAS ou NÃO RECOMENDADO — com justificativa técnica\\n4. **Próximos passos**: o que o arrematante deve fazer antes e após a arrematação\\n\\nSeja direto e assertivo como um especialista que assina o laudo.",
+  "limitacoes": ["array de strings — o que não foi possível verificar, estava ilegível ou requer confirmação externa"]
 }
 
-REGRAS IMPORTANTES:
+REGRAS TÉCNICAS OBRIGATÓRIAS:
 - Nunca invente dados. Se não encontrar, use null.
-- CPF: extraia exatamente como aparece no documento.
-- Inclua TODOS os atos registrais (R-1, R-2, AV-1, AV-2, etc.).
-- Se a matrícula mencionar processos judiciais, liste nos alertas e no resumo jurídico.
-- Seja rigoroso: não classifique gravame como cancelado sem evidência explícita na matrícula.
-- CRUZAMENTO COM DADOS DA CAIXA: Quando os "Dados atuais do site da Caixa" forem fornecidos acima, cruze-os com o que consta na matrícula. Se houver divergência (ex: matrícula não registra a averbação dos leilões mas a Caixa informa "Averbado"), gere um alerta específico explicando que a matrícula pode estar desatualizada e informe o que a Caixa declara. Nunca omita a divergência — ela é informação crítica para o comprador.`;
+- CPF: extraia exatamente como aparece no documento (formato XXX.XXX.XXX-XX).
+- Inclua TODOS os atos registrais sem exceção (R-1, R-2, AV-1, AV-2, AV-3, etc.).
+- Estado civil: procure termos como "casado", "solteiro", "divorciado", "viúvo", "outorga conjugal" em qualquer ato da matrícula.
+- Cônjuge: se a matrícula mencionar cônjuge em qualquer ato, extraia dados em conjugeNome e conjugeCpf.
+- Alertas: critico = impede compra; alto = risco significativo; medio = verificar; baixo = informativo.
+- Gravames: só classifique como "cancelado" se houver ato de cancelamento explícito na matrícula.
+- CRUZAMENTO COM DADOS DA CAIXA: Quando os "Dados atuais do site da Caixa" forem fornecidos acima, cruze-os obrigatoriamente com a matrícula. Divergências geram alerta específico. Nunca omita divergências.`;
 
 console.log(`\n[1/2] Chamando Claude API para análise de matrícula...`);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -303,7 +309,7 @@ const markdownPesquisa = formatarPesquisa(resultadosPesquisa);
 // ─── SALVA NO BANCO ──────────────────────────────────────────────────────────
 
 const agora = new Date().toISOString();
-const { resumoMatricula, resumoJuridico, ...analiseJson } = analise;
+const { resumoMatricula, resumoJuridico, parecerFinal, ...analiseJson } = analise;
 
 const conteudoJuridica = (resumoJuridico ?? "") + "\n\n---\n\n" + markdownPesquisa;
 
@@ -318,6 +324,7 @@ await db.collection("laudos").updateOne(
       pesquisaJuridicaEm: agora,
       "blocos.matricula": { status: "concluido", conteudo: resumoMatricula, atualizadoEm: agora },
       "blocos.juridica":  { status: "concluido", conteudo: conteudoJuridica, atualizadoEm: agora },
+      "blocos.parecer":   { status: "concluido", conteudo: parecerFinal,     atualizadoEm: agora },
       atualizadoEm: agora,
     },
     $push: { analisesIA: novaEntradaIA },
