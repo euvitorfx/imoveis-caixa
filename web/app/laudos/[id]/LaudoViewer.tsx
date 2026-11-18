@@ -311,18 +311,14 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
 
 // ── Seção 3: Fotos do imóvel ──────────────────────────────────────────────────
 function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
-  const imovel = laudo.imovelData as Record<string, string | undefined>;
-  const fotoUrl = imovel.fotoUrl;
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
-  const [mainFoto, setMainFoto] = useState<string | undefined>(fotoUrl);
 
   async function handleAutoBuscar() {
     setUploading(true);
     const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
-    const json = await res.json() as { screenshotCaixaUrl?: string; fotosAdicionais?: string[] };
-    if (json.screenshotCaixaUrl && !mainFoto) setMainFoto(json.screenshotCaixaUrl);
+    const json = await res.json() as { fotosAdicionais?: string[] };
     if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
     setUploading(false);
   }
@@ -347,8 +343,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
     setExtras((prev) => prev.filter((f) => f !== url));
   }
 
-  const todasFotos = [...(mainFoto ? [mainFoto] : []), ...extras];
-  if (!todasFotos.length && !canEdit) return null;
+  if (!extras.length && !canEdit) return null;
 
   return (
     <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
@@ -359,7 +354,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {!todasFotos.length && (
+            {!extras.length && (
               <button
                 onClick={handleAutoBuscar}
                 disabled={uploading}
@@ -385,16 +380,16 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
         style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
       />
-      {todasFotos.length > 0 ? (
+      {extras.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
-          {todasFotos.map((src, i) => (
+          {extras.map((src, i) => (
             <div key={src} style={{ position: "relative" }}>
               <img
                 src={src}
                 alt={`Foto ${i + 1}`}
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
               />
-              {canEdit && src !== mainFoto && (
+              {canEdit && (
                 <button
                   onClick={() => handleRemoveFoto(src)}
                   style={{ position: "absolute", top: 4, right: 4, background: "#01304D", color: "#fff", border: "none", borderRadius: 4, width: 22, height: 22, fontSize: 13, cursor: "pointer", lineHeight: "22px", textAlign: "center" }}

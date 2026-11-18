@@ -67,8 +67,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   // Decide screenshotCaixaUrl: R2 se tiver, senão F21 da Caixa
   const screenshotUrl = fotoUrlBanco ?? fotosCaixa[0] ?? null;
-  // fotosAdicionais: fotos da Caixa exceto a F21 (que é a mesma do R2)
-  const extras = fotoUrlBanco ? fotosCaixa : fotosCaixa.slice(1);
+  // fotosAdicionais: sempre pula F21 (já usada como screenshot/foto principal)
+  const extras = fotosCaixa.slice(1);
 
   if (!screenshotUrl && !extras.length) {
     return NextResponse.json({ ok: false, mensagem: "Nenhuma foto encontrada no site da Caixa" });
