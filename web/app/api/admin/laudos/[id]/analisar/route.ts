@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const db = client.db(process.env.MONGODB_DB);
   const imovel = await db.collection("imoveis").findOne(
     { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
-    { projection: { matriculaUrl: 1, matriculaPdfR2Url: 1, urlDetalhe: 1, hdnImovel: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1 } }
+    { projection: { matriculaUrl: 1, matriculaPdfR2Url: 1, urlDetalhe: 1, hdnImovel: 1, cidade: 1, estado: 1, tipo: 1, averbacaoLeiloes: 1, ocupacao: 1, modalidade: 1, fotoUrl: 1 } }
   );
 
   // 1. Tenta PDF já no R2 (evita re-download da Caixa)
@@ -180,6 +180,48 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     },
     analisesIA: [...historicoAtual, novaEntradaIA],
   } as Parameters<typeof updateLaudo>[1]);
+
+  // ── Auto-popular fotos e screenshot ──────────────────────────────────────
+  // Busca fotos da Caixa pelo padrão /fotos/F{hdn}2N.jpg (HEAD em paralelo).
+  // Idempotente: só executa se ainda não houver dados salvos.
+  if (hdnImovel && !laudo.screenshotCaixaUrl && !(laudo.fotosAdicionais?.length)) {
+    // Foto principal: prefere URL R2 (já migrada), cai na Caixa se não tiver
+    const fotoUrlR2 = (imovel?.fotoUrl as string | undefined) ??
+      (laudo.imovelData?.fotoUrl as string | undefined);
+
+    // Busca fotos extras F{hdn}22.jpg … F{hdn}28.jpg na Caixa
+    // (a F21 = foto principal já está no fotoUrlR2)
+    const fotosExtras: string[] = [];
+    const candidatos = Array.from({ length: 7 }, (_, i) =>
+      `${CAIXA_BASE_URL}/fotos/F${hdnImovel}2${i + 2}.jpg`
+    );
+    const checks = await Promise.allSettled(
+      candidatos.map((url) =>
+        fetch(url, { method: "HEAD", headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(6000) })
+          .then((r) => (r.ok ? url : null))
+          .catch(() => null)
+      )
+    );
+    for (const c of checks) {
+      if (c.status === "fulfilled" && c.value) fotosExtras.push(c.value);
+    }
+
+    // Se não tiver fotoUrlR2, pega a F21 da Caixa como principal
+    let fotoMain = fotoUrlR2;
+    if (!fotoMain) {
+      const r21 = await fetch(`${CAIXA_BASE_URL}/fotos/F${hdnImovel}21.jpg`, {
+        method: "HEAD", headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(6000),
+      }).catch(() => null);
+      if (r21?.ok) fotoMain = `${CAIXA_BASE_URL}/fotos/F${hdnImovel}21.jpg`;
+    }
+
+    if (fotoMain || fotosExtras.length > 0) {
+      await updateLaudo(id, {
+        ...(fotoMain ? { screenshotCaixaUrl: fotoMain } : {}),
+        fotosAdicionais: fotosExtras,
+      } as Parameters<typeof updateLaudo>[1]);
+    }
+  }
 
   // ── Pesquisa jurídica automática ──────────────────────────────────────────
   // Extrai pessoas com CPF da análise e busca processos

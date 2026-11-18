@@ -211,6 +211,16 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [url, setUrl] = useState<string | undefined>(laudo.screenshotCaixaUrl);
+  const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
+
+  async function handleAutoBuscar() {
+    setUploading(true);
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
+    const json = await res.json() as { screenshotCaixaUrl?: string; fotosAdicionais?: string[] };
+    if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
+    if (json.fotosAdicionais) setExtras(json.fotosAdicionais);
+    setUploading(false);
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -239,13 +249,22 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
 
   return (
     <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11 }}>📸</span>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Print da Página Caixa</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Foto / Print da Página Caixa</h2>
         </div>
         {canEdit && (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {!url && (
+              <button
+                onClick={handleAutoBuscar}
+                disabled={uploading}
+                style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+              >
+                {uploading ? "Buscando…" : "Buscar automaticamente"}
+              </button>
+            )}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
@@ -273,11 +292,18 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
       />
       {url ? (
-        <img src={url} alt="Print da página da Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
+        <img src={url} alt="Foto/print do imóvel na Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
       ) : (
         <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
-          Clique em &ldquo;Enviar print&rdquo; para adicionar uma captura de tela da página da Caixa.
+          Clique em &ldquo;Buscar automaticamente&rdquo; para tentar capturar a foto do site da Caixa, ou envie um print manualmente.
         </div>
+      )}
+      {/* Atualiza FotosImovel com os extras descobertos — passando via estado compartilhado não é possível entre componentes irmãos,
+          mas o reload da página após buscar automático irá exibi-los na seção de fotos abaixo */}
+      {extras.length > 0 && canEdit && (
+        <p style={{ margin: "8px 0 0", fontSize: 11, color: "#6B7280" }}>
+          + {extras.length} foto{extras.length > 1 ? "s" : ""} adicionais salvas automaticamente na seção Fotos abaixo.
+        </p>
       )}
     </div>
   );
@@ -290,6 +316,16 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
+  const [mainFoto, setMainFoto] = useState<string | undefined>(fotoUrl);
+
+  async function handleAutoBuscar() {
+    setUploading(true);
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
+    const json = await res.json() as { screenshotCaixaUrl?: string; fotosAdicionais?: string[] };
+    if (json.screenshotCaixaUrl && !mainFoto) setMainFoto(json.screenshotCaixaUrl);
+    if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
+    setUploading(false);
+  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -311,24 +347,35 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
     setExtras((prev) => prev.filter((f) => f !== url));
   }
 
-  const todasFotos = [...(fotoUrl ? [fotoUrl] : []), ...extras];
+  const todasFotos = [...(mainFoto ? [mainFoto] : []), ...extras];
   if (!todasFotos.length && !canEdit) return null;
 
   return (
     <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11 }}>🏠</span>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Fotos do Imóvel</h2>
         </div>
         {canEdit && (
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
-          >
-            {uploading ? "Enviando…" : "+ Adicionar foto"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {!todasFotos.length && (
+              <button
+                onClick={handleAutoBuscar}
+                disabled={uploading}
+                style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+              >
+                {uploading ? "Buscando…" : "Buscar automaticamente"}
+              </button>
+            )}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
+            >
+              {uploading ? "Enviando…" : "+ Adicionar foto"}
+            </button>
+          </div>
         )}
       </div>
       <input
@@ -347,7 +394,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
                 alt={`Foto ${i + 1}`}
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
               />
-              {canEdit && i > 0 && (
+              {canEdit && src !== mainFoto && (
                 <button
                   onClick={() => handleRemoveFoto(src)}
                   style={{ position: "absolute", top: 4, right: 4, background: "#01304D", color: "#fff", border: "none", borderRadius: 4, width: 22, height: 22, fontSize: 13, cursor: "pointer", lineHeight: "22px", textAlign: "center" }}
