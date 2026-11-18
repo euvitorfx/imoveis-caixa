@@ -42,53 +42,51 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   const caixaUrl = `https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnimovel=${hdnImovel}`;
 
-  // Importações dinâmicas — evitam erro de bundle no edge
-  const chromium = (await import("@sparticuz/chromium")).default;
-  const puppeteer = (await import("puppeteer-core")).default;
-
-  let executablePath: string;
-  try {
-    executablePath = await chromium.executablePath();
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: `Chromium executablePath falhou: ${e instanceof Error ? e.message : e}` },
-      { status: 500 }
-    );
-  }
-
-  const browser = await puppeteer.launch({
-    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
-    defaultViewport: { width: 1280, height: 900 },
-    executablePath,
-    headless: true,
-  });
-
   let screenshotUrl: string;
   try {
-    const page = await browser.newPage();
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    );
+    // Importações dinâmicas — evitam erro de bundle no edge
+    const chromium = (await import("@sparticuz/chromium")).default;
+    const puppeteer = (await import("puppeteer-core")).default;
 
-    await page.goto(caixaUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+    const executablePath = await chromium.executablePath();
 
-    // Aguarda a imagem principal carregar (ou 3s)
-    await Promise.race([
-      page.waitForSelector("img", { timeout: 3000 }).catch(() => null),
-      new Promise((r) => setTimeout(r, 3000)),
-    ]);
-
-    // Captura apenas os primeiros 700px da página (cabeçalho + foto + dados principais)
-    const screenshotBuffer = await page.screenshot({
-      type: "jpeg",
-      quality: 85,
-      clip: { x: 0, y: 0, width: 1280, height: 700 },
+    const browser = await puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+      defaultViewport: { width: 1280, height: 900 },
+      executablePath,
+      headless: true,
     });
 
-    const key = `laudos/${id}/screenshot_caixa.jpg`;
-    screenshotUrl = await uploadArquivo(key, Buffer.from(screenshotBuffer), "image/jpeg");
-  } finally {
-    await browser.close();
+    try {
+      const page = await browser.newPage();
+      await page.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      );
+
+      await page.goto(caixaUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+
+      // Aguarda a imagem principal carregar (ou 3s)
+      await Promise.race([
+        page.waitForSelector("img", { timeout: 3000 }).catch(() => null),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+
+      // Captura apenas os primeiros 700px da página (cabeçalho + foto + dados principais)
+      const screenshotBuffer = await page.screenshot({
+        type: "jpeg",
+        quality: 85,
+        clip: { x: 0, y: 0, width: 1280, height: 700 },
+      });
+
+      const key = `laudos/${id}/screenshot_caixa.jpg`;
+      screenshotUrl = await uploadArquivo(key, Buffer.from(screenshotBuffer), "image/jpeg");
+    } finally {
+      await browser.close();
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    console.error("[screenshot]", msg);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 
   await updateLaudo(id, {

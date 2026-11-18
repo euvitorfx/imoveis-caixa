@@ -220,7 +220,12 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
     try {
       // Chama a rota de screenshot (Chromium headless — pode levar ~20s)
       const res = await fetch(`/api/admin/laudos/${laudo._id}/screenshot`, { method: "POST" });
-      if (!res.ok) { setErro(`Erro ${res.status}`); return; }
+      if (!res.ok) {
+        let errMsg = `Erro ${res.status}`;
+        try { const b = await res.json(); if (b.error) errMsg = b.error; } catch {}
+        setErro(errMsg);
+        return;
+      }
       const json = await res.json() as { ok?: boolean; screenshotCaixaUrl?: string; error?: string };
       if (!json.ok) { setErro(json.error ?? "Falha ao gerar print."); return; }
       if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
