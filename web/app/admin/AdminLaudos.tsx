@@ -506,6 +506,8 @@ export default function AdminLaudos() {
   const [localBlocos, setLocalBlocos] = useState<Laudo["blocos"] | null>(null);
   const [localStatus, setLocalStatus] = useState<LaudoStatus | "">("");
   const [localObs, setLocalObs] = useState("");
+  const [pesquisando, setPesquisando] = useState(false);
+  const [pesquisaMsg, setPesquisaMsg] = useState<string | null>(null);
 
   const fetchLaudos = useCallback(async () => {
     setLoading(true);
@@ -555,6 +557,25 @@ export default function AdminLaudos() {
     });
     setSaving(false);
     await fetchLaudos();
+  }
+
+  async function pesquisarJuridica() {
+    if (!selected) return;
+    setPesquisando(true);
+    setPesquisaMsg(null);
+    try {
+      const r = await fetch(`/api/admin/laudos/${selected}/pesquisa-juridica`, { method: "POST" });
+      const data = await r.json();
+      if (r.ok) {
+        setPesquisaMsg(`✅ Pesquisa concluída — ${data.totalPesquisados} pessoa(s)`);
+        await fetchLaudos();
+      } else {
+        setPesquisaMsg(`❌ ${data.error ?? `Erro ${r.status}`}`);
+      }
+    } catch {
+      setPesquisaMsg("❌ Erro de rede");
+    }
+    setPesquisando(false);
   }
 
   async function marcarEntregue() {
@@ -625,8 +646,20 @@ export default function AdminLaudos() {
             >
               🤖 Análise IA
             </a>
+            <button
+              onClick={pesquisarJuridica}
+              disabled={pesquisando}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {pesquisando ? "🔍 Pesquisando..." : "🔍 Pesquisa Jurídica"}
+            </button>
           </div>
         </div>
+        {pesquisaMsg && (
+          <p className={`text-xs px-3 py-1.5 rounded-lg ${pesquisaMsg.startsWith("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+            {pesquisaMsg}
+          </p>
+        )}
 
         <div className="space-y-4">
           {BLOCO_KEYS.map((key) => {

@@ -140,8 +140,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Acumula histórico de chamadas IA neste laudo
   const historicoAtual = (laudo as unknown as Record<string, unknown>).analisesIA as typeof novaEntradaIA[] | undefined ?? [];
 
+  // Extrai somente os campos necessários para pesquisa jurídica (sem os markdowns longos)
+  const { resumoMatricula: _rm, resumoJuridico: _rj, uso: _uso, ...analiseJsonParaSalvar } = analise;
+
   await updateLaudo(id, {
     ...(matriculaPdfR2Url ? { matriculaPdfR2Url } : {}),
+    analiseMatriculaJson: analiseJsonParaSalvar,
     blocos: {
       ...laudo.blocos,
       matricula: { status: "concluido", conteudo: analise.resumoMatricula, atualizadoEm: agora },
