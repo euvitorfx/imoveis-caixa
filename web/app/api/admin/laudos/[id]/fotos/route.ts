@@ -15,7 +15,7 @@ async function verificarUrl(url: string): Promise<boolean> {
     const r = await fetch(url, {
       method: "HEAD",
       headers: { "User-Agent": "Mozilla/5.0" },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(10000),
     });
     return r.ok;
   } catch {
@@ -24,7 +24,10 @@ async function verificarUrl(url: string): Promise<boolean> {
 }
 
 // POST /api/admin/laudos/[id]/fotos
-// Detecta fotos da Caixa pelo padrão /fotos/F{hdn}2N.jpg e popula screenshotCaixaUrl + fotosAdicionais
+// Popula screenshotCaixaUrl (foto principal) e fotosAdicionais (F22-F28).
+// screenshotCaixaUrl: usa R2 do banco se disponível, senão constrói F21 diretamente
+// (sem HEAD — a Caixa bloqueia HEAD do Vercel; o browser carrega a imagem normalmente).
+// fotosAdicionais: verifica F22-F28 via HEAD; se Vercel for bloqueado, retorna vazio.
 export async function POST(req: NextRequest, { params }: Ctx) {
   if (!checkAdmin(req)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
@@ -50,34 +53,25 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ error: "hdnImovel não encontrado no laudo" }, { status: 400 });
   }
 
-  // Foto principal: prefere R2 do banco, depois snapshot do laudo
-  const fotoUrlBanco =
+  // Foto principal: R2 do banco > snapshot do laudo > F21 construída diretamente (sem HEAD)
+  const screenshotUrl =
     (imovelDB?.fotoUrl as string | undefined) ??
-    (laudo.imovelData?.fotoUrl as string | undefined);
+    (laudo.imovelData?.fotoUrl as string | undefined) ??
+    `${CAIXA_BASE}/fotos/F${hdnImovel}21.jpg`;
 
-  // Checa fotos F{hdn}21 até F{hdn}28 na Caixa em paralelo
-  const candidatos = Array.from({ length: 8 }, (_, i) => ({
-    idx: i + 1,
-    url: `${CAIXA_BASE}/fotos/F${hdnImovel}2${i + 1}.jpg`,
-  }));
-  const checks = await Promise.allSettled(
-    candidatos.map(({ url }) => verificarUrl(url).then((ok) => (ok ? url : null)))
+  // Fotos extras: verifica F22-F28 via HEAD (pode falhar no Vercel — retorna vazio se bloqueado)
+  const candidatosExtras = Array.from({ length: 7 }, (_, i) =>
+    `${CAIXA_BASE}/fotos/F${hdnImovel}2${i + 2}.jpg`
   );
-  const fotosCaixa = checks
+  const checksExtras = await Promise.allSettled(
+    candidatosExtras.map((url) => verificarUrl(url).then((ok) => (ok ? url : null)))
+  );
+  const extras = checksExtras
     .map((r) => (r.status === "fulfilled" ? r.value : null))
     .filter((u): u is string => u !== null);
 
-  // Decide screenshotCaixaUrl: R2 se tiver, senão F21 da Caixa
-  const screenshotUrl = fotoUrlBanco ?? fotosCaixa[0] ?? null;
-  // fotosAdicionais: sempre pula F21 (já usada como screenshot/foto principal)
-  const extras = fotosCaixa.slice(1);
-
-  if (!screenshotUrl && !extras.length) {
-    return NextResponse.json({ ok: false, mensagem: "Nenhuma foto encontrada no site da Caixa" });
-  }
-
   await updateLaudo(id, {
-    ...(screenshotUrl ? { screenshotCaixaUrl: screenshotUrl } : {}),
+    screenshotCaixaUrl: screenshotUrl,
     fotosAdicionais: extras,
   } as Parameters<typeof updateLaudo>[1]);
 
@@ -85,6 +79,6 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     ok: true,
     screenshotCaixaUrl: screenshotUrl,
     fotosAdicionais: extras,
-    total: (screenshotUrl ? 1 : 0) + extras.length,
+    total: 1 + extras.length,
   });
 }
