@@ -78,11 +78,12 @@ function BlocoEditor({ laudoId, blocoKey, bloco, canEdit }: {
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(bloco.conteudo ?? "");
+  const [displayContent, setDisplayContent] = useState(bloco.conteudo ?? "");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  if (!bloco.conteudo && bloco.status !== "concluido") return null;
+  if (!displayContent && bloco.status !== "concluido") return null;
 
   const save = () => {
     setError("");
@@ -92,8 +93,12 @@ function BlocoEditor({ laudoId, blocoKey, bloco, canEdit }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: blocoKey, conteudo: draft }),
       });
-      if (res.ok) { setSaved(true); setEditing(false); setTimeout(() => setSaved(false), 2500); }
-      else setError("Erro ao salvar. Tente novamente.");
+      if (res.ok) {
+        setDisplayContent(draft);
+        setSaved(true);
+        setEditing(false);
+        setTimeout(() => setSaved(false), 2500);
+      } else setError("Erro ao salvar. Tente novamente.");
     });
   };
 
@@ -110,7 +115,7 @@ function BlocoEditor({ laudoId, blocoKey, bloco, canEdit }: {
         </div>
         {canEdit && !editing && (
           <button
-            onClick={() => { setDraft(bloco.conteudo ?? ""); setEditing(true); }}
+            onClick={() => { setDraft(displayContent); setEditing(true); }}
             style={{ fontSize: 12, fontWeight: 600, color: "#01304D", background: "#F4F9FC", border: "1px solid #CBD9E3", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
           >
             ✏️ Editar
@@ -146,13 +151,13 @@ function BlocoEditor({ laudoId, blocoKey, bloco, canEdit }: {
         </div>
       ) : (
         /* Modo visualização */
-        bloco.conteudo ? (
+        displayContent ? (
           isParecer ? (
             <div style={{ background: "#F4F9FC", border: "1px solid #CBD9E3", borderRadius: 8, padding: "16px 18px" }}>
-              {renderMarkdown(bloco.conteudo)}
+              {renderMarkdown(displayContent)}
             </div>
           ) : (
-            <div>{renderMarkdown(bloco.conteudo)}</div>
+            <div>{renderMarkdown(displayContent)}</div>
           )
         ) : (
           <p style={{ margin: 0, fontSize: 12.5, color: "#9CA3AF", fontStyle: "italic" }}>Sem conteúdo ainda.</p>

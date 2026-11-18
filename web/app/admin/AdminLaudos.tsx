@@ -509,7 +509,6 @@ export default function AdminLaudos() {
   const [localObs, setLocalObs] = useState("");
   const [pesquisando, setPesquisando] = useState(false);
   const [pesquisaMsg, setPesquisaMsg] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"editar" | "preview">("editar");
 
   const fetchLaudos = useCallback(async () => {
     setLoading(true);
@@ -536,7 +535,6 @@ export default function AdminLaudos() {
     setLocalBlocos(JSON.parse(JSON.stringify(laudo.blocos)));
     setLocalStatus(laudo.status);
     setLocalObs(laudo.observacoes ?? "");
-    setViewMode("editar");
   }
 
   function closeLaudo() {
@@ -614,167 +612,92 @@ export default function AdminLaudos() {
 
   // Detalhe do laudo selecionado
   if (selected && localBlocos && selectedLaudo) {
-    // Monta o laudo mesclado com as edições locais para o preview
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const laudoPreview = { ...selectedLaudo, blocos: localBlocos } as any;
+    const laudoParaViewer = { ...selectedLaudo, blocos: localBlocos } as any;
 
     return (
       <div className="space-y-4">
-        {/* Cabeçalho */}
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <button onClick={closeLaudo} className="text-xs text-gray-400 hover:text-gray-600 mb-1">
-              ← Voltar
-            </button>
-            <h3 className="font-bold text-gray-800">{selectedLaudo.imovelDescricao}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {selectedLaudo.userEmail} · {selectedLaudo.nivel === 1 ? "Digital" : "+ Consulta"} · {fmt(selectedLaudo.preco)}
-            </p>
-          </div>
-          <div className="flex gap-2 items-center flex-wrap justify-end">
-            <select
-              value={localStatus}
-              onChange={(e) => setLocalStatus(e.target.value as LaudoStatus)}
-              className="text-xs border rounded-lg px-2 py-1.5"
-            >
-              {(Object.entries(STATUS_LABEL) as [LaudoStatus, string][]).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-            <a
-              href={`/admin/laudos/${selected}/analise`}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400"
-            >
-              🤖 Análise IA
-            </a>
-            <button
-              onClick={pesquisarJuridica}
-              disabled={pesquisando}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-            >
-              {pesquisando ? "🔍 Pesquisando..." : "🔍 Pesquisa Jurídica"}
-            </button>
-          </div>
-        </div>
-
-        {pesquisaMsg && (
-          <p className={`text-xs px-3 py-1.5 rounded-lg ${pesquisaMsg.startsWith("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-            {pesquisaMsg}
-          </p>
-        )}
-
-        {/* Toggle Editar / Preview */}
-        <div className="flex gap-1 border-b">
-          {(["editar", "preview"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setViewMode(m)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg -mb-px border-b-2 transition-colors ${
-                viewMode === m
-                  ? "border-blue-600 text-blue-600 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {m === "editar" ? "✏️ Editar blocos" : "👁 Preview do laudo"}
-            </button>
-          ))}
-        </div>
-
-        {/* ── MODO EDITAR ── */}
-        {viewMode === "editar" && (
-          <>
-            <div className="space-y-4">
-              {BLOCO_KEYS.map((key) => {
-                const bloco = (localBlocos as Record<string, { status: BlocoStatus; conteudo?: string } | undefined>)[key] ?? { status: "pendente" as BlocoStatus };
-                return (
-                  <div key={key} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <span>{blocoIcon(bloco.status)}</span>
-                        <span className="font-semibold text-sm text-gray-800">{BLOCO_LABEL[key]}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        {(["pendente", "em_andamento", "concluido"] as BlocoStatus[]).map((s) => (
-                          <button
-                            key={s}
-                            onClick={() =>
-                              setLocalBlocos((prev) =>
-                                prev ? { ...prev, [key]: { ...prev[key], status: s } } : prev
-                              )
-                            }
-                            className={`text-xs px-2 py-1 rounded-full font-medium transition-all ${
-                              bloco.status === s
-                                ? s === "concluido" ? "bg-green-500 text-white"
-                                  : s === "em_andamento" ? "bg-amber-500 text-white"
-                                  : "bg-gray-400 text-white"
-                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                            }`}
-                          >
-                            {s === "pendente" ? "Na fila" : s === "em_andamento" ? "Andando" : "✓ Pronto"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <textarea
-                        value={bloco.conteudo ?? ""}
-                        onChange={(e) =>
-                          setLocalBlocos((prev) =>
-                            prev ? { ...prev, [key]: { ...prev[key], conteudo: e.target.value } } : prev
-                          )
-                        }
-                        placeholder={`Escreva aqui a análise de ${BLOCO_LABEL[key].toLowerCase()}...`}
-                        rows={8}
-                        className="w-full text-sm border border-gray-200 rounded-lg p-3 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
+        {/* ── Barra de ações do admin ── */}
+        <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                Observações internas
-              </label>
-              <textarea
+              <button onClick={closeLaudo} className="text-xs text-gray-400 hover:text-gray-600 mb-1">
+                ← Voltar
+              </button>
+              <h3 className="font-bold text-gray-800">{selectedLaudo.imovelDescricao}</h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {selectedLaudo.userEmail} · {selectedLaudo.nivel === 1 ? "Digital" : "+ Consulta"} · {fmt(selectedLaudo.preco)}
+              </p>
+            </div>
+            <div className="flex gap-2 items-center flex-wrap justify-end">
+              <a
+                href={`/admin/laudos/${selected}/analise`}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400"
+              >
+                🤖 Análise IA
+              </a>
+              <button
+                onClick={pesquisarJuridica}
+                disabled={pesquisando}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {pesquisando ? "🔍 Pesquisando..." : "🔍 Pesquisa Jurídica"}
+              </button>
+            </div>
+          </div>
+
+          {pesquisaMsg && (
+            <p className={`text-xs px-3 py-1.5 rounded-lg ${pesquisaMsg.startsWith("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+              {pesquisaMsg}
+            </p>
+          )}
+
+          {/* Status + Obs + Salvar */}
+          <div className="flex gap-2 flex-wrap items-end border-t border-gray-100 pt-3">
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-xs text-gray-400 mb-1">Status</label>
+              <select
+                value={localStatus}
+                onChange={(e) => setLocalStatus(e.target.value as LaudoStatus)}
+                className="w-full text-xs border rounded-lg px-2 py-1.5"
+              >
+                {(Object.entries(STATUS_LABEL) as [LaudoStatus, string][]).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-xs text-gray-400 mb-1">Observações internas</label>
+              <input
                 value={localObs}
                 onChange={(e) => setLocalObs(e.target.value)}
                 placeholder="Notas sobre este laudo..."
-                rows={3}
-                className="w-full text-sm border border-gray-200 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full text-xs border rounded-lg px-2 py-1.5"
               />
             </div>
-
-            <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={salvar}
+              disabled={saving}
+              className="text-xs font-bold px-4 py-1.5 rounded-lg text-white disabled:opacity-50"
+              style={{ backgroundColor: "#01304D" }}
+            >
+              {saving ? "Salvando..." : "💾 Salvar status"}
+            </button>
+            {todosBlocosOk && localStatus !== "entregue" && (
               <button
-                onClick={salvar}
+                onClick={marcarEntregue}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                style={{ backgroundColor: "#01304D" }}
+                className="text-xs font-bold px-4 py-1.5 rounded-lg text-white disabled:opacity-50"
+                style={{ backgroundColor: "#059669" }}
               >
-                {saving ? "Salvando..." : "💾 Salvar"}
+                ✅ Marcar entregue
               </button>
-              {todosBlocosOk && localStatus !== "entregue" && (
-                <button
-                  onClick={marcarEntregue}
-                  disabled={saving}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-                  style={{ backgroundColor: "#059669" }}
-                >
-                  ✅ Marcar como entregue
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── MODO PREVIEW ── */}
-        {viewMode === "preview" && (
-          <div className="pt-2">
-            <LaudoViewer laudo={laudoPreview} canEdit={false} />
+            )}
           </div>
-        )}
+        </div>
+
+        {/* ── Laudo editável inline ── */}
+        <LaudoViewer laudo={laudoParaViewer} canEdit={true} />
       </div>
     );
   }
