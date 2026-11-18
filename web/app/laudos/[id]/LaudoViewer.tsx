@@ -211,30 +211,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [url, setUrl] = useState<string | undefined>(laudo.screenshotCaixaUrl);
-  const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
   const [erro, setErro] = useState("");
-
-  async function handleAutoBuscar() {
-    setUploading(true);
-    setErro("");
-    try {
-      // Chama a rota de screenshot (Chromium headless — pode levar ~20s)
-      const res = await fetch(`/api/admin/laudos/${laudo._id}/screenshot`, { method: "POST" });
-      if (!res.ok) {
-        let errMsg = `Erro ${res.status}`;
-        try { const b = await res.json(); if (b.error) errMsg = b.error; } catch {}
-        setErro(errMsg);
-        return;
-      }
-      const json = await res.json() as { ok?: boolean; screenshotCaixaUrl?: string; error?: string };
-      if (!json.ok) { setErro(json.error ?? "Falha ao gerar print."); return; }
-      if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
-    } catch (e) {
-      setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -301,7 +278,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
         <img src={url} alt="Foto/print do imóvel na Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
       ) : (
         <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
-          Clique em &ldquo;Buscar automaticamente&rdquo; para buscar a foto do imóvel no site da Caixa, ou envie um print da página manualmente.
+          Envie um print da página do imóvel no site da Caixa clicando em &ldquo;Enviar print&rdquo;.
         </div>
       )}
     </div>
@@ -314,24 +291,6 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const [uploading, setUploading] = useState(false);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
   const [erro, setErro] = useState("");
-  const [falhas, setFalhas] = useState<Set<string>>(new Set());
-
-  const todasFalharam = extras.length > 0 && extras.every(u => falhas.has(u));
-
-  async function handleAutoBuscar() {
-    setUploading(true);
-    setErro("");
-    try {
-      const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
-      if (!res.ok) { setErro(`Erro ${res.status}`); return; }
-      const json = await res.json() as { ok?: boolean; fotosAdicionais?: string[] };
-      if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
-    } catch (e) {
-      setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleUpload(file: File) {
     setUploading(true);
@@ -363,22 +322,13 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Fotos do Imóvel</h2>
         </div>
         {canEdit && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={handleAutoBuscar}
-              disabled={uploading}
-              style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
-            >
-              {uploading ? "Buscando…" : "Buscar automaticamente"}
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
-            >
-              {uploading ? "Enviando…" : "+ Adicionar foto"}
-            </button>
-          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            {uploading ? "Enviando…" : "+ Adicionar foto"}
+          </button>
         )}
       </div>
       <input
@@ -396,10 +346,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
               <img
                 src={src}
                 alt={`Foto ${i + 1}`}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none";
-                  setFalhas(prev => new Set([...prev, src]));
-                }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none"; }}
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
               />
               {canEdit && (
@@ -414,7 +361,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
           ))}
         </div>
       ) : null}
-      {(extras.length === 0 || todasFalharam) && (
+      {extras.length === 0 && (
         <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
           Nenhuma foto disponível.
         </div>
