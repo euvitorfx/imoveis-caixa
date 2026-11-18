@@ -485,27 +485,122 @@ const CATEGORIA_ICON: Record<string, string> = {
   "Metro / Trem": "🚇",
 };
 
+type Proximidade = { categoria: string; nome: string; distanciaM: number };
+
+interface OvElement {
+  tags?: { name?: string; amenity?: string; shop?: string; railway?: string };
+  lat?: number; lon?: number;
+  center?: { lat: number; lon: number };
+}
+
+function ovCategoria(tags: OvElement["tags"]): string | null {
+  const { amenity, shop, railway } = tags ?? {};
+  if (railway === "subway_entrance" || railway === "station") return "Metro / Trem";
+  if (amenity === "hospital")    return "Hospital";
+  if (amenity === "pharmacy")    return "Farmácia";
+  if (amenity === "school")      return "Escola";
+  if (amenity === "university")  return "Universidade";
+  if (amenity === "supermarket" || shop === "supermarket") return "Supermercado";
+  if (shop === "convenience")    return "Mercadinho";
+  return null;
+}
+
+function ovDistM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+const OVERPASS_MIRRORS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
+
 function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const [buscando, setBuscando] = useState(false);
-  const [dados, setDados] = useState(laudo.proximidades ?? []);
+  const [dados, setDados] = useState<Proximidade[]>(laudo.proximidades ?? []);
   const [erro, setErro] = useState<string | null>(null);
 
   async function buscarProximidades() {
     setBuscando(true);
     setErro(null);
-    const imovel = laudo.imovelData as Record<string, string | undefined>;
-    const endereco =
-      laudo.localizacao?.enderecoMaps ??
-      [imovel.cidade, imovel.uf ?? imovel.estado].filter(Boolean).join(", ");
-    const res = await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endereco }),
-    });
-    const json = await res.json() as { proximidades?: typeof dados; error?: string };
-    if (!res.ok) { setErro(json.error ?? "Erro desconhecido"); }
-    else { setDados(json.proximidades ?? []); }
-    setBuscando(false);
+    try {
+      const imovel = laudo.imovelData as Record<string, string | undefined>;
+      const endereco =
+        laudo.localizacao?.enderecoMaps ??
+        [imovel.cidade, imovel.uf ?? imovel.estado].filter(Boolean).join(", ");
+
+      // Passo 1: geocodificar no servidor (retorna lat/lng)
+      let lat: number, lng: number;
+      if (laudo.localizacao?.lat && laudo.localizacao?.lng) {
+        lat = laudo.localizacao.lat;
+        lng = laudo.localizacao.lng;
+      } else {
+        const geoRes = await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endereco }),
+        });
+        const geoJson = await geoRes.json() as { lat?: number; lng?: number; error?: string };
+        if (!geoRes.ok || !geoJson.lat) {
+          setErro(geoJson.error ?? "Falha no geocoding");
+          return;
+        }
+        lat = geoJson.lat;
+        lng = geoJson.lng!;
+      }
+
+      // Passo 2: Overpass direto do browser (IPs de usuário não são bloqueados)
+      const raio = 1000;
+      const q = `[out:json][timeout:25];(node["amenity"~"^(supermarket|hospital|pharmacy|school|university)$"](around:${raio},${lat},${lng});node["shop"~"^(supermarket|convenience)$"](around:${raio},${lat},${lng});node["railway"~"^(subway_entrance|station)$"](around:${raio},${lat},${lng});way["amenity"~"^(supermarket|hospital|pharmacy|school|university)$"](around:${raio},${lat},${lng});way["railway"~"^(subway_entrance|station)$"](around:${raio},${lat},${lng}););out center;`;
+
+      let ovData: { elements: OvElement[] } | null = null;
+      let lastErr = "";
+      for (const mirror of OVERPASS_MIRRORS) {
+        try {
+          const r = await fetch(mirror, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `data=${encodeURIComponent(q)}`,
+            signal: AbortSignal.timeout(28000),
+          });
+          if (r.ok) { ovData = await r.json() as { elements: OvElement[] }; break; }
+          lastErr = `HTTP ${r.status} em ${mirror}`;
+        } catch (e) { lastErr = `${mirror}: ${e instanceof Error ? e.message : e}`; }
+      }
+      if (!ovData) { setErro(`Falha na consulta Overpass: ${lastErr}`); return; }
+
+      // Passo 3: processar resultados
+      const proximidades: Proximidade[] = ovData.elements
+        .filter((el) => el.tags?.name)
+        .map((el) => {
+          const elLat = el.lat ?? el.center?.lat ?? 0;
+          const elLng = el.lon ?? el.center?.lon ?? 0;
+          const categoria = ovCategoria(el.tags);
+          if (!categoria) return null;
+          return { categoria, nome: el.tags!.name!, distanciaM: ovDistM(lat, lng, elLat, elLng) };
+        })
+        .filter((x): x is Proximidade => x !== null)
+        .sort((a, b) => a.distanciaM - b.distanciaM)
+        .slice(0, 30);
+
+      // Passo 4: salvar no servidor
+      await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng, proximidades }),
+      });
+
+      setDados(proximidades);
+    } catch (e) {
+      setErro(`Erro: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setBuscando(false);
+    }
   }
 
   // Agrupa por categoria
