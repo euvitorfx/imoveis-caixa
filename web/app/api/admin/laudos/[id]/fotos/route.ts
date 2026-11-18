@@ -49,10 +49,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     `${CAIXA_BASE}/fotos/F${hdnImovel}2${i + 2}.jpg`
   );
 
-  await updateLaudo(id, {
-    screenshotCaixaUrl: screenshotUrl,
-    fotosAdicionais: extras,
-  } as Parameters<typeof updateLaudo>[1]);
+  // Só define screenshotCaixaUrl se o laudo ainda não tiver um (preserva upload manual)
+  const updateData: Record<string, unknown> = { fotosAdicionais: extras };
+  if (!laudo.screenshotCaixaUrl) updateData.screenshotCaixaUrl = screenshotUrl;
+
+  await updateLaudo(id, updateData as Parameters<typeof updateLaudo>[1]);
 
   return NextResponse.json({
     ok: true,

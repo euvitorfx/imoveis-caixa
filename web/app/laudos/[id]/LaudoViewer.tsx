@@ -304,11 +304,6 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
           Clique em &ldquo;Buscar automaticamente&rdquo; para buscar a foto do imóvel no site da Caixa, ou envie um print da página manualmente.
         </div>
       )}
-      {extras.length > 0 && canEdit && (
-        <p style={{ margin: "8px 0 0", fontSize: 11, color: "#6B7280" }}>
-          + {extras.length} foto{extras.length > 1 ? "s" : ""} adicionais salvas automaticamente na seção Fotos abaixo.
-        </p>
-      )}
     </div>
   );
 }
