@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Overpass — categorias de interesse num raio de 1 km
   const raio = 1000;
   const overpassQuery = `
-[out:json][timeout:25];
+[out:json][timeout:20];
 (
   node["amenity"~"^(supermarket|hospital|pharmacy|school|university)$"](around:${raio},${lat},${lng});
   node["shop"="supermarket"](around:${raio},${lat},${lng});
@@ -91,12 +91,33 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 out center;
 `.trim();
 
-  const ovResp = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(overpassQuery)}`,
-  });
-  if (!ovResp.ok) return NextResponse.json({ error: "Falha na consulta Overpass" }, { status: 502 });
+  const OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  ];
+
+  async function queryOverpass(endpoint: string): Promise<Response> {
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(overpassQuery)}`,
+      signal: AbortSignal.timeout(22000),
+    });
+  }
+
+  let ovResp: Response | null = null;
+  let lastError = "";
+  for (const mirror of OVERPASS_MIRRORS) {
+    try {
+      const r = await queryOverpass(mirror);
+      if (r.ok) { ovResp = r; break; }
+      lastError = `HTTP ${r.status} em ${mirror}`;
+    } catch (e) {
+      lastError = `${mirror}: ${e instanceof Error ? e.message : e}`;
+    }
+  }
+  if (!ovResp) return NextResponse.json({ error: `Falha na consulta Overpass: ${lastError}` }, { status: 502 });
 
   const ovJson = (await ovResp.json()) as { elements: OverpassElement[] };
 
