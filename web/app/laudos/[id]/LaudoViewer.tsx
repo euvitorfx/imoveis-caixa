@@ -218,12 +218,12 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
     setUploading(true);
     setErro("");
     try {
-      const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
-      if (!res.ok) { setErro(`Erro ${res.status} — verifique o cookie admin_token.`); return; }
-      const json = await res.json() as { ok?: boolean; screenshotCaixaUrl?: string; fotosAdicionais?: string[]; mensagem?: string };
-      if (!json.ok) { setErro(json.mensagem ?? "Nenhuma foto encontrada no site da Caixa."); return; }
+      // Chama a rota de screenshot (Chromium headless — pode levar ~20s)
+      const res = await fetch(`/api/admin/laudos/${laudo._id}/screenshot`, { method: "POST" });
+      if (!res.ok) { setErro(`Erro ${res.status}`); return; }
+      const json = await res.json() as { ok?: boolean; screenshotCaixaUrl?: string; error?: string };
+      if (!json.ok) { setErro(json.error ?? "Falha ao gerar print."); return; }
       if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
-      if (json.fotosAdicionais) setExtras(json.fotosAdicionais);
     } catch (e) {
       setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -261,7 +261,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11 }}>📸</span>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Foto Principal do Imóvel</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Print da Página Caixa</h2>
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -271,7 +271,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
                 disabled={uploading}
                 style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
               >
-                {uploading ? "Buscando…" : "Buscar automaticamente"}
+                {uploading ? "Gerando print (~20s)…" : "Tirar print automático"}
               </button>
             )}
             <button
