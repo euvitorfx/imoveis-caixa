@@ -81,6 +81,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         clip: { x: 0, y: 0, width: 1280, height: 700 },
       });
 
+      if (!process.env.R2_BUCKET_NAME || !process.env.R2_ACCOUNT_ID) {
+        throw new Error(`R2 nao configurado: BUCKET="${process.env.R2_BUCKET_NAME ?? ""}" ACCOUNT="${process.env.R2_ACCOUNT_ID ?? ""}"`);
+      }
       const key = `laudos/${id}/screenshot_caixa.jpg`;
       screenshotUrl = await uploadArquivo(key, Buffer.from(screenshotBuffer), "image/jpeg");
     } finally {
