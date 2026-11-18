@@ -18,6 +18,7 @@ function fmtData(iso: string) {
 }
 
 type Tab = "metricas" | "blog" | "corretores" | "usuarios" | "utm" | "processos" | "cobertura" | "afiliados" | "laudos";
+const TABS: Tab[] = ["metricas", "blog", "corretores", "usuarios", "utm", "processos", "cobertura", "afiliados", "laudos"];
 
 type UserStats = {
   total: number;
@@ -184,7 +185,18 @@ function UtmLinksTab() {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("metricas");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.slice(1) as Tab;
+      if (TABS.includes(hash)) return hash;
+    }
+    return "metricas";
+  });
+
+  function goTab(t: Tab) {
+    setTab(t);
+    if (typeof window !== "undefined") window.location.hash = t;
+  }
 
   // Blog state
   const [posts,     setPosts]     = useState<BlogPost[]>([]);
@@ -309,7 +321,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b overflow-x-auto">
-        <button onClick={() => setTab("metricas")}
+        <button onClick={() => goTab("metricas")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "metricas"
               ? "border-amber-500 text-amber-600 bg-white"
@@ -317,7 +329,7 @@ export default function AdminPage() {
           }`}>
           📊 Métricas
         </button>
-        <button onClick={() => setTab("usuarios")}
+        <button onClick={() => goTab("usuarios")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap ${
             tab === "usuarios"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -325,7 +337,7 @@ export default function AdminPage() {
           }`}>
           Usuários
         </button>
-        <button onClick={() => setTab("corretores")}
+        <button onClick={() => goTab("corretores")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 whitespace-nowrap relative ${
             tab === "corretores"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -338,7 +350,7 @@ export default function AdminPage() {
             </span>
           )}
         </button>
-        <button onClick={() => setTab("processos")}
+        <button onClick={() => goTab("processos")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "processos"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -346,7 +358,7 @@ export default function AdminPage() {
           }`}>
           Processos BLC
         </button>
-        <button onClick={() => setTab("cobertura")}
+        <button onClick={() => goTab("cobertura")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "cobertura"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -354,7 +366,7 @@ export default function AdminPage() {
           }`}>
           🗺️ Cobertura
         </button>
-        <button onClick={() => setTab("blog")}
+        <button onClick={() => goTab("blog")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "blog"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -362,7 +374,7 @@ export default function AdminPage() {
           }`}>
           Blog
         </button>
-        <button onClick={() => setTab("utm")}
+        <button onClick={() => goTab("utm")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "utm"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -370,7 +382,7 @@ export default function AdminPage() {
           }`}>
           🔗 Links UTM
         </button>
-        <button onClick={() => setTab("afiliados")}
+        <button onClick={() => goTab("afiliados")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "afiliados"
               ? "border-blue-600 text-blue-600 bg-white"
@@ -378,7 +390,7 @@ export default function AdminPage() {
           }`}>
           🤝 Afiliados
         </button>
-        <button onClick={() => setTab("laudos")}
+        <button onClick={() => goTab("laudos")}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors -mb-px border-b-2 ${
             tab === "laudos"
               ? "border-blue-600 text-blue-600 bg-white"

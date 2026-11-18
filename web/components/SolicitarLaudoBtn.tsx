@@ -18,19 +18,19 @@ function getAnonId(): string {
   } catch { return "anon"; }
 }
 
-function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: string) {
+// Retorna true se o envio foi aceito (sendBeacon) ou disparado (fetch)
+function logEvento(tipo: string, imovelId: string, nivel?: number, anonId?: string): boolean {
   const payload = JSON.stringify({ tipo, imovelId, nivel, anonId });
-  // sendBeacon: entrega mesmo durante unload (page reload)
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-    navigator.sendBeacon("/api/laudos/evento", new Blob([payload], { type: "application/json" }));
-  } else {
-    fetch("/api/laudos/evento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: payload,
-      keepalive: true,
-    }).catch(() => {});
+    return navigator.sendBeacon("/api/laudos/evento", new Blob([payload], { type: "application/json" }));
   }
+  fetch("/api/laudos/evento", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {});
+  return true;
 }
 
 export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) {
@@ -86,9 +86,9 @@ export default function SolicitarLaudoBtn({ imovelId, imovelDescricao }: Props) 
             style={{ backgroundColor: "#F59E0B", color: "#01304D" }}
             onClick={() => {
               const anonId = getAnonId();
-              // Dupla proteção: fila no localStorage (flush na próxima página) + sendBeacon imediato
-              enqueueClick("clicou_plano", imovelId, undefined, anonId);
-              logEvento("clicou_plano", imovelId, undefined, anonId);
+              // Enfileira como backup apenas se sendBeacon falhar (evita dupla contagem)
+              const enviado = logEvento("clicou_plano", imovelId, undefined, anonId);
+              if (!enviado) enqueueClick("clicou_plano", imovelId, undefined, anonId);
             }}
           >
             <span>Solicitar análise</span>
