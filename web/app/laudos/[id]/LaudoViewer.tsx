@@ -326,10 +326,8 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
     try {
       const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
       if (!res.ok) { setErro(`Erro ${res.status}`); return; }
-      const json = await res.json() as { ok?: boolean; fotosAdicionais?: string[]; mensagem?: string };
-      if (!json.ok) { setErro(json.mensagem ?? "Nenhuma foto adicional encontrada (F22-F28)."); return; }
+      const json = await res.json() as { ok?: boolean; fotosAdicionais?: string[] };
       if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
-      else setErro("Nenhuma foto adicional encontrada (F22-F28). Este imóvel tem apenas uma foto no site da Caixa.");
     } catch (e) {
       setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -402,6 +400,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
               <img
                 src={src}
                 alt={`Foto ${i + 1}`}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none"; }}
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
               />
               {canEdit && (
