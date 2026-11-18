@@ -45,10 +45,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   let screenshotUrl: string;
   try {
     // Importações dinâmicas — evitam erro de bundle no edge
-    const chromium = (await import("@sparticuz/chromium")).default;
+    // chromium-min não embute o binário; faz download da URL em runtime
+    const chromium = (await import("@sparticuz/chromium-min")).default;
     const puppeteer = (await import("puppeteer-core")).default;
 
-    const executablePath = await chromium.executablePath();
+    const executablePath = await chromium.executablePath(
+      "https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.tar"
+    );
 
     const browser = await puppeteer.launch({
       args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
