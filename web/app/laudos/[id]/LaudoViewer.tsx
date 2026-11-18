@@ -314,6 +314,9 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const [uploading, setUploading] = useState(false);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
   const [erro, setErro] = useState("");
+  const [falhas, setFalhas] = useState<Set<string>>(new Set());
+
+  const todasFalharam = extras.length > 0 && extras.every(u => falhas.has(u));
 
   async function handleAutoBuscar() {
     setUploading(true);
@@ -393,7 +396,10 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
               <img
                 src={src}
                 alt={`Foto ${i + 1}`}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none"; }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).parentElement!.style.display = "none";
+                  setFalhas(prev => new Set([...prev, src]));
+                }}
                 style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
               />
               {canEdit && (
@@ -407,7 +413,8 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
             </div>
           ))}
         </div>
-      ) : (
+      ) : null}
+      {(extras.length === 0 || todasFalharam) && (
         <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
           Nenhuma foto disponível.
         </div>
