@@ -261,7 +261,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11 }}>📸</span>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Foto / Print da Página Caixa</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Foto Principal do Imóvel</h2>
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -305,7 +305,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
         <img src={url} alt="Foto/print do imóvel na Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
       ) : (
         <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
-          Clique em &ldquo;Buscar automaticamente&rdquo; para tentar capturar a foto do site da Caixa, ou envie um print manualmente.
+          Clique em &ldquo;Buscar automaticamente&rdquo; para buscar a foto do imóvel no site da Caixa, ou envie um print da página manualmente.
         </div>
       )}
       {extras.length > 0 && canEdit && (
