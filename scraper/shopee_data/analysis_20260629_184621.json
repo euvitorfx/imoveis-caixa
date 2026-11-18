@@ -1,0 +1,62 @@
+{
+  "total_products": 40,
+  "avg_price": 713.79,
+  "avg_sold": 0.0,
+  "price_distribution": {
+    "0-25": 6,
+    "25-50": 4,
+    "50-100": 12,
+    "100-200": 6,
+    "200+": 12
+  },
+  "top_keywords": [
+    {
+      "keyword": "impressão 3d",
+      "count": 40,
+      "total_sold": 0
+    }
+  ],
+  "top_locations": [
+    {
+      "location": "São Paulo",
+      "count": 19
+    },
+    {
+      "location": "Paraná",
+      "count": 5
+    },
+    {
+      "location": "Rio de Janeiro",
+      "count": 4
+    },
+    {
+      "location": "Espírito Santo",
+      "count": 2
+    },
+    {
+      "location": "Paraíba",
+      "count": 2
+    },
+    {
+      "location": "Mato Grosso do Sul",
+      "count": 2
+    },
+    {
+      "location": "Rio Grande do Sul",
+      "count": 2
+    },
+    {
+      "location": "Santa Catarina",
+      "count": 1
+    },
+    {
+      "location": "Internacional",
+      "count": 1
+    },
+    {
+      "location": "Piauí",
+      "count": 1
+    }
+  ],
+  "generated_at": "2026-06-29T18:46:21.833234"
+}

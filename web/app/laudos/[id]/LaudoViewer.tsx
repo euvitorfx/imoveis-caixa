@@ -270,21 +270,12 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
         </div>
         {canEdit && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {!url && (
-              <button
-                onClick={handleAutoBuscar}
-                disabled={uploading}
-                style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
-              >
-                {uploading ? "Gerando print (~20s)…" : "Tirar print automático"}
-              </button>
-            )}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
+              style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
             >
-              {uploading ? "Enviando…" : url ? "Substituir" : "Enviar print"}
+              {uploading ? "Enviando…" : url ? "Substituir print" : "Enviar print"}
             </button>
             {url && (
               <button

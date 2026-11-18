@@ -20,26 +20,51 @@ const client = new MongoClient(process.env.MONGODB_URI);
 await client.connect();
 const db = client.db(process.env.MONGODB_DB);
 
-const totalViews  = await db.collection("eventos_laudo").countDocuments({ tipo: "visualizou_botao" });
-const totalCliq   = await db.collection("eventos_laudo").countDocuments({ tipo: "clicou_plano" });
-const cliqLog     = await db.collection("eventos_laudo").countDocuments({ tipo: "clicou_plano", userId: { $ne: null } });
-const cliqAnon    = await db.collection("eventos_laudo").countDocuments({ tipo: "clicou_plano", userId: null });
+function startOf(unit) {
+  const d = new Date();
+  if (unit === "day") {
+    d.setHours(0, 0, 0, 0);
+  } else if (unit === "week") {
+    d.setDate(d.getDate() - 6);
+    d.setHours(0, 0, 0, 0);
+  } else {
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+  }
+  return d.toISOString();
+}
 
-const ultimos = await db.collection("eventos_laudo")
-  .find({ tipo: "clicou_plano" })
-  .sort({ criadoEm: -1 })
-  .limit(20)
+const hoje   = startOf("day");
+const semana = startOf("week");
+const mes    = startOf("month");
+
+const [total, viewsHoje, viewsSemana, viewsMes] = await Promise.all([
+  db.collection("eventos_laudo").countDocuments({ tipo: "visualizou_botao" }),
+  db.collection("eventos_laudo").countDocuments({ tipo: "visualizou_botao", criadoEm: { $gte: hoje } }),
+  db.collection("eventos_laudo").countDocuments({ tipo: "visualizou_botao", criadoEm: { $gte: semana } }),
+  db.collection("eventos_laudo").countDocuments({ tipo: "visualizou_botao", criadoEm: { $gte: mes } }),
+]);
+
+// Distribuição por dia dos últimos 14 dias
+const quatorze = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+const eventos = await db.collection("eventos_laudo")
+  .find({ tipo: "visualizou_botao", criadoEm: { $gte: quatorze } })
+  .project({ criadoEm: 1 })
   .toArray();
 
-console.log("\n=== DIAGNÓSTICO DO FUNIL ===");
-console.log(`visualizou_botao:  ${totalViews}`);
-console.log(`clicou_plano:      ${totalCliq}`);
-console.log(`  ↳ logados:       ${cliqLog}`);
-console.log(`  ↳ anônimos:      ${cliqAnon}`);
-console.log(`\nÚltimos 20 cliques:`);
-for (const e of ultimos) {
-  const quem = e.userEmail ?? (e.anonId ? `anon:${e.anonId.slice(-8)}` : "?");
-  console.log(`  ${e.criadoEm.slice(0, 16)}  ${e.userId ? "logado" : "anon  "}  nível:${e.nivel ?? "?"}  ${quem}`);
+const porDia = {};
+for (const e of eventos) {
+  const dia = String(e.criadoEm).slice(0, 10);
+  porDia[dia] = (porDia[dia] || 0) + 1;
 }
+
+console.log(JSON.stringify({
+  total,
+  viewsHoje,
+  viewsSemana,
+  viewsMes,
+  periodos: { hoje, semana: semana.slice(0,10), mes: mes.slice(0,10) },
+  porDia,
+}, null, 2));
 
 await client.close();

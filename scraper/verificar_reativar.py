@@ -10,6 +10,7 @@ Uso:
 
 import sys
 import os
+sys.stdout.reconfigure(encoding='utf-8')
 from datetime import datetime, timezone
 from collections import Counter
 from dotenv import load_dotenv
