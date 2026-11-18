@@ -46,3 +46,24 @@ export async function uploadMatricula(
 
   return `${PUBLIC_URL()}/${key}`;
 }
+
+/**
+ * Faz upload de um arquivo para o R2 no path indicado.
+ * Retorna a URL pública.
+ */
+export async function uploadArquivo(
+  key: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  const s3 = s3Client();
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET(),
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    })
+  );
+  return `${PUBLIC_URL()}/${key}`;
+}

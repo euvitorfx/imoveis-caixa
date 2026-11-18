@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import type { Laudo, BlocoLaudo } from "@/lib/laudos-types";
 
 // ── Tipos do JSON de análise ──────────────────────────────────────────────────
@@ -167,6 +167,413 @@ function BlocoEditor({ laudoId, blocoKey, bloco, canEdit }: {
   );
 }
 
+// ── Seção 1: Links do imóvel ──────────────────────────────────────────────────
+function LinksImovel({ laudo }: { laudo: Laudo }) {
+  const imovel = laudo.imovelData as Record<string, string | undefined>;
+  const hdnImovel = imovel.hdnImovel;
+  const blcUrl = `https://www.buscaleiloescaixa.com.br/imovel/${laudo.imovelId}`;
+  const caixaUrl = hdnImovel
+    ? `https://venda-imoveis.caixa.gov.br/sistema/detalhe-imovel.asp?hdnimovel=${hdnImovel}`
+    : (imovel.urlDetalhe ?? null);
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 11 }}>🔗</span>
+        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Links do Imóvel</h2>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        <a
+          href={blcUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#01304D", color: "#fff", fontWeight: 600, fontSize: 12.5, padding: "7px 14px", borderRadius: 8, textDecoration: "none" }}
+        >
+          Ver no Busca Leilões Caixa →
+        </a>
+        {caixaUrl && (
+          <a
+            href={caixaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F59E0B", color: "#01304D", fontWeight: 600, fontSize: 12.5, padding: "7px 14px", borderRadius: 8, textDecoration: "none" }}
+          >
+            Ver no site da Caixa →
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Seção 2: Screenshot Caixa ─────────────────────────────────────────────────
+function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [url, setUrl] = useState<string | undefined>(laudo.screenshotCaixaUrl);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("tipo", "screenshot");
+    fd.append("arquivo", file);
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/upload`, { method: "POST", body: fd });
+    const json = await res.json() as { url?: string };
+    if (json.url) setUrl(json.url);
+    setUploading(false);
+  }
+
+  async function handleRemove() {
+    if (!url) return;
+    setUploading(true);
+    await fetch(`/api/admin/laudos/${laudo._id}/upload`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo: "screenshot", url }),
+    });
+    setUrl(undefined);
+    setUploading(false);
+  }
+
+  if (!url && !canEdit) return null;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>📸</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Print da Página Caixa</h2>
+        </div>
+        {canEdit && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
+            >
+              {uploading ? "Enviando…" : url ? "Substituir" : "Enviar print"}
+            </button>
+            {url && (
+              <button
+                onClick={handleRemove}
+                disabled={uploading}
+                style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#991B1B" }}
+              >
+                Remover
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+      />
+      {url ? (
+        <img src={url} alt="Print da página da Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
+      ) : (
+        <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
+          Clique em &ldquo;Enviar print&rdquo; para adicionar uma captura de tela da página da Caixa.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Seção 3: Fotos do imóvel ──────────────────────────────────────────────────
+function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
+  const imovel = laudo.imovelData as Record<string, string | undefined>;
+  const fotoUrl = imovel.fotoUrl;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("tipo", "foto");
+    fd.append("arquivo", file);
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/upload`, { method: "POST", body: fd });
+    const json = await res.json() as { url?: string };
+    if (json.url) setExtras((prev) => [...prev, json.url!]);
+    setUploading(false);
+  }
+
+  async function handleRemoveFoto(url: string) {
+    await fetch(`/api/admin/laudos/${laudo._id}/upload`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo: "foto", url }),
+    });
+    setExtras((prev) => prev.filter((f) => f !== url));
+  }
+
+  const todasFotos = [...(fotoUrl ? [fotoUrl] : []), ...extras];
+  if (!todasFotos.length && !canEdit) return null;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>🏠</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Fotos do Imóvel</h2>
+        </div>
+        {canEdit && (
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
+          >
+            {uploading ? "Enviando…" : "+ Adicionar foto"}
+          </button>
+        )}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+      />
+      {todasFotos.length > 0 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+          {todasFotos.map((src, i) => (
+            <div key={src} style={{ position: "relative" }}>
+              <img
+                src={src}
+                alt={`Foto ${i + 1}`}
+                style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8, border: "1px solid #E5E7EB", display: "block" }}
+              />
+              {canEdit && i > 0 && (
+                <button
+                  onClick={() => handleRemoveFoto(src)}
+                  style={{ position: "absolute", top: 4, right: 4, background: "#01304D", color: "#fff", border: "none", borderRadius: 4, width: 22, height: 22, fontSize: 13, cursor: "pointer", lineHeight: "22px", textAlign: "center" }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "32px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
+          Nenhuma foto disponível.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Seção 4: Mapa ─────────────────────────────────────────────────────────────
+function MapaImovel({
+  laudo,
+  analise,
+  canEdit,
+}: {
+  laudo: Laudo;
+  analise: AnaliseJson | undefined;
+  canEdit: boolean;
+}) {
+  const imovel = laudo.imovelData as Record<string, string | undefined>;
+  const enderecoInicial =
+    laudo.localizacao?.enderecoMaps ??
+    [analise?.endereco, imovel.cidade, imovel.uf ?? imovel.estado].filter(Boolean).join(", ");
+
+  const [endereco, setEndereco] = useState(enderecoInicial);
+  const [editando, setEditando] = useState(false);
+  const [draft, setDraft] = useState(enderecoInicial);
+  const [saving, setSaving] = useState(false);
+
+  async function salvarEndereco() {
+    setSaving(true);
+    await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enderecoMaps: draft }),
+    });
+    setEndereco(draft);
+    setEditando(false);
+    setSaving(false);
+  }
+
+  if (!endereco) return null;
+
+  const mapsEmbed = `https://maps.google.com/maps?q=${encodeURIComponent(endereco)}&output=embed`;
+  const mapsLink  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>📍</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Localização</h2>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <a
+            href={mapsLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ background: "#F59E0B", color: "#01304D", fontWeight: 600, fontSize: 11.5, padding: "5px 12px", borderRadius: 6, textDecoration: "none" }}
+          >
+            Abrir no Maps →
+          </a>
+          {canEdit && !editando && (
+            <button
+              onClick={() => { setDraft(endereco); setEditando(true); }}
+              style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "#374151" }}
+            >
+              Editar endereço
+            </button>
+          )}
+        </div>
+      </div>
+
+      {editando ? (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            style={{ flex: 1, minWidth: 200, border: "1px solid #93C5FD", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}
+            placeholder="Endereço completo para o mapa"
+          />
+          <button
+            onClick={salvarEndereco}
+            disabled={saving}
+            style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            {saving ? "Salvando…" : "Salvar"}
+          </button>
+          <button
+            onClick={() => setEditando(false)}
+            style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 6, padding: "6px 10px", fontSize: 12.5, cursor: "pointer", color: "#374151" }}
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <p style={{ margin: "0 0 10px", fontSize: 12, color: "#6B7280" }}>{endereco}</p>
+      )}
+
+      <iframe
+        src={mapsEmbed}
+        width="100%"
+        height="320"
+        style={{ border: 0, borderRadius: 8 }}
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        title="Mapa do imóvel"
+      />
+    </div>
+  );
+}
+
+// ── Seção 5: Proximidades ─────────────────────────────────────────────────────
+const CATEGORIA_ICON: Record<string, string> = {
+  "Supermercado": "🛒",
+  "Mercadinho":   "🛍️",
+  "Farmácia":     "💊",
+  "Escola":       "🎒",
+  "Universidade": "🎓",
+  "Hospital":     "🏥",
+  "Metro / Trem": "🚇",
+};
+
+function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
+  const [buscando, setBuscando] = useState(false);
+  const [dados, setDados] = useState(laudo.proximidades ?? []);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function buscarProximidades() {
+    setBuscando(true);
+    setErro(null);
+    const imovel = laudo.imovelData as Record<string, string | undefined>;
+    const endereco =
+      laudo.localizacao?.enderecoMaps ??
+      [imovel.cidade, imovel.uf ?? imovel.estado].filter(Boolean).join(", ");
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endereco }),
+    });
+    const json = await res.json() as { proximidades?: typeof dados; error?: string };
+    if (!res.ok) { setErro(json.error ?? "Erro desconhecido"); }
+    else { setDados(json.proximidades ?? []); }
+    setBuscando(false);
+  }
+
+  // Agrupa por categoria
+  const grupos: Record<string, typeof dados> = {};
+  for (const p of dados) {
+    if (!grupos[p.categoria]) grupos[p.categoria] = [];
+    grupos[p.categoria].push(p);
+  }
+
+  const temDados = dados.length > 0;
+
+  if (!temDados && !canEdit) return null;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>🗺️</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>O que há nas proximidades</h2>
+        </div>
+        {canEdit && (
+          <button
+            onClick={buscarProximidades}
+            disabled={buscando}
+            style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            {buscando ? "Buscando…" : temDados ? "Atualizar" : "Buscar proximidades"}
+          </button>
+        )}
+      </div>
+
+      {erro && <p style={{ margin: "0 0 10px", fontSize: 12, color: "#991B1B" }}>⚠️ {erro}</p>}
+
+      {temDados ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          {Object.entries(grupos).map(([cat, itens]) => (
+            <div key={cat} style={{ background: "#F4F9FC", borderRadius: 8, padding: "10px 14px" }}>
+              <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#01304D" }}>
+                {CATEGORIA_ICON[cat] ?? "📌"} {cat}
+              </p>
+              {itens.slice(0, 3).map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#374151", padding: "2px 0", borderBottom: i < Math.min(itens.length, 3) - 1 ? "1px solid #E5E7EB" : "none" }}>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{item.nome}</span>
+                  <span style={{ flexShrink: 0, color: "#6B7280", fontWeight: 600 }}>
+                    {item.distanciaM < 1000 ? `${item.distanciaM} m` : `${(item.distanciaM / 1000).toFixed(1)} km`}
+                  </span>
+                </div>
+              ))}
+              {itens.length > 3 && (
+                <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9CA3AF" }}>+{itens.length - 3} outros</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        !buscando && canEdit && (
+          <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "24px 20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5 }}>
+            Clique em &ldquo;Buscar proximidades&rdquo; para identificar o que há nos arredores do imóvel.
+          </div>
+        )
+      )}
+
+      {buscando && (
+        <p style={{ margin: 0, fontSize: 12.5, color: "#6B7280", textAlign: "center", padding: "16px 0" }}>
+          Consultando mapa de arredores…
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 interface Props {
   laudo: Laudo & { analiseMatriculaJson?: AnaliseJson };
@@ -231,6 +638,21 @@ export default function LaudoViewer({ laudo, canEdit }: Props) {
           {imovel.modalidade && <span style={{ background: "rgba(255,255,255,0.12)", padding: "3px 10px", borderRadius: 20, fontSize: 11 }}>{imovel.modalidade}</span>}
         </div>
       </div>
+
+      {/* ── LINKS DO IMÓVEL ── */}
+      <LinksImovel laudo={laudo} />
+
+      {/* ── SCREENSHOT CAIXA ── */}
+      <ScreenshotCaixa laudo={laudo} canEdit={canEdit} />
+
+      {/* ── FOTOS ── */}
+      <FotosImovel laudo={laudo} canEdit={canEdit} />
+
+      {/* ── MAPA ── */}
+      <MapaImovel laudo={laudo} analise={analise} canEdit={canEdit} />
+
+      {/* ── PROXIMIDADES ── */}
+      <ProximidadesImovel laudo={laudo} canEdit={canEdit} />
 
       {/* ── FAIXA DE SITUAÇÃO ── */}
       {analise && (

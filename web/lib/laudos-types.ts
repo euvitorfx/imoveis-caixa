@@ -43,6 +43,18 @@ export interface Laudo {
   pdfUrl?: string;
   userPhone?: string | null; // enriquecido pelo endpoint admin
   nps?: { nota: 1 | 2 | 3 | 4 | 5; comentario?: string; criadoEm: string };
+  screenshotCaixaUrl?: string;
+  fotosAdicionais?: string[];
+  localizacao?: {
+    enderecoMaps?: string;
+    lat?: number;
+    lng?: number;
+  };
+  proximidades?: Array<{
+    categoria: string;
+    nome: string;
+    distanciaM: number;
+  }>;
 }
 
 export const PRECOS: Record<1 | 2, number> = {
