@@ -32,26 +32,28 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const laudo = await getLaudoById(id);
   if (!laudo) return NextResponse.json({ error: "Laudo não encontrado" }, { status: 404 });
 
+  // Busca hdnImovel e fotoUrl do banco (mais atualizado que o snapshot do laudo)
+  const c = await clientPromise;
+  const imovelDB = await c
+    .db(process.env.MONGODB_DB)
+    .collection("imoveis")
+    .findOne(
+      { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
+      { projection: { hdnImovel: 1, fotoUrl: 1 } }
+    );
+
   const hdnImovel =
     (laudo.imovelData?.hdnImovel as string | undefined) ??
-    (await (async () => {
-      const c = await clientPromise;
-      const imovel = await c
-        .db(process.env.MONGODB_DB)
-        .collection("imoveis")
-        .findOne(
-          { _id: laudo.imovelId as unknown as import("mongodb").ObjectId },
-          { projection: { hdnImovel: 1, fotoUrl: 1 } }
-        );
-      return (imovel?.hdnImovel as string | undefined) ?? null;
-    })());
+    (imovelDB?.hdnImovel as string | undefined) ?? null;
 
   if (!hdnImovel) {
     return NextResponse.json({ error: "hdnImovel não encontrado no laudo" }, { status: 400 });
   }
 
-  // Foto principal: prefere URL R2 do banco
-  const fotoUrlBanco = laudo.imovelData?.fotoUrl as string | undefined;
+  // Foto principal: prefere R2 do banco, depois snapshot do laudo
+  const fotoUrlBanco =
+    (imovelDB?.fotoUrl as string | undefined) ??
+    (laudo.imovelData?.fotoUrl as string | undefined);
 
   // Checa fotos F{hdn}21 até F{hdn}28 na Caixa em paralelo
   const candidatos = Array.from({ length: 8 }, (_, i) => ({

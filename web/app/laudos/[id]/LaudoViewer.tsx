@@ -212,14 +212,23 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
   const [uploading, setUploading] = useState(false);
   const [url, setUrl] = useState<string | undefined>(laudo.screenshotCaixaUrl);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
+  const [erro, setErro] = useState("");
 
   async function handleAutoBuscar() {
     setUploading(true);
-    const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
-    const json = await res.json() as { screenshotCaixaUrl?: string; fotosAdicionais?: string[] };
-    if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
-    if (json.fotosAdicionais) setExtras(json.fotosAdicionais);
-    setUploading(false);
+    setErro("");
+    try {
+      const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
+      if (!res.ok) { setErro(`Erro ${res.status} — verifique o cookie admin_token.`); return; }
+      const json = await res.json() as { ok?: boolean; screenshotCaixaUrl?: string; fotosAdicionais?: string[]; mensagem?: string };
+      if (!json.ok) { setErro(json.mensagem ?? "Nenhuma foto encontrada no site da Caixa."); return; }
+      if (json.screenshotCaixaUrl) setUrl(json.screenshotCaixaUrl);
+      if (json.fotosAdicionais) setExtras(json.fotosAdicionais);
+    } catch (e) {
+      setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleUpload(file: File) {
@@ -291,6 +300,7 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
         style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
       />
+      {erro && <p style={{ margin: "0 0 8px", fontSize: 12, color: "#b91c1c", fontWeight: 600 }}>{erro}</p>}
       {url ? (
         <img src={url} alt="Foto/print do imóvel na Caixa" style={{ width: "100%", borderRadius: 8, border: "1px solid #E5E7EB" }} />
       ) : (
@@ -298,8 +308,6 @@ function ScreenshotCaixa({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean })
           Clique em &ldquo;Buscar automaticamente&rdquo; para tentar capturar a foto do site da Caixa, ou envie um print manualmente.
         </div>
       )}
-      {/* Atualiza FotosImovel com os extras descobertos — passando via estado compartilhado não é possível entre componentes irmãos,
-          mas o reload da página após buscar automático irá exibi-los na seção de fotos abaixo */}
       {extras.length > 0 && canEdit && (
         <p style={{ margin: "8px 0 0", fontSize: 11, color: "#6B7280" }}>
           + {extras.length} foto{extras.length > 1 ? "s" : ""} adicionais salvas automaticamente na seção Fotos abaixo.
@@ -314,13 +322,23 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [extras, setExtras] = useState<string[]>(laudo.fotosAdicionais ?? []);
+  const [erro, setErro] = useState("");
 
   async function handleAutoBuscar() {
     setUploading(true);
-    const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
-    const json = await res.json() as { fotosAdicionais?: string[] };
-    if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
-    setUploading(false);
+    setErro("");
+    try {
+      const res = await fetch(`/api/admin/laudos/${laudo._id}/fotos`, { method: "POST" });
+      if (!res.ok) { setErro(`Erro ${res.status}`); return; }
+      const json = await res.json() as { ok?: boolean; fotosAdicionais?: string[]; mensagem?: string };
+      if (!json.ok) { setErro(json.mensagem ?? "Nenhuma foto adicional encontrada (F22-F28)."); return; }
+      if (json.fotosAdicionais?.length) setExtras(json.fotosAdicionais);
+      else setErro("Nenhuma foto adicional encontrada (F22-F28). Este imóvel tem apenas uma foto no site da Caixa.");
+    } catch (e) {
+      setErro(`Erro de rede: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handleUpload(file: File) {
@@ -380,6 +398,7 @@ function FotosImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
         style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
       />
+      {erro && <p style={{ margin: "0 0 8px", fontSize: 12, color: "#b91c1c", fontWeight: 600 }}>{erro}</p>}
       {extras.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
           {extras.map((src, i) => (
