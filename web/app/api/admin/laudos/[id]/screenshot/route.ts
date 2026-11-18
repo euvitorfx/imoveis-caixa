@@ -46,10 +46,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const chromium = (await import("@sparticuz/chromium")).default;
   const puppeteer = (await import("puppeteer-core")).default;
 
+  let executablePath: string;
+  try {
+    executablePath = await chromium.executablePath();
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, error: `Chromium executablePath falhou: ${e instanceof Error ? e.message : e}` },
+      { status: 500 }
+    );
+  }
+
   const browser = await puppeteer.launch({
-    args: chromium.args,
+    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
     defaultViewport: { width: 1280, height: 900 },
-    executablePath: await chromium.executablePath(),
+    executablePath,
     headless: true,
   });
 
