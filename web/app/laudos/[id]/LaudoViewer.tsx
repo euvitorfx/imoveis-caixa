@@ -508,6 +508,8 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
   const [buscando, setBuscando] = useState(false);
   const [dados, setDados] = useState<Proximidade[]>(laudo.proximidades ?? []);
   const [erro, setErro] = useState<string | null>(null);
+  const [raioKm, setRaioKm] = useState<string | null>(null);
+  const [busyMsg, setBusyMsg] = useState("");
 
   async function buscarProximidades() {
     setBuscando(true);
@@ -538,11 +540,10 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
         lng = geoJson.lng!;
       }
 
-      // Passo 2: Nominatim structured search por categoria (dentro de bounding box ~1.2km)
+      // Passo 2: Nominatim structured search por categoria
       // Nominatim é gratuito, sem API key e não bloqueia por IP.
       // Rate limit: 1 req/s — fazemos as buscas em série com delay de 1.1s.
-      const delta = 0.011; // ~1.2km em graus
-      const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+      // Se a região for esparsa (< 5 POIs encontrados), expande o raio automaticamente.
       const NOMINATIM = "https://nominatim.openstreetmap.org/search";
       const HEADERS = { "User-Agent": "BuscaLeiloesCaixa/1.0 (noreply@buscaleiloescaixa.com.br)" };
 
@@ -571,38 +572,65 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
         { param: "amenity=bus_stop",        categoria: "Ponto de Ônibus", limit: 50 },
       ];
 
+      // Raios progressivos: expande se a região for esparsa
+      const TIERS = [
+        { delta: 0.011, maxDistM: 1500, label: "1,2 km" },
+        { delta: 0.022, maxDistM: 3000, label: "2,5 km" },
+        { delta: 0.044, maxDistM: 5000, label: "5 km"   },
+      ];
+      const MIN_POIS = 5; // expande se encontrar menos que isso (excluindo paradas)
+
       type NomResult = { display_name: string; lat: string; lon: string };
-      const proximidades: Proximidade[] = [];
-      const seenNames = new Set<string>();
+      let resultado: Proximidade[] = [];
+      let raioFinal = TIERS[0].label;
 
-      for (const { param, categoria, limit } of SEARCHES) {
-        try {
-          const url = `${NOMINATIM}?format=json&${param}&bounded=1&viewbox=${bbox}&countrycodes=br&limit=${limit ?? 5}&addressdetails=0&extratags=0`;
-          const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(10000) });
-          if (r.ok) {
-            const items = await r.json() as NomResult[];
-            for (const item of items) {
-              const nome = item.display_name.split(",")[0].trim();
-              if (seenNames.has(nome)) continue;
-              seenNames.add(nome);
-              const distanciaM = ovDistM(lat, lng, parseFloat(item.lat), parseFloat(item.lon));
-              if (distanciaM <= 1500) proximidades.push({ categoria, nome, distanciaM });
+      for (const tier of TIERS) {
+        setBusyMsg(`Buscando arredores (raio ${tier.label})…`);
+        const bbox = `${lng - tier.delta},${lat - tier.delta},${lng + tier.delta},${lat + tier.delta}`;
+        const encontrados: Proximidade[] = [];
+        const seenNames = new Set<string>();
+
+        for (const { param, categoria, limit } of SEARCHES) {
+          try {
+            const url = `${NOMINATIM}?format=json&${param}&bounded=1&viewbox=${bbox}&countrycodes=br&limit=${limit ?? 5}&addressdetails=0&extratags=0`;
+            const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(10000) });
+            if (r.ok) {
+              const items = await r.json() as NomResult[];
+              for (const item of items) {
+                const nome = item.display_name.split(",")[0].trim();
+                if (seenNames.has(nome)) continue;
+                seenNames.add(nome);
+                const distanciaM = ovDistM(lat, lng, parseFloat(item.lat), parseFloat(item.lon));
+                if (distanciaM <= tier.maxDistM) encontrados.push({ categoria, nome, distanciaM });
+              }
             }
-          }
-        } catch { /* ignora timeout/erro numa categoria */ }
-        // Rate limit Nominatim: 1 req/s
-        await new Promise((res) => setTimeout(res, 1100));
+          } catch { /* ignora timeout/erro numa categoria */ }
+          // Rate limit Nominatim: 1 req/s
+          await new Promise((res) => setTimeout(res, 1100));
+        }
+
+        // Ponto de Ônibus: agrega tudo em uma única entrada com contagem
+        const ptsOnibus = encontrados.filter(p => p.categoria === "Ponto de Ônibus");
+        const demais = encontrados.filter(p => p.categoria !== "Ponto de Ônibus");
+        if (ptsOnibus.length > 0) {
+          const maisProx = ptsOnibus.reduce((a, b) => a.distanciaM < b.distanciaM ? a : b);
+          demais.push({ categoria: "Ponto de Ônibus", nome: `${ptsOnibus.length} paradas`, distanciaM: maisProx.distanciaM, count: ptsOnibus.length });
+        }
+        demais.sort((a, b) => a.distanciaM - b.distanciaM);
+
+        raioFinal = tier.label;
+        resultado = demais.slice(0, 30);
+
+        // Região com POIs suficientes? Para de expandir.
+        const totalSemOnibus = demais.filter(p => p.categoria !== "Ponto de Ônibus").length;
+        if (totalSemOnibus >= MIN_POIS) break;
+
+        // Última tentativa: usa o que tiver mesmo sendo pouco
+        if (tier === TIERS[TIERS.length - 1]) break;
+        setBusyMsg(`Região esparsa, expandindo raio…`);
       }
 
-      // Ponto de Ônibus: agrega tudo em uma única entrada com contagem
-      const ptsOnibus = proximidades.filter(p => p.categoria === "Ponto de Ônibus");
-      const demais = proximidades.filter(p => p.categoria !== "Ponto de Ônibus");
-      if (ptsOnibus.length > 0) {
-        const maisProx = ptsOnibus.reduce((a, b) => a.distanciaM < b.distanciaM ? a : b);
-        demais.push({ categoria: "Ponto de Ônibus", nome: `${ptsOnibus.length} paradas`, distanciaM: maisProx.distanciaM, count: ptsOnibus.length });
-      }
-      demais.sort((a, b) => a.distanciaM - b.distanciaM);
-      const resultado = demais.slice(0, 30);
+      setRaioKm(raioFinal);
 
       // Passo 3: salvar no servidor
       await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
@@ -650,6 +678,12 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
 
       {erro && <p style={{ margin: "0 0 10px", fontSize: 12, color: "#991B1B" }}>⚠️ {erro}</p>}
 
+      {temDados && raioKm && (
+        <p style={{ margin: "0 0 10px", fontSize: 11, color: "#9CA3AF", textAlign: "right" }}>
+          Raio de busca: {raioKm}
+        </p>
+      )}
+
       {temDados ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
           {Object.entries(grupos).map(([cat, itens]) => (
@@ -690,7 +724,7 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
 
       {buscando && (
         <p style={{ margin: 0, fontSize: 12.5, color: "#6B7280", textAlign: "center", padding: "16px 0" }}>
-          Buscando arredores por categoria… (pode levar ~20s)
+          {busyMsg || "Buscando…"} (pode levar ~20s)
         </p>
       )}
     </div>
