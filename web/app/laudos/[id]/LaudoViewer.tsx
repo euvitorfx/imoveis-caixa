@@ -476,16 +476,24 @@ function MapaImovel({
 
 // ── Seção 5: Proximidades ─────────────────────────────────────────────────────
 const CATEGORIA_ICON: Record<string, string> = {
-  "Supermercado": "🛒",
-  "Mercadinho":   "🛍️",
-  "Farmácia":     "💊",
-  "Escola":       "🎒",
-  "Universidade": "🎓",
-  "Hospital":     "🏥",
-  "Metro / Trem": "🚇",
+  "Hospital":        "🏥",
+  "Farmácia":        "💊",
+  "UBS / Clínica":   "🩺",
+  "Escola":          "🎒",
+  "Universidade":    "🎓",
+  "Creche":          "👶",
+  "Supermercado":    "🛒",
+  "Mercadinho":      "🛍️",
+  "Padaria":         "🍞",
+  "Shopping":        "🏬",
+  "Banco":           "🏦",
+  "Parque / Praça":  "🌳",
+  "Academia":        "🏋️",
+  "Metro / Trem":    "🚇",
+  "Ponto de Ônibus": "🚌",
 };
 
-type Proximidade = { categoria: string; nome: string; distanciaM: number };
+type Proximidade = { categoria: string; nome: string; distanciaM: number; count?: number };
 
 function ovDistM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -538,24 +546,38 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
       const NOMINATIM = "https://nominatim.openstreetmap.org/search";
       const HEADERS = { "User-Agent": "BuscaLeiloesCaixa/1.0 (noreply@buscaleiloescaixa.com.br)" };
 
-      const SEARCHES: { param: string; categoria: string }[] = [
-        { param: "amenity=hospital",    categoria: "Hospital" },
-        { param: "amenity=pharmacy",    categoria: "Farmácia" },
-        { param: "amenity=school",      categoria: "Escola" },
-        { param: "amenity=university",  categoria: "Universidade" },
-        { param: "amenity=supermarket", categoria: "Supermercado" },
-        { param: "shop=supermarket",    categoria: "Supermercado" },
-        { param: "shop=convenience",    categoria: "Mercadinho" },
-        { param: "railway=station",     categoria: "Metro / Trem" },
+      const SEARCHES: { param: string; categoria: string; limit?: number }[] = [
+        // Saúde
+        { param: "amenity=hospital",        categoria: "Hospital" },
+        { param: "amenity=pharmacy",        categoria: "Farmácia" },
+        { param: "amenity=clinic",          categoria: "UBS / Clínica" },
+        // Educação
+        { param: "amenity=school",          categoria: "Escola" },
+        { param: "amenity=university",      categoria: "Universidade" },
+        { param: "amenity=kindergarten",    categoria: "Creche" },
+        // Comércio
+        { param: "amenity=supermarket",     categoria: "Supermercado" },
+        { param: "shop=supermarket",        categoria: "Supermercado" },
+        { param: "shop=convenience",        categoria: "Mercadinho" },
+        { param: "shop=bakery",             categoria: "Padaria" },
+        { param: "shop=mall",               categoria: "Shopping" },
+        // Serviços
+        { param: "amenity=bank",            categoria: "Banco" },
+        // Lazer
+        { param: "leisure=park",            categoria: "Parque / Praça" },
+        { param: "leisure=fitness_centre",  categoria: "Academia" },
+        // Transporte
+        { param: "railway=station",         categoria: "Metro / Trem" },
+        { param: "amenity=bus_stop",        categoria: "Ponto de Ônibus", limit: 50 },
       ];
 
       type NomResult = { display_name: string; lat: string; lon: string };
       const proximidades: Proximidade[] = [];
       const seenNames = new Set<string>();
 
-      for (const { param, categoria } of SEARCHES) {
+      for (const { param, categoria, limit } of SEARCHES) {
         try {
-          const url = `${NOMINATIM}?format=json&${param}&bounded=1&viewbox=${bbox}&countrycodes=br&limit=5&addressdetails=0&extratags=0`;
+          const url = `${NOMINATIM}?format=json&${param}&bounded=1&viewbox=${bbox}&countrycodes=br&limit=${limit ?? 5}&addressdetails=0&extratags=0`;
           const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(10000) });
           if (r.ok) {
             const items = await r.json() as NomResult[];
@@ -572,8 +594,15 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
         await new Promise((res) => setTimeout(res, 1100));
       }
 
-      proximidades.sort((a, b) => a.distanciaM - b.distanciaM);
-      const resultado = proximidades.slice(0, 30);
+      // Ponto de Ônibus: agrega tudo em uma única entrada com contagem
+      const ptsOnibus = proximidades.filter(p => p.categoria === "Ponto de Ônibus");
+      const demais = proximidades.filter(p => p.categoria !== "Ponto de Ônibus");
+      if (ptsOnibus.length > 0) {
+        const maisProx = ptsOnibus.reduce((a, b) => a.distanciaM < b.distanciaM ? a : b);
+        demais.push({ categoria: "Ponto de Ônibus", nome: `${ptsOnibus.length} paradas`, distanciaM: maisProx.distanciaM, count: ptsOnibus.length });
+      }
+      demais.sort((a, b) => a.distanciaM - b.distanciaM);
+      const resultado = demais.slice(0, 30);
 
       // Passo 3: salvar no servidor
       await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
@@ -628,16 +657,25 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
               <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#01304D" }}>
                 {CATEGORIA_ICON[cat] ?? "📌"} {cat}
               </p>
-              {itens.slice(0, 3).map((item, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#374151", padding: "2px 0", borderBottom: i < Math.min(itens.length, 3) - 1 ? "1px solid #E5E7EB" : "none" }}>
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{item.nome}</span>
-                  <span style={{ flexShrink: 0, color: "#6B7280", fontWeight: 600 }}>
-                    {item.distanciaM < 1000 ? `${item.distanciaM} m` : `${(item.distanciaM / 1000).toFixed(1)} km`}
-                  </span>
-                </div>
-              ))}
-              {itens.length > 3 && (
-                <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9CA3AF" }}>+{itens.length - 3} outros</p>
+              {itens[0]?.count != null ? (
+                <p style={{ margin: 0, fontSize: 11.5, color: "#374151" }}>
+                  {itens[0].count} paradas encontradas
+                  <span style={{ color: "#6B7280", fontWeight: 600 }}> · mais próxima: {itens[0].distanciaM < 1000 ? `${itens[0].distanciaM} m` : `${(itens[0].distanciaM / 1000).toFixed(1)} km`}</span>
+                </p>
+              ) : (
+                <>
+                  {itens.slice(0, 3).map((item, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "#374151", padding: "2px 0", borderBottom: i < Math.min(itens.length, 3) - 1 ? "1px solid #E5E7EB" : "none" }}>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{item.nome}</span>
+                      <span style={{ flexShrink: 0, color: "#6B7280", fontWeight: 600 }}>
+                        {item.distanciaM < 1000 ? `${item.distanciaM} m` : `${(item.distanciaM / 1000).toFixed(1)} km`}
+                      </span>
+                    </div>
+                  ))}
+                  {itens.length > 3 && (
+                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9CA3AF" }}>+{itens.length - 3} outros</p>
+                  )}
+                </>
               )}
             </div>
           ))}
@@ -652,7 +690,7 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
 
       {buscando && (
         <p style={{ margin: 0, fontSize: 12.5, color: "#6B7280", textAlign: "center", padding: "16px 0" }}>
-          Buscando arredores por categoria… (pode levar ~10s)
+          Buscando arredores por categoria… (pode levar ~20s)
         </p>
       )}
     </div>
