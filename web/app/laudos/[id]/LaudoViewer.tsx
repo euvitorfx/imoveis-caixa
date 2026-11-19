@@ -487,24 +487,6 @@ const CATEGORIA_ICON: Record<string, string> = {
 
 type Proximidade = { categoria: string; nome: string; distanciaM: number };
 
-interface OvElement {
-  tags?: { name?: string; amenity?: string; shop?: string; railway?: string };
-  lat?: number; lon?: number;
-  center?: { lat: number; lon: number };
-}
-
-function ovCategoria(tags: OvElement["tags"]): string | null {
-  const { amenity, shop, railway } = tags ?? {};
-  if (railway === "subway_entrance" || railway === "station") return "Metro / Trem";
-  if (amenity === "hospital")    return "Hospital";
-  if (amenity === "pharmacy")    return "Farmácia";
-  if (amenity === "school")      return "Escola";
-  if (amenity === "university")  return "Universidade";
-  if (amenity === "supermarket" || shop === "supermarket") return "Supermercado";
-  if (shop === "convenience")    return "Mercadinho";
-  return null;
-}
-
 function ovDistM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -513,12 +495,6 @@ function ovDistM(lat1: number, lon1: number, lat2: number, lon2: number): number
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
-
-const OVERPASS_MIRRORS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
 
 function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
   const [buscando, setBuscando] = useState(false);
@@ -554,48 +530,59 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
         lng = geoJson.lng!;
       }
 
-      // Passo 2: Overpass direto do browser (IPs de usuário não são bloqueados)
-      const raio = 1000;
-      const q = `[out:json][timeout:25];(node["amenity"~"^(supermarket|hospital|pharmacy|school|university)$"](around:${raio},${lat},${lng});node["shop"~"^(supermarket|convenience)$"](around:${raio},${lat},${lng});node["railway"~"^(subway_entrance|station)$"](around:${raio},${lat},${lng});way["amenity"~"^(supermarket|hospital|pharmacy|school|university)$"](around:${raio},${lat},${lng});way["railway"~"^(subway_entrance|station)$"](around:${raio},${lat},${lng}););out center;`;
+      // Passo 2: Nominatim structured search por categoria (dentro de bounding box ~1.2km)
+      // Nominatim é gratuito, sem API key e não bloqueia por IP.
+      // Rate limit: 1 req/s — fazemos as buscas em série com delay de 1.1s.
+      const delta = 0.011; // ~1.2km em graus
+      const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+      const NOMINATIM = "https://nominatim.openstreetmap.org/search";
+      const HEADERS = { "User-Agent": "BuscaLeiloesCaixa/1.0 (noreply@buscaleiloescaixa.com.br)" };
 
-      let ovData: { elements: OvElement[] } | null = null;
-      let lastErr = "";
-      for (const mirror of OVERPASS_MIRRORS) {
+      const SEARCHES: { param: string; categoria: string }[] = [
+        { param: "amenity=hospital",    categoria: "Hospital" },
+        { param: "amenity=pharmacy",    categoria: "Farmácia" },
+        { param: "amenity=school",      categoria: "Escola" },
+        { param: "amenity=university",  categoria: "Universidade" },
+        { param: "amenity=supermarket", categoria: "Supermercado" },
+        { param: "shop=supermarket",    categoria: "Supermercado" },
+        { param: "shop=convenience",    categoria: "Mercadinho" },
+        { param: "railway=station",     categoria: "Metro / Trem" },
+      ];
+
+      type NomResult = { display_name: string; lat: string; lon: string };
+      const proximidades: Proximidade[] = [];
+      const seenNames = new Set<string>();
+
+      for (const { param, categoria } of SEARCHES) {
         try {
-          const r = await fetch(mirror, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `data=${encodeURIComponent(q)}`,
-            signal: AbortSignal.timeout(28000),
-          });
-          if (r.ok) { ovData = await r.json() as { elements: OvElement[] }; break; }
-          lastErr = `HTTP ${r.status} em ${mirror}`;
-        } catch (e) { lastErr = `${mirror}: ${e instanceof Error ? e.message : e}`; }
+          const url = `${NOMINATIM}?format=json&${param}&bounded=1&viewbox=${bbox}&countrycodes=br&limit=5&addressdetails=0&extratags=0`;
+          const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(10000) });
+          if (r.ok) {
+            const items = await r.json() as NomResult[];
+            for (const item of items) {
+              const nome = item.display_name.split(",")[0].trim();
+              if (seenNames.has(nome)) continue;
+              seenNames.add(nome);
+              const distanciaM = ovDistM(lat, lng, parseFloat(item.lat), parseFloat(item.lon));
+              if (distanciaM <= 1500) proximidades.push({ categoria, nome, distanciaM });
+            }
+          }
+        } catch { /* ignora timeout/erro numa categoria */ }
+        // Rate limit Nominatim: 1 req/s
+        await new Promise((res) => setTimeout(res, 1100));
       }
-      if (!ovData) { setErro(`Falha na consulta Overpass: ${lastErr}`); return; }
 
-      // Passo 3: processar resultados
-      const proximidades: Proximidade[] = ovData.elements
-        .filter((el) => el.tags?.name)
-        .map((el) => {
-          const elLat = el.lat ?? el.center?.lat ?? 0;
-          const elLng = el.lon ?? el.center?.lon ?? 0;
-          const categoria = ovCategoria(el.tags);
-          if (!categoria) return null;
-          return { categoria, nome: el.tags!.name!, distanciaM: ovDistM(lat, lng, elLat, elLng) };
-        })
-        .filter((x): x is Proximidade => x !== null)
-        .sort((a, b) => a.distanciaM - b.distanciaM)
-        .slice(0, 30);
+      proximidades.sort((a, b) => a.distanciaM - b.distanciaM);
+      const resultado = proximidades.slice(0, 30);
 
-      // Passo 4: salvar no servidor
+      // Passo 3: salvar no servidor
       await fetch(`/api/admin/laudos/${laudo._id}/localidade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng, proximidades }),
+        body: JSON.stringify({ lat, lng, proximidades: resultado }),
       });
 
-      setDados(proximidades);
+      setDados(resultado);
     } catch (e) {
       setErro(`Erro: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -665,7 +652,7 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
 
       {buscando && (
         <p style={{ margin: 0, fontSize: 12.5, color: "#6B7280", textAlign: "center", padding: "16px 0" }}>
-          Consultando mapa de arredores…
+          Buscando arredores por categoria… (pode levar ~10s)
         </p>
       )}
     </div>
