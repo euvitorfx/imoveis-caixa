@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import type { Laudo, BlocoLaudo } from "@/lib/laudos-types";
+import type { Laudo, BlocoLaudo, AnuncioComparavel, AvaliacaoMercado } from "@/lib/laudos-types";
 
 // ── Tipos do JSON de análise ──────────────────────────────────────────────────
 type Alerta   = { gravidade: "critico" | "alto" | "medio" | "baixo"; descricao: string };
@@ -474,7 +474,227 @@ function MapaImovel({
   );
 }
 
-// ── Seção 5: Proximidades ─────────────────────────────────────────────────────
+// ── Seção 5: Avaliação de Mercado ─────────────────────────────────────────────
+
+const PORTAIS = [
+  { label: "ZAP Imóveis",  domain: "zapimoveis.com.br" },
+  { label: "VivaReal",     domain: "vivareal.com.br" },
+  { label: "OLX",          domain: "olx.com.br" },
+  { label: "Imovelweb",    domain: "imovelweb.com.br" },
+  { label: "Chave na Mão", domain: "chavenamao.com.br" },
+  { label: "Loft",         domain: "loft.com.br" },
+  { label: "Mercado Livre",domain: "mercadolivre.com.br" },
+  { label: "Re/Max",       domain: "remax.com.br" },
+  { label: "QuintoAndar",  domain: "quintoandar.com.br" },
+  { label: "Facebook",     domain: "facebook.com" },
+];
+
+function idadeAnuncio(iso: string): { label: string; cor: string } {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (dias <= 30)  return { label: `há ${dias}d`,       cor: "#059669" };
+  if (dias <= 90)  return { label: `há ${Math.round(dias / 7)}sem`, cor: "#D97706" };
+  return               { label: `há ${Math.round(dias / 30)}m`,  cor: "#9CA3AF" };
+}
+
+function fmtBRL(n: number): string {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+
+function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
+  const [dados, setDados] = useState<AvaliacaoMercado | null>(laudo.avaliacaoMercado ?? null);
+  const [buscando, setBuscando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [expandido, setExpandido] = useState(false);
+
+  const imovel = laudo.imovelData as Record<string, unknown>;
+  const tipo    = String(imovel.tipo    ?? "imóvel");
+  const cidade  = String(imovel.cidade  ?? "");
+  const bairro  = String(imovel.bairro  ?? "");
+  const estado  = String(imovel.estado  ?? "");
+  const area    = Number(imovel.areaUtil ?? imovel.areaTotal ?? 0) || undefined;
+  const precoLeilao = Number(imovel.preco ?? 0) || undefined;
+  const precoAval   = Number(imovel.precoAval ?? 0) || undefined;
+
+  async function buscar() {
+    setBuscando(true);
+    setErro(null);
+    try {
+      const r = await fetch(`/api/admin/laudos/${laudo._id}/mercado`, { method: "POST" });
+      const json = await r.json() as { ok?: boolean; error?: string; total?: number; stats?: AvaliacaoMercado["stats"] };
+      if (!r.ok) { setErro(json.error ?? "Erro na busca"); return; }
+      // Recarrega os dados completos via GET
+      const lr = await fetch(`/api/admin/laudos/${laudo._id}/mercado`);
+      if (lr.ok) setDados(await lr.json() as AvaliacaoMercado);
+    } catch (e) {
+      setErro(`Erro: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  // Link de busca manual no portal
+  function linkPortal(domain: string): string {
+    const q = encodeURIComponent(`${tipo} venda ${bairro} ${cidade} ${estado} site:${domain}`);
+    return `https://www.google.com/search?q=${q}`;
+  }
+
+  const temDados = dados && dados.anuncios.length > 0;
+  const stats    = dados?.stats;
+  const anuncios = dados?.anuncios ?? [];
+  const visiveis = expandido ? anuncios : anuncios.slice(0, 5);
+
+  // Calcula desconto em relação à mediana de mercado
+  const medianaStr = stats ? fmtBRL(stats.mediana) : null;
+  const descontoMercado = stats && precoLeilao
+    ? Math.round(((stats.mediana - precoLeilao) / stats.mediana) * 100)
+    : null;
+
+  const RELEVANCIA_LABEL: Record<AnuncioComparavel["relevancia"], { text: string; bg: string; color: string }> = {
+    endereco: { text: "Mesmo endereço", bg: "#DCFCE7", color: "#166534" },
+    bairro:   { text: "Bairro",         bg: "#DBEAFE", color: "#1E40AF" },
+    regiao:   { text: "Região",         bg: "#F3F4F6", color: "#6B7280" },
+  };
+
+  if (!temDados && !canEdit) return null;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "16px 24px", marginBottom: 20 }}>
+      {/* Cabeçalho */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>📊</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Avaliação de mercado</h2>
+          {dados?.buscadoEm && (
+            <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+              · atualizado {new Date(dados.buscadoEm).toLocaleDateString("pt-BR")}
+            </span>
+          )}
+        </div>
+        {canEdit && (
+          <button
+            onClick={buscar}
+            disabled={buscando}
+            style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            {buscando ? "Buscando…" : temDados ? "Atualizar" : "Buscar comparáveis"}
+          </button>
+        )}
+      </div>
+
+      {erro && <p style={{ margin: "0 0 10px", fontSize: 12, color: "#991B1B" }}>⚠️ {erro}</p>}
+      {buscando && (
+        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#6B7280", textAlign: "center" }}>
+          Consultando portais imobiliários… (pode levar ~15s)
+        </p>
+      )}
+
+      {/* Stats */}
+      {stats && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10, marginBottom: 14 }}>
+          {[
+            { label: "Mínimo",    val: fmtBRL(stats.min) },
+            { label: "Mediana",   val: medianaStr ?? "—", destaque: true },
+            { label: "Máximo",    val: fmtBRL(stats.max) },
+            ...(stats.precoM2 ? [{ label: "Preço/m² médio", val: fmtBRL(stats.precoM2) }] : []),
+            ...(precoAval      ? [{ label: "Avaliação Caixa", val: fmtBRL(precoAval) }] : []),
+          ].map(({ label, val, destaque }) => (
+            <div key={label} style={{ background: "#F4F9FC", borderRadius: 8, padding: "10px 12px", textAlign: "center" }}>
+              <p style={{ margin: "0 0 3px", fontSize: 11, color: "#6B7280" }}>{label}</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: destaque ? "#01304D" : "#374151" }}>{val}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Banner de desconto */}
+      {descontoMercado != null && descontoMercado > 0 && precoLeilao && (
+        <div style={{ background: "#DCFCE7", border: "1px solid #86EFAC", borderRadius: 8, padding: "10px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#166534", letterSpacing: 0.5 }}>IMÓVEL NO LEILÃO</p>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#166534" }}>
+              {fmtBRL(precoLeilao)}{area ? ` · ${fmtBRL(Math.round(precoLeilao / area))}/m²` : ""}
+            </p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ margin: 0, fontSize: 11, color: "#166534" }}>desconto vs. mercado</p>
+            <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#166534" }}>−{descontoMercado}%</p>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de comparáveis */}
+      {temDados && (
+        <div style={{ marginBottom: 14 }}>
+          <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            {anuncios.length} anúncio{anuncios.length !== 1 ? "s" : ""} encontrado{anuncios.length !== 1 ? "s"  : ""}
+          </p>
+          {visiveis.map((a, i) => {
+            const rel = RELEVANCIA_LABEL[a.relevancia];
+            const idade = a.dataPublicacao ? idadeAnuncio(a.dataPublicacao) : null;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "9px 0", borderBottom: i < visiveis.length - 1 ? "1px solid #F3F4F6" : "none", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 3 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: "1px 7px", borderRadius: 20, background: rel.bg, color: rel.color }}>{rel.text}</span>
+                    {idade && (
+                      <span style={{ fontSize: 10.5, fontWeight: 600, color: idade.cor }}>· {idade.label}</span>
+                    )}
+                    <span style={{ fontSize: 10.5, color: "#9CA3AF" }}>{a.fonte}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.titulo}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                  {a.preco && (
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#01304D", whiteSpace: "nowrap" }}>{fmtBRL(a.preco)}</span>
+                  )}
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#2563EB", textDecoration: "none", whiteSpace: "nowrap" }}>
+                    Ver ↗
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+          {anuncios.length > 5 && (
+            <button
+              onClick={() => setExpandido(!expandido)}
+              style={{ marginTop: 8, background: "none", border: "none", color: "#2563EB", fontSize: 12, cursor: "pointer", padding: 0 }}
+            >
+              {expandido ? "▲ Mostrar menos" : `▼ Ver mais ${anuncios.length - 5} anúncios`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Links de busca manual nos portais */}
+      <div>
+        <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          Buscar manualmente nos portais
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {PORTAIS.map(({ label, domain }) => (
+            <a
+              key={domain}
+              href={linkPortal(domain)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px", border: "1px solid #CBD9E3", borderRadius: 6, fontSize: 11.5, color: "#374151", textDecoration: "none", background: "#F9FAFB" }}
+            >
+              {label} ↗
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {!temDados && !buscando && canEdit && (
+        <div style={{ background: "#F9FAFB", border: "2px dashed #D1D5DB", borderRadius: 8, padding: "20px", textAlign: "center", color: "#9CA3AF", fontSize: 12.5, marginTop: 14 }}>
+          Clique em &ldquo;Buscar comparáveis&rdquo; para encontrar imóveis similares nos portais.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Seção 6: Proximidades ─────────────────────────────────────────────────────
 const CATEGORIA_ICON: Record<string, string> = {
   "Hospital":        "🏥",
   "Farmácia":        "💊",
@@ -810,6 +1030,9 @@ export default function LaudoViewer({ laudo, canEdit }: Props) {
 
       {/* ── PROXIMIDADES ── */}
       <ProximidadesImovel laudo={laudo} canEdit={canEdit} />
+
+      {/* ── AVALIAÇÃO DE MERCADO ── */}
+      <AvaliacaoMercadoImovel laudo={laudo} canEdit={canEdit} />
 
       {/* ── FAIXA DE SITUAÇÃO ── */}
       {analise && (

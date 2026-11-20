@@ -55,6 +55,30 @@ export interface Laudo {
     nome: string;
     distanciaM: number;
   }>;
+  avaliacaoMercado?: AvaliacaoMercado;
+}
+
+export interface AnuncioComparavel {
+  titulo: string;
+  url: string;
+  fonte: string;
+  preco?: number;
+  area?: number;
+  quartos?: number;
+  dataPublicacao?: string; // ISO date string
+  relevancia: "endereco" | "bairro" | "regiao";
+}
+
+export interface AvaliacaoMercado {
+  anuncios: AnuncioComparavel[];
+  buscadoEm: string;
+  stats?: {
+    min: number;
+    max: number;
+    mediana: number;
+    total: number;
+    precoM2?: number;
+  };
 }
 
 export const PRECOS: Record<1 | 2, number> = {
