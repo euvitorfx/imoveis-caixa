@@ -57,30 +57,20 @@ function parseQuartos(text: string): number | undefined {
   return undefined;
 }
 
-function parseData(item: GoogleItem): string | undefined {
-  // Tenta metatags primeiro
-  const meta = item.pagemap?.metatags?.[0];
-  const isoRaw =
-    meta?.["article:published_time"] ??
-    meta?.["og:updated_time"] ??
-    meta?.["date"] ??
-    meta?.["article:modified_time"] ??
-    meta?.["datePublished"];
-  if (isoRaw) {
-    const d = new Date(isoRaw);
-    if (!isNaN(d.getTime())) return d.toISOString();
-  }
-  // Tenta parsear "há X dias/semanas/meses" do snippet
-  const snippet = `${item.title} ${item.snippet ?? ""}`;
+function parseDataStr(isoRaw: string): string | undefined {
+  const d = new Date(isoRaw);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+function parseDataFromText(text: string): string | undefined {
   const now = Date.now();
-  const m1 = snippet.match(/h[aá]\s+(\d+)\s+dia/i);
+  const m1 = text.match(/h[aá]\s+(\d+)\s+dia/i);
   if (m1) return new Date(now - parseInt(m1[1]) * 86400000).toISOString();
-  const m2 = snippet.match(/h[aá]\s+(\d+)\s+semana/i);
+  const m2 = text.match(/h[aá]\s+(\d+)\s+semana/i);
   if (m2) return new Date(now - parseInt(m2[1]) * 7 * 86400000).toISOString();
-  const m3 = snippet.match(/h[aá]\s+(\d+)\s+m[eê]s/i);
+  const m3 = text.match(/h[aá]\s+(\d+)\s+m[eê]s/i);
   if (m3) return new Date(now - parseInt(m3[1]) * 30 * 86400000).toISOString();
-  // Data no formato DD/MM/YYYY
-  const m4 = snippet.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  const m4 = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (m4) {
     const d = new Date(`${m4[3]}-${m4[2]}-${m4[1]}`);
     if (!isNaN(d.getTime())) return d.toISOString();
@@ -111,6 +101,18 @@ function fonteFromLink(displayLink: string): string {
   return FONTE_MAP[host] ?? displayLink;
 }
 
+// ── Tipos de resultado de busca ───────────────────────────────────────────────
+
+interface SearchResult {
+  title: string;
+  url: string;
+  displayLink: string;
+  snippet?: string;
+  publishedDate?: string;
+}
+
+type SearchResponse = { results: SearchResult[]; error?: string };
+
 // ── Google CSE ───────────────────────────────────────────────────────────────
 
 interface GoogleItem {
@@ -118,26 +120,71 @@ interface GoogleItem {
   link: string;
   displayLink: string;
   snippet?: string;
-  pagemap?: {
-    metatags?: Record<string, string>[];
-  };
+  pagemap?: { metatags?: Record<string, string>[] };
 }
 
-interface GoogleCSEResponse {
-  items?: GoogleItem[];
-  error?: { message: string };
-}
-
-async function buscaCSE(
+async function buscaGoogle(
   query: string,
   apiKey: string,
   cseId: string
-): Promise<{ items: GoogleItem[]; error?: string }> {
+): Promise<SearchResponse> {
   const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(query)}&num=10`;
   const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  const json = (await r.json()) as GoogleCSEResponse;
-  if (!r.ok) return { items: [], error: json.error?.message ?? `HTTP ${r.status}` };
-  return { items: json.items ?? [] };
+  const json = await r.json() as { items?: GoogleItem[]; error?: { message: string } };
+  if (!r.ok) return { results: [], error: json.error?.message ?? `HTTP ${r.status}` };
+  return {
+    results: (json.items ?? []).map((it) => ({
+      title:       it.title,
+      url:         it.link,
+      displayLink: it.displayLink,
+      snippet:     it.snippet,
+      publishedDate: it.pagemap?.metatags?.[0]?.["article:published_time"]
+        ?? it.pagemap?.metatags?.[0]?.["og:updated_time"],
+    })),
+  };
+}
+
+// ── Brave Search ─────────────────────────────────────────────────────────────
+
+interface BraveWeb { results?: BraveResult[] }
+interface BraveResult {
+  title: string;
+  url: string;
+  meta_url?: { hostname?: string };
+  description?: string;
+  page_age?: string;
+}
+
+async function buscaBrave(query: string, apiKey: string): Promise<SearchResponse> {
+  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10&country=BR&search_lang=pt`;
+  const r = await fetch(url, {
+    headers: { "X-Subscription-Token": apiKey, "Accept": "application/json" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) return { results: [], error: `Brave HTTP ${r.status}` };
+  const json = await r.json() as { web?: BraveWeb; error?: { message?: string } };
+  const items = json.web?.results ?? [];
+  return {
+    results: items.map((it) => ({
+      title:        it.title,
+      url:          it.url,
+      displayLink:  it.meta_url?.hostname ?? new URL(it.url).hostname,
+      snippet:      it.description,
+      publishedDate: it.page_age,
+    })),
+  };
+}
+
+// ── Motor de busca unificado ─────────────────────────────────────────────────
+
+async function busca(query: string): Promise<SearchResponse> {
+  const braveKey  = process.env.BRAVE_SEARCH_API_KEY;
+  const googleKey = process.env.GOOGLE_CSE_API_KEY;
+  const cseId     = process.env.GOOGLE_CSE_ID;
+
+  if (braveKey) return buscaBrave(query, braveKey);
+  if (googleKey && cseId) return buscaGoogle(query, googleKey, cseId);
+  return { results: [], error: "Nenhuma chave de busca configurada (BRAVE_SEARCH_API_KEY ou GOOGLE_CSE_API_KEY)" };
 }
 
 function calcMediana(nums: number[]): number {
@@ -161,12 +208,6 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 
 export async function POST(req: NextRequest, { params }: Ctx) {
   if (!checkAdmin(req)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-
-  const apiKey = process.env.GOOGLE_CSE_API_KEY;
-  const cseId  = process.env.GOOGLE_CSE_ID;
-  if (!apiKey || !cseId) {
-    return NextResponse.json({ error: "GOOGLE_CSE_API_KEY ou GOOGLE_CSE_ID não configurados" }, { status: 500 });
-  }
 
   const { id } = await params;
   const laudo = await getLaudoById(id);
@@ -212,21 +253,21 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   let apiError: string | undefined;
 
   for (const { q, relevancia } of queries) {
-    const { items, error } = await buscaCSE(q, apiKey, cseId);
+    const { results, error } = await busca(q);
     if (error && !apiError) apiError = error;
-    for (const item of items) {
-      if (seenUrls.has(item.link)) continue;
-      seenUrls.add(item.link);
+    for (const item of results) {
+      if (seenUrls.has(item.url)) continue;
+      seenUrls.add(item.url);
 
       const texto = `${item.title} ${item.snippet ?? ""}`;
       const anuncio: AnuncioComparavel = {
         titulo:          item.title.split(" - ")[0].trim(),
-        url:             item.link,
+        url:             item.url,
         fonte:           fonteFromLink(item.displayLink),
         preco:           parsePreco(texto),
         area:            parseArea(texto) ?? area,
         quartos:         parseQuartos(texto) ?? quartos,
-        dataPublicacao:  parseData(item),
+        dataPublicacao:  item.publishedDate ? parseDataStr(item.publishedDate) : parseDataFromText(texto),
         relevancia,
       };
       anuncios.push(anuncio);
