@@ -35,10 +35,11 @@ function extraiRua(endereco: string): string {
 
 // Extrai nome do empreendimento/condomínio para apartamentos
 // Ex: "RESIDENCIAL HARPIA BLOCOS A/B APTO 101" → "Harpia"
-// Ex: "CONDOMINIO TAMAN RUA X" → "Taman"
+// Ex: "empreendimento **HÁRPIA**" (matrícula markdown) → "Hárpia"
 function extraiCondominio(
   d: Record<string, unknown>,
-  imovelDescricao?: string
+  imovelDescricao?: string,
+  matriculaConteudo?: string
 ): string {
   // 1. Campos dedicados
   const campos = [d.empreendimento, d.condominio, d.nomeCondominio, d.nomeCond];
@@ -47,15 +48,27 @@ function extraiCondominio(
     if (v && v.length > 2 && v.toLowerCase() !== "undefined") return toTitleCase(v);
   }
 
-  // 2. Extrai de d.descricao: "RESIDENCIAL HARPIA ...", "CONDOMINIO TAMAN ..."
-  const descricoes = [d.descricao, d.descricaoImovel, imovelDescricao];
-  for (const raw of descricoes) {
+  // Aceita markdown bold: "empreendimento **HÁRPIA**"
+  const RE = /(?:residencial|condom[ií]nio|empreendimento|edif[ií]cio|ed\.?|conjunto)\s+\*{0,2}([\wÀ-žÇçÃãÕõÂâÊêÎîÔôÛû]+)\*{0,2}/gi;
+
+  function primeiroValido(txt: string): string {
+    for (const m of txt.matchAll(RE)) {
+      if (m[1].length > 2) return toTitleCase(m[1]);
+    }
+    return "";
+  }
+
+  // 2. Campos de texto do imóvel e imovelDescricao
+  for (const raw of [d.descricao, d.descricaoImovel, imovelDescricao, d.endereco]) {
     if (!raw) continue;
-    const txt = String(raw);
-    const m = txt.match(
-      /(?:residencial|condom[ií]nio|empreendimento|edificio|ed\.?|conjunto)\s+([\wÀ-ž]+)/i
-    );
-    if (m && m[1].length > 2) return toTitleCase(m[1]);
+    const v = primeiroValido(String(raw));
+    if (v) return v;
+  }
+
+  // 3. Matrícula (fonte mais confiável — usa matchAll pois pode ter "Subcondomínio 1" antes)
+  if (matriculaConteudo) {
+    const v = primeiroValido(matriculaConteudo);
+    if (v) return v;
   }
 
   return "";
@@ -338,7 +351,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const quartos  = Number(d.quartos  ?? 0) || undefined;
 
   const rua = endereco ? extraiRua(endereco) : "";
-  const condominio = extraiCondominio(d, laudo.imovelDescricao);
+  const matriculaConteudo = laudo.blocos?.matricula?.conteudo ?? undefined;
+  const condominio = extraiCondominio(d, laudo.imovelDescricao, matriculaConteudo);
 
   const queries: { q: string; relevancia: AnuncioComparavel["relevancia"] }[] = [];
 

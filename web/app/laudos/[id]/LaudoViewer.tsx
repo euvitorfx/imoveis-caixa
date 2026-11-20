@@ -560,13 +560,28 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
 
     // Extrai nome do condomínio (mesma lógica do server)
     function extractCond(): string {
-      for (const c of [imovel.empreendimento, imovel.condominio, imovel.nomeCondominio]) {
+      for (const c of [imovel.empreendimento, imovel.condominio, imovel.nomeCondominio, imovel.nomeCond]) {
         const v = String(c ?? "").trim();
         if (v && v.length > 2 && v.toLowerCase() !== "undefined") return v;
       }
-      for (const txt of [descricao, laudo.imovelDescricao ?? ""]) {
-        const m = txt.match(/(?:residencial|condom[ií]nio|empreendimento|edificio|ed\.?|conjunto)\s+([\wÀ-ž]+)/i);
-        if (m?.[1] && m[1].length > 2) return m[1];
+      // Aceita markdown bold: "empreendimento **HÁRPIA**"
+      const RE = /(?:residencial|condom[ií]nio|empreendimento|edif[ií]cio|ed\.?|conjunto)\s+\*{0,2}([\wÀ-žÇçÃãÕõÂâÊêÎîÔôÛû]+)\*{0,2}/gi;
+      function firstValid(txt: string): string {
+        for (const m of txt.matchAll(RE)) {
+          if (m[1].length > 2) return m[1];
+        }
+        return "";
+      }
+      // Texto do imóvel, imovelDescricao e endereço
+      for (const txt of [descricao, laudo.imovelDescricao ?? "", String(imovel.endereco ?? "")]) {
+        const v = firstValid(txt);
+        if (v) return v;
+      }
+      // Matrícula (campo mais confiável — usa matchAll pois pode ter "Subcondomínio 1" antes)
+      const mat = String(laudo.blocos?.matricula?.conteudo ?? "");
+      if (mat) {
+        const v = firstValid(mat);
+        if (v) return v;
       }
       return "";
     }
