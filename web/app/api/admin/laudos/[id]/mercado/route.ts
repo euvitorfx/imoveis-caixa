@@ -33,6 +33,34 @@ function extraiRua(endereco: string): string {
   return endereco.split(",")[0].trim();
 }
 
+// Extrai nome do empreendimento/condomínio para apartamentos
+// Ex: "RESIDENCIAL HARPIA BLOCOS A/B APTO 101" → "Harpia"
+// Ex: "CONDOMINIO TAMAN RUA X" → "Taman"
+function extraiCondominio(
+  d: Record<string, unknown>,
+  imovelDescricao?: string
+): string {
+  // 1. Campos dedicados
+  const campos = [d.empreendimento, d.condominio, d.nomeCondominio, d.nomeCond];
+  for (const c of campos) {
+    const v = String(c ?? "").trim();
+    if (v && v.length > 2 && v.toLowerCase() !== "undefined") return toTitleCase(v);
+  }
+
+  // 2. Extrai de d.descricao: "RESIDENCIAL HARPIA ...", "CONDOMINIO TAMAN ..."
+  const descricoes = [d.descricao, d.descricaoImovel, imovelDescricao];
+  for (const raw of descricoes) {
+    if (!raw) continue;
+    const txt = String(raw);
+    const m = txt.match(
+      /(?:residencial|condom[ií]nio|empreendimento|edificio|ed\.?|conjunto)\s+([\wÀ-ž]+)/i
+    );
+    if (m && m[1].length > 2) return toTitleCase(m[1]);
+  }
+
+  return "";
+}
+
 // areaRef: se fornecida, valida preço/m² entre R$1.500 e R$45.000
 function parsePreco(text: string, areaRef?: number): number | undefined {
   const m = text.match(/R\$\s*([\d.]+)(?:,(\d+))?/);
@@ -285,42 +313,122 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const quartos  = Number(d.quartos  ?? 0) || undefined;
 
   const rua = endereco ? extraiRua(endereco) : "";
+  const condominio = extraiCondominio(d, laudo.imovelDescricao);
 
   const queries: { q: string; relevancia: AnuncioComparavel["relevancia"] }[] = [];
 
-  // Query 1: rua exata — máxima relevância
-  if (rua && cidade) {
-    queries.push({
-      q: `"${rua}" ${tipo} venda ${cidade} ${estado}`,
-      relevancia: "endereco",
-    });
-  }
+  if (tipo === "apartamento") {
+    // ── APARTAMENTO: prioriza nome do condomínio/empreendimento ─────────────
+    // Query 1: nome do condomínio — altíssima relevância (mesmo prédio)
+    if (condominio && cidade) {
+      queries.push({
+        q: `"${condominio}" apartamento venda ${bairro || cidade} ${estado}`,
+        relevancia: "endereco",
+      });
+    } else if (rua && cidade) {
+      // Fallback: endereço exato se condomínio não disponível
+      queries.push({
+        q: `"${rua}" apartamento venda ${cidade} ${estado}`,
+        relevancia: "endereco",
+      });
+    }
 
-  // Query 2: bairro com características do imóvel
-  if (bairro && cidade) {
-    const partes = [tipo, `"${bairro}"`];
-    if (quartos) partes.push(`${quartos} quartos`);
-    if (area)    partes.push(`${Math.round(area)}m²`);
-    partes.push("venda", cidade);
-    queries.push({ q: partes.join(" "), relevancia: "bairro" });
-  }
+    // Query 2: condomínio + portais (OLX melhor para MCMV/Tenda)
+    if (condominio && cidade) {
+      const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
+      queries.push({
+        q: `"${condominio}" apartamento venda ${portais}`,
+        relevancia: "endereco",
+      });
+    }
 
-  // Query 3: portais específicos — OLX + ZAP + VivaReal na bairro/cidade
-  // Busca diretamente nos portais para trazer anúncios individuais
-  if (cidade) {
-    const localidade = bairro ? `"${bairro}" ${cidade}` : cidade;
-    const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
-    const partes = [tipo, localidade, "venda", portais];
-    if (quartos) partes.splice(2, 0, `${quartos} quartos`);
-    queries.push({ q: partes.join(" "), relevancia: "bairro" });
-  }
+    // Query 3: bairro com características — portais
+    if (bairro && cidade) {
+      const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
+      const partes = ["apartamento", `"${bairro}"`, cidade, "venda", portais];
+      if (quartos) partes.splice(2, 0, `${quartos} quartos`);
+      queries.push({ q: partes.join(" "), relevancia: "bairro" });
+    }
 
-  // Query 4: região ampla como fallback
-  if (cidade) {
-    const partes = [tipo, bairro || cidade, cidade, "venda"];
-    if (quartos) partes.push(`${quartos} quartos`);
-    if (area)    partes.push(`${Math.round(area)}m²`);
-    queries.push({ q: partes.join(" "), relevancia: "regiao" });
+    // Query 4: bairro ampla como fallback
+    if (bairro && cidade) {
+      const partes = ["apartamento", `"${bairro}"`];
+      if (quartos) partes.push(`${quartos} quartos`);
+      if (area)    partes.push(`${Math.round(area)}m²`);
+      partes.push("venda", cidade);
+      queries.push({ q: partes.join(" "), relevancia: "bairro" });
+    }
+
+  } else if (tipo === "casa") {
+    // ── CASA: prioriza endereço e rua ────────────────────────────────────────
+    // Query 1: rua exata — máxima relevância
+    if (rua && cidade) {
+      queries.push({
+        q: `"${rua}" casa venda ${cidade} ${estado}`,
+        relevancia: "endereco",
+      });
+    }
+
+    // Query 2: rua + portais
+    if (rua && cidade) {
+      const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
+      queries.push({
+        q: `"${rua}" casa venda ${portais}`,
+        relevancia: "endereco",
+      });
+    }
+
+    // Query 3: bairro com características
+    if (bairro && cidade) {
+      const partes = ["casa", `"${bairro}"`];
+      if (quartos) partes.push(`${quartos} quartos`);
+      if (area)    partes.push(`${Math.round(area)}m²`);
+      partes.push("venda", cidade);
+      queries.push({ q: partes.join(" "), relevancia: "bairro" });
+    }
+
+    // Query 4: região ampla como fallback
+    if (cidade) {
+      const partes = ["casa", bairro || cidade, cidade, "venda"];
+      if (quartos) partes.push(`${quartos} quartos`);
+      queries.push({ q: partes.join(" "), relevancia: "regiao" });
+    }
+
+  } else {
+    // ── OUTROS TIPOS: lógica genérica ────────────────────────────────────────
+    // Query 1: rua exata
+    if (rua && cidade) {
+      queries.push({
+        q: `"${rua}" ${tipo} venda ${cidade} ${estado}`,
+        relevancia: "endereco",
+      });
+    }
+
+    // Query 2: bairro com características
+    if (bairro && cidade) {
+      const partes = [tipo, `"${bairro}"`];
+      if (quartos) partes.push(`${quartos} quartos`);
+      if (area)    partes.push(`${Math.round(area)}m²`);
+      partes.push("venda", cidade);
+      queries.push({ q: partes.join(" "), relevancia: "bairro" });
+    }
+
+    // Query 3: portais específicos
+    if (cidade) {
+      const localidade = bairro ? `"${bairro}" ${cidade}` : cidade;
+      const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
+      const partes = [tipo, localidade, "venda", portais];
+      if (quartos) partes.splice(2, 0, `${quartos} quartos`);
+      queries.push({ q: partes.join(" "), relevancia: "bairro" });
+    }
+
+    // Query 4: região ampla
+    if (cidade) {
+      const partes = [tipo, bairro || cidade, cidade, "venda"];
+      if (quartos) partes.push(`${quartos} quartos`);
+      if (area)    partes.push(`${Math.round(area)}m²`);
+      queries.push({ q: partes.join(" "), relevancia: "regiao" });
+    }
   }
 
   // Executa queries e deduplica por URL
