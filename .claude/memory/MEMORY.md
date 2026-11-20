@@ -12,3 +12,4 @@
 - [Fluid Active CPU — Monitoramento](project_fluid_cpu.md) — 100% do free tier atingido ago/2026; correção de polling aplicada; verificar resultado em set/2026
 - [Laudo BLC — Pendências pós-lançamento](project_laudo_pendencias.md) — 10 itens para resolver após lançamento de 12/nov/2026; item 1 (interface admin de produção) é bloqueante
 - [Sistema de Afiliados](project_afiliados.md) — Sprint 14; influencers ganham % comissão BLC via ?ref=; dashboard em /perfil para isAfiliado:true
+- [Busca Manual de Comparáveis](project_mercado_busca_manual.md) — OLX é melhor portal (MCMV); ZAP/ML bloqueados; built-in browser funciona; custo ~R$0,01 auto / ~R$1,50 manual
