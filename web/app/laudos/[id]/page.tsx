@@ -63,7 +63,7 @@ export default async function LaudoPage({ params }: Params) {
           }
         }
       }
-    } catch { /* não bloqueia a renderização se falhar */ }
+    } catch (e) { console.error("[laudo page] falha ao enriquecer imovelData:", e); }
   }
 
   // Serializa o laudo para o Client Component (JSON.parse remove ObjectId e tipos não serializáveis)

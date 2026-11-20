@@ -508,10 +508,14 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
   const [promptCopiado, setPromptCopiado] = useState(false);
 
   const imovel = laudo.imovelData as Record<string, unknown>;
-  const tipo    = String(imovel.tipo    ?? "imóvel");
+  const tipoRaw = String(imovel.tipo ?? "imóvel");
+  // normaliza para comparação (imovelData pode ter "Apartamento" com maiúscula)
+  const tipo = tipoRaw.toLowerCase().includes("apart") ? "apartamento"
+    : tipoRaw.toLowerCase().includes("casa") ? "casa"
+    : tipoRaw.toLowerCase();
   const cidade  = String(imovel.cidade  ?? "");
   const bairro  = String(imovel.bairro  ?? "");
-  const estado  = String(imovel.estado  ?? "");
+  const estado  = String(imovel.estado  ?? imovel.uf ?? "");
   const area    = Number(imovel.areaUtil ?? imovel.areaTotal ?? 0) || undefined;
   const precoLeilao = Number(imovel.preco ?? 0) || undefined;
   const precoAval   = Number(imovel.precoAval ?? 0) || undefined;
@@ -638,7 +642,7 @@ Prioridade 3: bairro vizinho como fallback → relevancia "regiao"`;
 ══════════════════════════════════════════════
 LAUDO #${laudo.numero ?? laudo._id}  (ID: ${laudo._id})
 ══════════════════════════════════════════════
-Tipo:         ${tipo}
+Tipo:         ${tipoRaw}
 Endereço:     ${endereco}
 Bairro:       ${bairro}
 Cidade/UF:    ${cidade} / ${estado}
@@ -654,7 +658,7 @@ ${estrategia}
 ══════════════════════════════════════════════
 CRITÉRIOS DE QUALIDADE
 ══════════════════════════════════════════════
-✓ Tipo: ${tipo} para VENDA (não aluguel)
+✓ Tipo: ${tipoRaw} para VENDA (não aluguel)
 ✓ Área: entre ${fmtM(areaMin)} e ${fmtM(areaMax)} (±30% de ${fmtM(areaRef || undefined)})
 ✓ Preço: entre ${fmtR(precoMin)} e ${fmtR(precoMax)} (R$ 1.500 a R$ 45.000/m²)
 ✓ URL direta do anúncio individual (não página de listagem/categoria)
