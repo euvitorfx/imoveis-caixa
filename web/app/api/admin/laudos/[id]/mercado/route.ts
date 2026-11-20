@@ -132,12 +132,12 @@ async function buscaCSE(
   query: string,
   apiKey: string,
   cseId: string
-): Promise<GoogleItem[]> {
+): Promise<{ items: GoogleItem[]; error?: string }> {
   const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(query)}&num=10`;
   const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!r.ok) return [];
   const json = (await r.json()) as GoogleCSEResponse;
-  return json.items ?? [];
+  if (!r.ok) return { items: [], error: json.error?.message ?? `HTTP ${r.status}` };
+  return { items: json.items ?? [] };
 }
 
 function calcMediana(nums: number[]): number {
@@ -209,9 +209,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Executa queries e deduplica por URL
   const seenUrls = new Set<string>();
   const anuncios: AnuncioComparavel[] = [];
+  let apiError: string | undefined;
 
   for (const { q, relevancia } of queries) {
-    const items = await buscaCSE(q, apiKey, cseId);
+    const { items, error } = await buscaCSE(q, apiKey, cseId);
+    if (error && !apiError) apiError = error;
     for (const item of items) {
       if (seenUrls.has(item.link)) continue;
       seenUrls.add(item.link);
@@ -231,6 +233,10 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     }
     // Respeita cota da API: pausa entre queries
     await new Promise((r) => setTimeout(r, 300));
+  }
+
+  if (apiError && anuncios.length === 0) {
+    return NextResponse.json({ error: `Google CSE: ${apiError}` }, { status: 502 });
   }
 
   // Calcula estatísticas com base nos anúncios que têm preço
