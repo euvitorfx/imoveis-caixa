@@ -228,6 +228,46 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   return NextResponse.json(laudo.avaliacaoMercado ?? null);
 }
 
+// Aceita lista de anúncios já coletados externamente (ex: busca manual via Claude)
+export async function PUT(req: NextRequest, { params }: Ctx) {
+  if (!checkAdmin(req)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  const { id } = await params;
+  const laudo = await getLaudoById(id);
+  if (!laudo) return NextResponse.json({ error: "Laudo não encontrado" }, { status: 404 });
+
+  const body = await req.json() as { anuncios: AnuncioComparavel[] };
+  if (!Array.isArray(body.anuncios)) {
+    return NextResponse.json({ error: "anuncios deve ser array" }, { status: 400 });
+  }
+
+  const anuncios: AnuncioComparavel[] = body.anuncios;
+
+  const d = laudo.imovelData as Record<string, unknown>;
+  const area = Number(d.areaUtil ?? d.areaTotal ?? 0) || undefined;
+
+  const precos = anuncios.map((a) => a.preco).filter((p): p is number => p != null);
+  const stats: AvaliacaoMercado["stats"] = precos.length > 0
+    ? {
+        min:     Math.min(...precos),
+        max:     Math.max(...precos),
+        mediana: calcMediana(precos),
+        total:   anuncios.length,
+        precoM2: area && precos.length > 0
+          ? Math.round(calcMediana(precos) / area)
+          : undefined,
+      }
+    : undefined;
+
+  const avaliacaoMercado: AvaliacaoMercado = {
+    anuncios,
+    buscadoEm: new Date().toISOString(),
+    stats,
+  };
+
+  await updateLaudo(id, { avaliacaoMercado } as Parameters<typeof updateLaudo>[1]);
+  return NextResponse.json({ ok: true, total: anuncios.length, stats });
+}
+
 export async function POST(req: NextRequest, { params }: Ctx) {
   if (!checkAdmin(req)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
