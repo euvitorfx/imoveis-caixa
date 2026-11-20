@@ -144,33 +144,33 @@ async function buscaGoogle(
   };
 }
 
-// ── Brave Search ─────────────────────────────────────────────────────────────
+// ── Serper.dev (Google results) ───────────────────────────────────────────────
 
-interface BraveWeb { results?: BraveResult[] }
-interface BraveResult {
+interface SerperOrganic {
   title: string;
-  url: string;
-  meta_url?: { hostname?: string };
-  description?: string;
-  page_age?: string;
+  link: string;
+  displayLink?: string;
+  snippet?: string;
+  date?: string;
 }
 
-async function buscaBrave(query: string, apiKey: string): Promise<SearchResponse> {
-  const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10&country=BR&search_lang=pt`;
-  const r = await fetch(url, {
-    headers: { "X-Subscription-Token": apiKey, "Accept": "application/json" },
+async function buscaSerper(query: string, apiKey: string): Promise<SearchResponse> {
+  const r = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: { "X-API-KEY": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ q: query, gl: "br", hl: "pt", num: 10 }),
     signal: AbortSignal.timeout(15000),
   });
-  if (!r.ok) return { results: [], error: `Brave HTTP ${r.status}` };
-  const json = await r.json() as { web?: BraveWeb; error?: { message?: string } };
-  const items = json.web?.results ?? [];
+  if (!r.ok) return { results: [], error: `Serper HTTP ${r.status}` };
+  const json = await r.json() as { organic?: SerperOrganic[]; error?: string };
+  if (json.error) return { results: [], error: json.error };
   return {
-    results: items.map((it) => ({
+    results: (json.organic ?? []).map((it) => ({
       title:        it.title,
-      url:          it.url,
-      displayLink:  it.meta_url?.hostname ?? new URL(it.url).hostname,
-      snippet:      it.description,
-      publishedDate: it.page_age,
+      url:          it.link,
+      displayLink:  it.displayLink ?? new URL(it.link).hostname,
+      snippet:      it.snippet,
+      publishedDate: it.date,
     })),
   };
 }
@@ -178,13 +178,13 @@ async function buscaBrave(query: string, apiKey: string): Promise<SearchResponse
 // ── Motor de busca unificado ─────────────────────────────────────────────────
 
 async function busca(query: string): Promise<SearchResponse> {
-  const braveKey  = process.env.BRAVE_SEARCH_API_KEY;
+  const serperKey = process.env.SERPER_API_KEY;
   const googleKey = process.env.GOOGLE_CSE_API_KEY;
   const cseId     = process.env.GOOGLE_CSE_ID;
 
-  if (braveKey) return buscaBrave(query, braveKey);
+  if (serperKey) return buscaSerper(query, serperKey);
   if (googleKey && cseId) return buscaGoogle(query, googleKey, cseId);
-  return { results: [], error: "Nenhuma chave de busca configurada (BRAVE_SEARCH_API_KEY ou GOOGLE_CSE_API_KEY)" };
+  return { results: [], error: "Nenhuma chave de busca configurada (SERPER_API_KEY ou GOOGLE_CSE_API_KEY)" };
 }
 
 function calcMediana(nums: number[]): number {
