@@ -56,6 +56,7 @@ export interface Laudo {
     distanciaM: number;
   }>;
   avaliacaoMercado?: AvaliacaoMercado;
+  analiseFinanceira?: AnaliseFinanceira;
 }
 
 export interface AnuncioComparavel {
@@ -79,6 +80,37 @@ export interface AvaliacaoMercado {
     total: number;
     precoM2?: number;
   };
+}
+
+export interface AnaliseFinanceira {
+  // Referências de valor
+  valorAvaliacao?: number;
+  valorMercado?: number;
+  arrematacao?: number;
+  // Percentuais de aquisição
+  leiloeiroPerc?: number;    // default 5
+  escrituraPerc?: number;    // default 3
+  itbiPerc?: number;         // default 2.5
+  registroPerc?: number;     // default 3
+  // Custos fixos de aquisição
+  condominioPendente?: number;
+  iptu?: number;
+  imissaoPosse?: number;     // default 3000
+  reforma?: number;          // default 20000
+  areaNaoAverbada?: number;
+  contabilidade?: number;    // default 1500
+  anunciosPagos?: number;    // default 1000
+  // Manutenção
+  mesesManutencao?: number;  // default 5
+  condominioMensal?: number;
+  energiaMensal?: number;    // default 100
+  aguaMensal?: number;       // default 100
+  // Venda
+  valorVenda?: number;
+  corretorPerc?: number;     // default 8
+  irPerc?: number;           // default 15
+  assessoriaPerc?: number;   // default 50
+  atualizadoEm?: string;
 }
 
 export const PRECOS: Record<1 | 2, number> = {

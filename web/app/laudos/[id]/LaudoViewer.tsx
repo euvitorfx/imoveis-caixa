@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import type { Laudo, BlocoLaudo, AnuncioComparavel, AvaliacaoMercado } from "@/lib/laudos-types";
+import type { Laudo, BlocoLaudo, AnuncioComparavel, AvaliacaoMercado, AnaliseFinanceira } from "@/lib/laudos-types";
 
 // ── Tipos do JSON de análise ──────────────────────────────────────────────────
 type Alerta   = { gravidade: "critico" | "alto" | "medio" | "baixo"; descricao: string };
@@ -951,6 +951,339 @@ function ProximidadesImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean
   );
 }
 
+// ── Seção: Análise Financeira ─────────────────────────────────────────────────
+function AnaliseFinanceiraImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boolean }) {
+  const imovel = laudo.imovelData as Record<string, unknown>;
+
+  function initData(): AnaliseFinanceira {
+    const s = laudo.analiseFinanceira ?? {};
+    return {
+      valorAvaliacao:     s.valorAvaliacao     ?? (Number(imovel.precoAval) || undefined),
+      valorMercado:       s.valorMercado       ?? laudo.avaliacaoMercado?.stats?.mediana,
+      arrematacao:        s.arrematacao        ?? (Number(imovel.preco) || 0),
+      leiloeiroPerc:      s.leiloeiroPerc      ?? 5,
+      escrituraPerc:      s.escrituraPerc      ?? 3,
+      itbiPerc:           s.itbiPerc           ?? 2.5,
+      registroPerc:       s.registroPerc       ?? 3,
+      condominioPendente: s.condominioPendente ?? 0,
+      iptu:               s.iptu               ?? 0,
+      imissaoPosse:       s.imissaoPosse       ?? 3000,
+      reforma:            s.reforma            ?? 20000,
+      areaNaoAverbada:    s.areaNaoAverbada     ?? 0,
+      contabilidade:      s.contabilidade      ?? 1500,
+      anunciosPagos:      s.anunciosPagos      ?? 1000,
+      mesesManutencao:    s.mesesManutencao    ?? 5,
+      condominioMensal:   s.condominioMensal   ?? 0,
+      energiaMensal:      s.energiaMensal      ?? 100,
+      aguaMensal:         s.aguaMensal         ?? 100,
+      valorVenda:         s.valorVenda         ?? laudo.avaliacaoMercado?.stats?.mediana,
+      corretorPerc:       s.corretorPerc       ?? 8,
+      irPerc:             s.irPerc             ?? 15,
+      assessoriaPerc:     s.assessoriaPerc     ?? 50,
+    };
+  }
+
+  const [a, setA] = useState<AnaliseFinanceira>(() => initData());
+  const [editing, setEditing]  = useState(false);
+  const [saving,  setSaving]   = useState(false);
+  const [saved,   setSaved]    = useState(false);
+
+  type NumKey = Exclude<keyof AnaliseFinanceira, "atualizadoEm">;
+  const setF = (key: NumKey, val: number | undefined) =>
+    setA(prev => ({ ...prev, [key]: val }));
+
+  // ── Computed ─────────────────────────────────────────────────────────────
+  const arr = a.arrematacao ?? 0;
+  const vv  = a.valorVenda  ?? 0;
+  const mes = a.mesesManutencao ?? 5;
+
+  const leiloeiroFee = arr * ((a.leiloeiroPerc ?? 5)   / 100);
+  const escrituraFee = arr * ((a.escrituraPerc ?? 3)   / 100);
+  const itbiFee      = arr * ((a.itbiPerc      ?? 2.5) / 100);
+  const registroFee  = arr * ((a.registroPerc  ?? 3)   / 100);
+
+  const totalAquisicao =
+    arr + leiloeiroFee + (a.condominioPendente ?? 0) + (a.iptu ?? 0) +
+    escrituraFee + itbiFee + registroFee +
+    (a.imissaoPosse ?? 0) + (a.reforma ?? 0) + (a.areaNaoAverbada ?? 0) +
+    (a.contabilidade ?? 0) + (a.anunciosPagos ?? 0);
+
+  const totalManutencao =
+    ((a.condominioMensal ?? 0) + (a.energiaMensal ?? 0) + (a.aguaMensal ?? 0)) * mes;
+
+  const totalDespesas = totalAquisicao + totalManutencao;
+  const corretorFee   = vv * ((a.corretorPerc  ?? 8)  / 100);
+  const saldoPosVenda = vv - totalDespesas - corretorFee;
+  const irFee         = Math.max(0, saldoPosVenda) * ((a.irPerc ?? 15)         / 100);
+  const saldoPosIR    = saldoPosVenda - irFee;
+  const assessoriaFee = Math.max(0, saldoPosIR)   * ((a.assessoriaPerc ?? 50)  / 100);
+  const lucroLiquido  = saldoPosIR - assessoriaFee;
+  const roi           = totalDespesas > 0 ? (lucroLiquido / totalDespesas) * 100 : 0;
+
+  async function handleSave() {
+    setSaving(true);
+    const res = await fetch(`/api/admin/laudos/${laudo._id}/financeiro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...a, atualizadoEm: new Date().toISOString() }),
+    });
+    setSaving(false);
+    if (res.ok) { setSaved(true); setEditing(false); setTimeout(() => setSaved(false), 3000); }
+  }
+
+  const brl = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const ValInp = ({ k, step = 1 }: { k: NumKey; step?: number }) => (
+    <input
+      type="number" step={step}
+      value={(a[k] as number | undefined) ?? ""}
+      onChange={e => setF(k, e.target.value === "" ? 0 : Number(e.target.value))}
+      style={{ width: 110, textAlign: "right", border: "1px solid #CBD9E3", borderRadius: 6, padding: "3px 8px", fontSize: 12.5, background: "#fff" }}
+    />
+  );
+
+  const PctInp = ({ k }: { k: NumKey }) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+      ·{" "}
+      <input
+        type="number" step={0.1}
+        value={(a[k] as number | undefined) ?? ""}
+        onChange={e => setF(k, e.target.value === "" ? 0 : Number(e.target.value))}
+        style={{ width: 44, border: "1px solid #CBD9E3", borderRadius: 4, padding: "2px 4px", fontSize: 11.5, background: "#fff", textAlign: "right" }}
+      />
+      <span style={{ fontSize: 11, color: "#6B7280" }}>%</span>
+    </span>
+  );
+
+  const row = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #F3F4F6", gap: 8, fontSize: 12.5 };
+  const totalRow = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", fontWeight: 700 as const, color: "#01304D", fontSize: 13, borderTop: "2px solid #CBD9E3", marginTop: 2 };
+  const subRow = { ...row, borderBottom: "2px solid #CBD9E3", paddingBottom: 8 };
+  const tbl = { background: "#FAFBFC", borderRadius: 8, padding: "2px 12px", marginBottom: 2 };
+
+  const SecHdr = ({ title }: { title: string }) => (
+    <div style={{ background: "#01304D", color: "#fff", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginTop: 14, marginBottom: 6 }}>
+      {title}
+    </div>
+  );
+
+  const roiColor = roi >= 20 ? "#166534" : roi >= 10 ? "#92400E" : "#991B1B";
+  const roiBg    = roi >= 20 ? "#F0FDF4"  : roi >= 10 ? "#FEF3C7"  : "#FEE2E2";
+
+  if (!canEdit && !laudo.analiseFinanceira) return null;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #CBD9E3", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11 }}>💰</span>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#01304D" }}>Análise Financeira</h2>
+          {saved && <span style={{ fontSize: 11, color: "#16a34a", fontWeight: 600 }}>✓ Salvo</span>}
+        </div>
+        {canEdit && !editing && (
+          <button onClick={() => setEditing(true)}
+            style={{ fontSize: 12, fontWeight: 600, color: "#01304D", background: "#F4F9FC", border: "1px solid #CBD9E3", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}>
+            ✏️ Editar
+          </button>
+        )}
+        {editing && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={handleSave} disabled={saving}
+              style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#01304D", border: "none", borderRadius: 8, padding: "6px 18px", cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+              {saving ? "Salvando…" : "💾 Salvar"}
+            </button>
+            <button onClick={() => { setA(initData()); setEditing(false); }}
+              style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", border: "1px solid #E5E7EB", borderRadius: 8, padding: "6px 14px", cursor: "pointer" }}>
+              Cancelar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Cards de referência */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 4 }}>
+        {([
+          ["Avaliação Caixa",  "valorAvaliacao"],
+          ["Valor de Mercado", "valorMercado"],
+          ["Lance Inicial",    "arrematacao"],
+        ] as [string, NumKey][]).map(([label, k]) => (
+          <div key={k} style={{ background: "#F4F9FC", borderRadius: 8, padding: "10px 12px" }}>
+            <p style={{ margin: 0, fontSize: 11, color: "#6B7280" }}>{label}</p>
+            {editing ? (
+              <input type="number" step={100}
+                value={(a[k] as number | undefined) ?? ""}
+                onChange={e => setF(k, e.target.value === "" ? undefined : Number(e.target.value))}
+                style={{ marginTop: 4, width: "100%", border: "1px solid #CBD9E3", borderRadius: 6, padding: "3px 8px", fontSize: 13, fontWeight: 600, boxSizing: "border-box", background: "#fff" }}
+              />
+            ) : (
+              <p style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 700, color: "#01304D" }}>
+                {(a[k] as number | undefined) != null ? brl(a[k] as number) : "—"}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── DESPESAS AQUISIÇÃO ── */}
+      <SecHdr title="DESPESAS AQUISIÇÃO" />
+      <div style={tbl}>
+        <div style={row}>
+          <span style={{ color: "#374151", fontWeight: 500 }}>Arrematação</span>
+          <span style={{ fontWeight: 600 }}>{brl(arr)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            Leiloeiro {editing ? <PctInp k="leiloeiroPerc" /> : <span style={{ fontSize: 11 }}>· {a.leiloeiroPerc ?? 5}%</span>}
+          </span>
+          <span>{brl(leiloeiroFee)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Condomínio (pendente)</span>
+          {editing ? <ValInp k="condominioPendente" /> : <span>{brl(a.condominioPendente ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>IPTU</span>
+          {editing ? <ValInp k="iptu" step={0.01} /> : <span>{brl(a.iptu ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            Escritura {editing ? <PctInp k="escrituraPerc" /> : <span style={{ fontSize: 11 }}>· {a.escrituraPerc ?? 3}%</span>}
+          </span>
+          <span>{brl(escrituraFee)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            ITBI {editing ? <PctInp k="itbiPerc" /> : <span style={{ fontSize: 11 }}>· {a.itbiPerc ?? 2.5}%</span>}
+          </span>
+          <span>{brl(itbiFee)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            Registro {editing ? <PctInp k="registroPerc" /> : <span style={{ fontSize: 11 }}>· {a.registroPerc ?? 3}%</span>}
+          </span>
+          <span>{brl(registroFee)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Imissão na Posse / Custas</span>
+          {editing ? <ValInp k="imissaoPosse" /> : <span>{brl(a.imissaoPosse ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Reforma / Reparos</span>
+          {editing ? <ValInp k="reforma" /> : <span>{brl(a.reforma ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Área não averbada</span>
+          {editing ? <ValInp k="areaNaoAverbada" /> : <span>{brl(a.areaNaoAverbada ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Contabilidade</span>
+          {editing ? <ValInp k="contabilidade" /> : <span>{brl(a.contabilidade ?? 0)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Anúncios Pagos</span>
+          {editing ? <ValInp k="anunciosPagos" /> : <span>{brl(a.anunciosPagos ?? 0)}</span>}
+        </div>
+        <div style={totalRow}>
+          <span>TOTAL AQUISIÇÃO</span>
+          <span>{brl(totalAquisicao)}</span>
+        </div>
+      </div>
+
+      {/* ── DESPESAS MANUTENÇÃO ── */}
+      <SecHdr title={`DESPESAS MANUTENÇÃO · ${mes} ${mes === 1 ? "mês" : "meses"}`} />
+      {editing && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 12.5 }}>
+          <span style={{ color: "#6B7280" }}>Meses:</span>
+          <input type="number" min={1} max={36} step={1} value={a.mesesManutencao ?? 5}
+            onChange={e => setF("mesesManutencao", Number(e.target.value))}
+            style={{ width: 60, border: "1px solid #CBD9E3", borderRadius: 6, padding: "3px 8px", fontSize: 12.5, background: "#fff" }}
+          />
+        </div>
+      )}
+      <div style={tbl}>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Condomínio</span>
+          {editing
+            ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ValInp k="condominioMensal" /><span style={{ fontSize: 11, color: "#9CA3AF" }}>/mês</span></span>
+            : <span>{brl((a.condominioMensal ?? 0) * mes)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Energia</span>
+          {editing
+            ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ValInp k="energiaMensal" /><span style={{ fontSize: 11, color: "#9CA3AF" }}>/mês</span></span>
+            : <span>{brl((a.energiaMensal ?? 0) * mes)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Água</span>
+          {editing
+            ? <span style={{ display: "flex", alignItems: "center", gap: 6 }}><ValInp k="aguaMensal" /><span style={{ fontSize: 11, color: "#9CA3AF" }}>/mês</span></span>
+            : <span>{brl((a.aguaMensal ?? 0) * mes)}</span>}
+        </div>
+        <div style={totalRow}>
+          <span>TOTAL MANUTENÇÃO</span>
+          <span>{brl(totalManutencao)}</span>
+        </div>
+      </div>
+
+      {/* Total Despesas */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#01304D", color: "#fff", borderRadius: 8, marginTop: 10, fontWeight: 700, fontSize: 13.5 }}>
+        <span>TOTAL DESPESAS</span>
+        <span>{brl(totalDespesas)}</span>
+      </div>
+
+      {/* ── VENDA ── */}
+      <SecHdr title="VENDA" />
+      <div style={tbl}>
+        <div style={row}>
+          <span style={{ color: "#6B7280" }}>Valor da Venda</span>
+          {editing ? <ValInp k="valorVenda" step={1000} /> : <span style={{ fontWeight: 600 }}>{brl(vv)}</span>}
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            Corretor {editing ? <PctInp k="corretorPerc" /> : <span style={{ fontSize: 11 }}>· {a.corretorPerc ?? 8}%</span>}
+          </span>
+          <span style={{ color: "#b91c1c" }}>−{brl(corretorFee)}</span>
+        </div>
+        <div style={subRow}>
+          <span style={{ fontWeight: 600, color: "#374151" }}>Saldo Pós Venda</span>
+          <span style={{ fontWeight: 600 }}>{brl(saldoPosVenda)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            IR {editing ? <PctInp k="irPerc" /> : <span style={{ fontSize: 11 }}>· {a.irPerc ?? 15}%</span>}
+          </span>
+          <span style={{ color: "#b91c1c" }}>−{brl(irFee)}</span>
+        </div>
+        <div style={subRow}>
+          <span style={{ fontWeight: 600, color: "#374151" }}>Saldo Pós IR</span>
+          <span style={{ fontWeight: 600 }}>{brl(saldoPosIR)}</span>
+        </div>
+        <div style={row}>
+          <span style={{ color: "#6B7280", display: "flex", alignItems: "center", gap: 4 }}>
+            Assessoria {editing ? <PctInp k="assessoriaPerc" /> : <span style={{ fontSize: 11 }}>· {a.assessoriaPerc ?? 50}%</span>}
+          </span>
+          <span style={{ color: "#b91c1c" }}>−{brl(assessoriaFee)}</span>
+        </div>
+      </div>
+
+      {/* ROI */}
+      <div style={{ background: roiBg, border: `1px solid ${roiColor}20`, borderRadius: 10, padding: "14px 18px", marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: roiColor, letterSpacing: 0.8, textTransform: "uppercase" }}>Lucro Líquido Operação</p>
+          <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 800, color: roiColor }}>{brl(lucroLiquido)}</p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ margin: 0, fontSize: 10, color: roiColor, fontWeight: 600 }}>ROI sobre investimento</p>
+          <p style={{ margin: "2px 0 0", fontSize: 28, fontWeight: 800, color: roiColor, lineHeight: 1 }}>{roi.toFixed(2)}%</p>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 interface Props {
   laudo: Laudo & { analiseMatriculaJson?: AnaliseJson };
@@ -1033,6 +1366,9 @@ export default function LaudoViewer({ laudo, canEdit }: Props) {
 
       {/* ── AVALIAÇÃO DE MERCADO ── */}
       <AvaliacaoMercadoImovel laudo={laudo} canEdit={canEdit} />
+
+      {/* ── ANÁLISE FINANCEIRA ── */}
+      <AnaliseFinanceiraImovel laudo={laudo} canEdit={canEdit} />
 
       {/* ── FAIXA DE SITUAÇÃO ── */}
       {analise && (
