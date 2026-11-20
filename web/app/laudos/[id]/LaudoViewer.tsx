@@ -505,6 +505,7 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [expandido, setExpandido] = useState(false);
+  const [promptCopiado, setPromptCopiado] = useState(false);
 
   const imovel = laudo.imovelData as Record<string, unknown>;
   const tipo    = String(imovel.tipo    ?? "imóvel");
@@ -542,6 +543,89 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
   function linkPortal(domain: string): string {
     const q = encodeURIComponent(`${tipo} venda ${bairro} ${cidade} ${estado} site:${domain}`);
     return `https://www.google.com/search?q=${q}`;
+  }
+
+  function gerarPrompt(): string {
+    const imovel = laudo.imovelData as Record<string, unknown>;
+    const endereco   = String(imovel.endereco   ?? "");
+    const areaUtil   = Number(imovel.areaUtil   ?? 0) || undefined;
+    const areaTotal  = Number(imovel.areaTotal  ?? 0) || undefined;
+    const quartosCnt = Number(imovel.quartos    ?? 0) || undefined;
+    const descricao  = String(imovel.descricao  ?? laudo.imovelDescricao ?? "");
+    const precoLeil  = Number(imovel.preco      ?? 0) || undefined;
+    const precoAvalN = Number(imovel.precoAval  ?? 0) || undefined;
+
+    const fmtM = (n?: number) => n ? `${n}m²` : "—";
+    const fmtR = (n?: number) => n ? `R$ ${n.toLocaleString("pt-BR")}` : "—";
+
+    const estrategia = tipo === "apartamento"
+      ? `- Para APARTAMENTO: pesquise pelo nome do condomínio/empreendimento (encontrado na descrição abaixo) + bairro. Portais com mais resultados MCMV/Tenda: OLX (melhor), depois VivaReal.
+- Busca sugerida no OLX: https://www.olx.com.br/brasil?q=<nome+do+condominio>+vila+andrade
+- Se não achar pelo nome, amplie para o bairro + tipo + características.`
+      : `- Para CASA: pesquise pelo nome da rua exata + bairro. Portais: OLX, ZAP, VivaReal.
+- Busca sugerida no OLX: https://www.olx.com.br/brasil?q=<rua>+${bairro}`;
+
+    return `Preciso que você faça uma busca manual de comparáveis de mercado para o laudo abaixo e submeta os resultados via PUT endpoint.
+
+═══════════════════════════════════════
+LAUDO #${laudo.numero ?? laudo._id}
+═══════════════════════════════════════
+Tipo:        ${tipo}
+Endereço:    ${endereco}
+Bairro:      ${bairro}
+Cidade:      ${cidade} / ${estado}
+Área útil:   ${fmtM(areaUtil)}  |  Área total: ${fmtM(areaTotal)}
+Quartos:     ${quartosCnt ?? "—"}
+Descrição:   ${descricao}
+Leilão:      ${fmtR(precoLeil)}
+Avaliação:   ${fmtR(precoAvalN)}
+
+═══════════════════════════════════════
+ESTRATÉGIA DE BUSCA
+═══════════════════════════════════════
+${estrategia}
+
+Regras:
+1. Colete anúncios do MESMO TIPO (${tipo}), com área ±30% (${fmtM(areaUtil ? Math.round(areaUtil * 0.7) : undefined)} a ${fmtM(areaUtil ? Math.round(areaUtil * 1.3) : undefined)})
+2. Foque no mesmo bairro ("endereco") ou bairros vizinhos ("bairro")
+3. Inclua a URL direta do anúncio (não página de categoria)
+4. Inclua imagemUrl: a URL da primeira foto do anúncio, se disponível
+5. Inclua preco, area, quartos quando visíveis no anúncio
+6. Mire em 4–8 comparáveis de qualidade; priorize os mais similares
+
+═══════════════════════════════════════
+SUBMIT — após coletar, envie via PUT:
+═══════════════════════════════════════
+curl -s -X PUT "http://localhost:3001/api/admin/laudos/${laudo._id}/mercado" \\
+  -H "Content-Type: application/json" \\
+  -H "Cookie: admin_token=%40Acesso00" \\
+  -d '{
+    "anuncios": [
+      {
+        "titulo": "...",
+        "url": "https://...",
+        "fonte": "olx",
+        "preco": 250000,
+        "area": 43,
+        "quartos": 2,
+        "imagemUrl": "https://...",
+        "relevancia": "endereco"
+      }
+    ]
+  }'
+
+relevancia: "endereco" = mesmo edifício/rua | "bairro" = mesmo bairro | "regiao" = região próxima
+`;
+  }
+
+  async function copiarPrompt() {
+    try {
+      await navigator.clipboard.writeText(gerarPrompt());
+      setPromptCopiado(true);
+      setTimeout(() => setPromptCopiado(false), 2500);
+    } catch {
+      // fallback: seleciona texto
+    }
   }
 
   const temDados = dados && dados.anuncios.length > 0;
@@ -582,13 +666,22 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
           )}
         </div>
         {canEdit && (
-          <button
-            onClick={() => buscar()}
-            disabled={buscando}
-            style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
-          >
-            {buscando ? "Buscando…" : temDados ? "Atualizar" : "Buscar comparáveis"}
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={copiarPrompt}
+              title="Copia um prompt detalhado para fazer a busca manual aqui no Claude Code"
+              style={{ background: promptCopiado ? "#D1FAE5" : "#F3F4F6", color: promptCopiado ? "#065F46" : "#374151", border: "1px solid #D1D5DB", borderRadius: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              {promptCopiado ? "✓ Copiado!" : "📋 Copiar prompt"}
+            </button>
+            <button
+              onClick={() => buscar()}
+              disabled={buscando}
+              style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+            >
+              {buscando ? "Buscando…" : temDados ? "Atualizar" : "Buscar comparáveis"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -643,7 +736,27 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
             const rel = RELEVANCIA_LABEL[a.relevancia];
             const idade = a.dataPublicacao ? idadeAnuncio(a.dataPublicacao) : null;
             return (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "9px 0", borderBottom: i < visiveis.length - 1 ? "1px solid #F3F4F6" : "none", gap: 8, flexWrap: "wrap" }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: i < visiveis.length - 1 ? "1px solid #F3F4F6" : "none", gap: 10, flexWrap: "wrap" }}>
+                {/* Thumbnail */}
+                <div style={{ flexShrink: 0, width: 64, height: 48, borderRadius: 6, overflow: "hidden", background: "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {a.imagemUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={a.imagemUrl}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`https://www.google.com/s2/favicons?domain=${new URL(a.url).hostname}&sz=32`}
+                      alt=""
+                      style={{ width: 24, height: 24, opacity: 0.4 }}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 3 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 600, padding: "1px 7px", borderRadius: 20, background: rel.bg, color: rel.color }}>{rel.text}</span>

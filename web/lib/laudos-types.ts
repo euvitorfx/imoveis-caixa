@@ -68,6 +68,7 @@ export interface AnuncioComparavel {
   quartos?: number;
   dataPublicacao?: string; // ISO date string
   relevancia: "endereco" | "bairro" | "regiao";
+  imagemUrl?: string; // URL da foto principal do anúncio
 }
 
 export interface AvaliacaoMercado {
