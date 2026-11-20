@@ -546,75 +546,157 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
   }
 
   function gerarPrompt(): string {
-    const imovel = laudo.imovelData as Record<string, unknown>;
-    const endereco   = String(imovel.endereco   ?? "");
-    const areaUtil   = Number(imovel.areaUtil   ?? 0) || undefined;
-    const areaTotal  = Number(imovel.areaTotal  ?? 0) || undefined;
-    const quartosCnt = Number(imovel.quartos    ?? 0) || undefined;
-    const descricao  = String(imovel.descricao  ?? laudo.imovelDescricao ?? "");
-    const precoLeil  = Number(imovel.preco      ?? 0) || undefined;
-    const precoAvalN = Number(imovel.precoAval  ?? 0) || undefined;
+    const imovel     = laudo.imovelData as Record<string, unknown>;
+    const endereco   = String(imovel.endereco  ?? "");
+    const areaUtil   = Number(imovel.areaUtil  ?? 0) || undefined;
+    const areaTotal  = Number(imovel.areaTotal ?? 0) || undefined;
+    const quartosCnt = Number(imovel.quartos   ?? 0) || undefined;
+    const descricao  = String(imovel.descricao ?? laudo.imovelDescricao ?? "");
+    const precoLeil  = Number(imovel.preco     ?? 0) || undefined;
+    const precoAvalN = Number(imovel.precoAval ?? 0) || undefined;
 
     const fmtM = (n?: number) => n ? `${n}m²` : "—";
     const fmtR = (n?: number) => n ? `R$ ${n.toLocaleString("pt-BR")}` : "—";
 
+    // Extrai nome do condomínio (mesma lógica do server)
+    function extractCond(): string {
+      for (const c of [imovel.empreendimento, imovel.condominio, imovel.nomeCondominio]) {
+        const v = String(c ?? "").trim();
+        if (v && v.length > 2 && v.toLowerCase() !== "undefined") return v;
+      }
+      for (const txt of [descricao, laudo.imovelDescricao ?? ""]) {
+        const m = txt.match(/(?:residencial|condom[ií]nio|empreendimento|edificio|ed\.?|conjunto)\s+([\wÀ-ž]+)/i);
+        if (m?.[1] && m[1].length > 2) return m[1];
+      }
+      return "";
+    }
+
+    const condNome = extractCond();
+    const rua      = endereco.split(",")[0].trim();
+    const areaRef  = areaUtil ?? areaTotal ?? 0;
+    const areaMin  = areaRef > 0 ? Math.round(areaRef * 0.7) : undefined;
+    const areaMax  = areaRef > 0 ? Math.round(areaRef * 1.3) : undefined;
+    const precoMin = areaRef > 0 ? Math.round(areaRef * 1500) : undefined;
+    const precoMax = areaRef > 0 ? Math.round(areaRef * 45000) : undefined;
+
+    const enc = (s: string) => encodeURIComponent(s);
+
+    // URLs de busca pré-geradas com valores reais
+    const urlsApart = condNome
+      ? [
+          `OLX (condomínio):  https://www.olx.com.br/brasil?q=${enc(condNome)}`,
+          `OLX (cond+bairro): https://www.olx.com.br/brasil?q=${enc(condNome + " " + bairro)}`,
+          `OLX (bairro+tipo): https://www.olx.com.br/brasil?q=${enc(`apartamento ${quartosCnt ?? 2} quartos ${bairro} tenda`)}`,
+        ]
+      : [
+          `OLX (bairro): https://www.olx.com.br/brasil?q=${enc(`apartamento ${quartosCnt ?? 2} quartos ${bairro} ${cidade}`)}`,
+        ];
+
+    const urlsCasa = [
+      `OLX (rua):    https://www.olx.com.br/brasil?q=${enc(rua)}`,
+      `OLX (bairro): https://www.olx.com.br/brasil?q=${enc(`casa venda ${bairro} ${cidade}`)}`,
+    ];
+
     const estrategia = tipo === "apartamento"
-      ? `- Para APARTAMENTO: pesquise pelo nome do condomínio/empreendimento (encontrado na descrição abaixo) + bairro. Portais com mais resultados MCMV/Tenda: OLX (melhor), depois VivaReal.
-- Busca sugerida no OLX: https://www.olx.com.br/brasil?q=<nome+do+condominio>+vila+andrade
-- Se não achar pelo nome, amplie para o bairro + tipo + características.`
-      : `- Para CASA: pesquise pelo nome da rua exata + bairro. Portais: OLX, ZAP, VivaReal.
-- Busca sugerida no OLX: https://www.olx.com.br/brasil?q=<rua>+${bairro}`;
+      ? `ESTRATÉGIA — APARTAMENTO
+Prioridade 1: mesmo condomínio/empreendimento → relevancia "endereco"
+  Nome extraído da descrição: ${condNome || "⚠️ NÃO IDENTIFICADO — extraia manualmente da descrição abaixo"}
+  ${condNome ? "" : `  Dica: procure por "RESIDENCIAL X", "CONDOMINIO X" ou "EMPREENDIMENTO X" na descrição`}
 
-    return `Preciso que você faça uma busca manual de comparáveis de mercado para o laudo abaixo e submeta os resultados via PUT endpoint.
+  URLs prontas para o built-in browser:
+  ${urlsApart.map(u => "  " + u).join("\n")}
 
-═══════════════════════════════════════
-LAUDO #${laudo.numero ?? laudo._id}
-═══════════════════════════════════════
-Tipo:        ${tipo}
-Endereço:    ${endereco}
-Bairro:      ${bairro}
-Cidade:      ${cidade} / ${estado}
-Área útil:   ${fmtM(areaUtil)}  |  Área total: ${fmtM(areaTotal)}
-Quartos:     ${quartosCnt ?? "—"}
-Descrição:   ${descricao}
-Leilão:      ${fmtR(precoLeil)}
-Avaliação:   ${fmtR(precoAvalN)}
+Prioridade 2: mesmo bairro + mesmo tipo + área similar → relevancia "bairro"
+Prioridade 3: bairro vizinho como fallback → relevancia "regiao"`
+      : `ESTRATÉGIA — CASA
+Prioridade 1: mesma rua → relevancia "endereco"
+  Rua: ${rua}
 
-═══════════════════════════════════════
-ESTRATÉGIA DE BUSCA
-═══════════════════════════════════════
+  URLs prontas para o built-in browser:
+  ${urlsCasa.map(u => "  " + u).join("\n")}
+
+Prioridade 2: mesmo bairro + mesmo tipo → relevancia "bairro"
+Prioridade 3: bairro vizinho como fallback → relevancia "regiao"`;
+
+    return `Faça uma busca manual de comparáveis de mercado para o laudo abaixo e submeta via PUT.
+
+══════════════════════════════════════════════
+LAUDO #${laudo.numero ?? laudo._id}  (ID: ${laudo._id})
+══════════════════════════════════════════════
+Tipo:         ${tipo}
+Endereço:     ${endereco}
+Bairro:       ${bairro}
+Cidade/UF:    ${cidade} / ${estado}
+Área útil:    ${fmtM(areaUtil)}  |  Área total: ${fmtM(areaTotal)}
+Quartos:      ${quartosCnt ?? "—"}
+Leilão:       ${fmtR(precoLeil)}
+Avaliação Cx: ${fmtR(precoAvalN)}
+Descrição:    ${descricao}
+
+══════════════════════════════════════════════
 ${estrategia}
 
-Regras:
-1. Colete anúncios do MESMO TIPO (${tipo}), com área ±30% (${fmtM(areaUtil ? Math.round(areaUtil * 0.7) : undefined)} a ${fmtM(areaUtil ? Math.round(areaUtil * 1.3) : undefined)})
-2. Foque no mesmo bairro ("endereco") ou bairros vizinhos ("bairro")
-3. Inclua a URL direta do anúncio (não página de categoria)
-4. Inclua imagemUrl: a URL da primeira foto do anúncio, se disponível
-5. Inclua preco, area, quartos quando visíveis no anúncio
-6. Mire em 4–8 comparáveis de qualidade; priorize os mais similares
+══════════════════════════════════════════════
+CRITÉRIOS DE QUALIDADE
+══════════════════════════════════════════════
+✓ Tipo: ${tipo} para VENDA (não aluguel)
+✓ Área: entre ${fmtM(areaMin)} e ${fmtM(areaMax)} (±30% de ${fmtM(areaRef || undefined)})
+✓ Preço: entre ${fmtR(precoMin)} e ${fmtR(precoMax)} (R$ 1.500 a R$ 45.000/m²)
+✓ URL direta do anúncio individual (não página de listagem/categoria)
+✗ Descartar: sem preço, preço absurdo, páginas de portal sem imóvel específico
+Meta: 4–8 comparáveis de qualidade, priorizando os mais próximos e similares
 
-═══════════════════════════════════════
-SUBMIT — após coletar, envie via PUT:
-═══════════════════════════════════════
+══════════════════════════════════════════════
+STATUS DOS PORTAIS (built-in browser do Claude)
+══════════════════════════════════════════════
+✅ OLX (olx.com.br) — sem login, melhor para MCMV/Tenda/CDHU
+✅ VivaReal (vivareal.com.br) — funciona, menos resultados populares
+✅ Imovelweb (imovelweb.com.br) — funciona
+⚠️ ZAP (zapimoveis.com.br) — navigate + get_page_text ok; javascript_tool bloqueado
+⚠️ QuintoAndar — funciona, mas filtro de bairro por URL não funciona
+❌ Mercado Livre — redireciona para login; pular
+❌ OLX no Chrome extension — bloqueado; usar SEMPRE o built-in browser
+
+Como obter imagemUrl no OLX:
+  1. Navegue até o anúncio → leia o HTML com read_page ou get_page_text
+  2. Pegue a URL da primeira imagem principal (geralmente https://img.olx.com.br/...)
+  3. OU: clique botão direito na foto → "Copiar endereço da imagem"
+
+fonte por portal (string exata): "OLX" | "ZAP Imóveis" | "VivaReal" | "Imovelweb" | "QuintoAndar" | "Loft"
+
+══════════════════════════════════════════════
+SUBMIT — após coletar todos os anúncios
+══════════════════════════════════════════════
+# Preferido (dev server local):
 curl -s -X PUT "http://localhost:3001/api/admin/laudos/${laudo._id}/mercado" \\
   -H "Content-Type: application/json" \\
   -H "Cookie: admin_token=%40Acesso00" \\
-  -d '{
-    "anuncios": [
-      {
-        "titulo": "...",
-        "url": "https://...",
-        "fonte": "olx",
-        "preco": 250000,
-        "area": 43,
-        "quartos": 2,
-        "imagemUrl": "https://...",
-        "relevancia": "endereco"
-      }
-    ]
-  }'
+  -d '{"anuncios": [...]}'
 
-relevancia: "endereco" = mesmo edifício/rua | "bairro" = mesmo bairro | "regiao" = região próxima
+# Alternativa (produção, se dev server não estiver rodando):
+curl -s -X PUT "https://www.buscaleiloescaixa.com.br/api/admin/laudos/${laudo._id}/mercado" \\
+  -H "Content-Type: application/json" \\
+  -H "Cookie: admin_token=%40Acesso00" \\
+  -d '{"anuncios": [...]}'
+
+Formato de cada objeto no array "anuncios":
+{
+  "titulo":     "Nome do anúncio como aparece no portal",
+  "url":        "https://url-direta-do-anuncio-individual",
+  "fonte":      "OLX",
+  "preco":      250000,
+  "area":       43,
+  "quartos":    2,
+  "imagemUrl":  "https://img.olx.com.br/...",
+  "relevancia": "endereco"
+}
+
+relevancia:
+  "endereco" = mesmo condomínio / mesma rua exata
+  "bairro"   = mesmo bairro
+  "regiao"   = bairro vizinho ou cidade
+
+⚠️ Se usar localhost: verificar se o dev server está rodando (npm run dev --prefix web)
 `;
   }
 
