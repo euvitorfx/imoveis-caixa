@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLaudoById, updateLaudo } from "@/lib/laudos";
+import { getLaudoById, getLaudoComMercadoByImovel, updateLaudo } from "@/lib/laudos";
 import type { AnuncioComparavel, AvaliacaoMercado } from "@/lib/laudos-types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -289,6 +289,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
   const avaliacaoMercado: AvaliacaoMercado = {
     anuncios,
     buscadoEm: new Date().toISOString(),
+    source: "manual",
     stats,
   };
 
@@ -302,6 +303,30 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
   const laudo = await getLaudoById(id);
   if (!laudo) return NextResponse.json({ error: "Laudo não encontrado" }, { status: 404 });
+
+  const force = new URL(req.url).searchParams.get("force") === "true";
+
+  // Protege resultados inseridos manualmente (via PUT/Claude browser)
+  if (!force && laudo.avaliacaoMercado?.source === "manual") {
+    return NextResponse.json(
+      { ok: false, cached: true, source: "manual", message: "Análise inserida manualmente. Use ?force=true para substituir.", stats: laudo.avaliacaoMercado.stats },
+      { status: 200 }
+    );
+  }
+
+  // Cache: verifica se outro laudo do mesmo imóvel já tem busca recente (< 30 dias)
+  if (!force && laudo.imovelId) {
+    const irmao = await getLaudoComMercadoByImovel(laudo.imovelId, id);
+    if (irmao?.avaliacaoMercado) {
+      // Copia o resultado do laudo irmão para este laudo
+      await updateLaudo(id, { avaliacaoMercado: irmao.avaliacaoMercado } as Parameters<typeof updateLaudo>[1]);
+      return NextResponse.json({
+        ok: true, cached: true, total: irmao.avaliacaoMercado.anuncios.length,
+        stats: irmao.avaliacaoMercado.stats,
+        message: `Reutilizado do laudo #${irmao.numero ?? irmao._id} (${irmao.avaliacaoMercado.buscadoEm?.slice(0, 10)})`,
+      });
+    }
+  }
 
   const d = laudo.imovelData as Record<string, unknown>;
   const tipo     = normalizaTipo(String(d.tipo    ?? "imóvel"));
@@ -493,6 +518,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const avaliacaoMercado: AvaliacaoMercado = {
     anuncios,
     buscadoEm: new Date().toISOString(),
+    source: "automatico",
     stats,
   };
 

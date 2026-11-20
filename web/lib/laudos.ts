@@ -70,6 +70,25 @@ export async function deleteLaudo(id: string): Promise<void> {
   await c.deleteOne({ _id: new ObjectId(id) });
 }
 
+/** Busca laudos do mesmo imóvel que tenham avaliacaoMercado recente (para cache) */
+export async function getLaudoComMercadoByImovel(
+  imovelId: string,
+  excluirId?: string
+): Promise<Laudo | null> {
+  const c = await col();
+  const trintaDiasAtras = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const query: Record<string, unknown> = {
+    imovelId,
+    "avaliacaoMercado.buscadoEm": { $gte: trintaDiasAtras },
+  };
+  if (excluirId && ObjectId.isValid(excluirId)) {
+    query._id = { $ne: new ObjectId(excluirId) };
+  }
+  const doc = await c.findOne(query, { sort: { "avaliacaoMercado.buscadoEm": -1 } });
+  if (!doc) return null;
+  return { ...doc, _id: doc._id!.toString() } as unknown as Laudo;
+}
+
 export async function getLaudoByMpPaymentId(paymentId: string): Promise<Laudo | null> {
   const c = await col();
   const doc = await c.findOne({ mpPaymentId: paymentId });

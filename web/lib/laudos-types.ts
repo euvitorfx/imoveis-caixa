@@ -73,6 +73,8 @@ export interface AnuncioComparavel {
 export interface AvaliacaoMercado {
   anuncios: AnuncioComparavel[];
   buscadoEm: string;
+  /** "manual" = inserido via Claude browser; "automatico" = Serper/Google CSE */
+  source?: "manual" | "automatico";
   stats?: {
     min: number;
     max: number;

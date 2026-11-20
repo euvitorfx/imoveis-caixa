@@ -515,12 +515,18 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
   const precoLeilao = Number(imovel.preco ?? 0) || undefined;
   const precoAval   = Number(imovel.precoAval ?? 0) || undefined;
 
-  async function buscar() {
+  async function buscar(force = false) {
+    // Pede confirmação antes de sobrescrever resultados manuais
+    if (dados?.source === "manual" && !force) {
+      if (!confirm("Esta análise foi inserida manualmente. Substituir pela busca automática?")) return;
+      force = true;
+    }
     setBuscando(true);
     setErro(null);
     try {
-      const r = await fetch(`/api/admin/laudos/${laudo._id}/mercado`, { method: "POST" });
-      const json = await r.json() as { ok?: boolean; error?: string; total?: number; stats?: AvaliacaoMercado["stats"] };
+      const url = `/api/admin/laudos/${laudo._id}/mercado${force ? "?force=true" : ""}`;
+      const r = await fetch(url, { method: "POST" });
+      const json = await r.json() as { ok?: boolean; cached?: boolean; error?: string; total?: number; stats?: AvaliacaoMercado["stats"]; message?: string };
       if (!r.ok) { setErro(json.error ?? "Erro na busca"); return; }
       // Recarrega os dados completos via GET
       const lr = await fetch(`/api/admin/laudos/${laudo._id}/mercado`);
@@ -569,10 +575,15 @@ function AvaliacaoMercadoImovel({ laudo, canEdit }: { laudo: Laudo; canEdit: boo
               · atualizado {new Date(dados.buscadoEm).toLocaleDateString("pt-BR")}
             </span>
           )}
+          {dados?.source === "manual" && (
+            <span style={{ fontSize: 10, fontWeight: 600, background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", borderRadius: 4, padding: "1px 6px" }}>
+              Manual
+            </span>
+          )}
         </div>
         {canEdit && (
           <button
-            onClick={buscar}
+            onClick={() => buscar()}
             disabled={buscando}
             style={{ background: "#01304D", color: "#fff", border: "none", borderRadius: 6, padding: "5px 14px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
           >
