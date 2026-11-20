@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { cookies } from "next/headers";
+import { ObjectId } from "mongodb";
+import clientPromise from "@/lib/mongodb";
 import { getLaudoById, STATUS_LABEL } from "@/lib/laudos";
 import type { LaudoStatus } from "@/lib/laudos";
 import ExcluirLaudoBtn from "@/components/ExcluirLaudoBtn";
@@ -42,6 +44,27 @@ export default async function LaudoPage({ params }: Params) {
 
   // Verifica se há algum bloco com conteúdo para mostrar o viewer
   const temConteudo = Object.values(laudo.blocos).some(b => b?.conteudo);
+
+  // Enriquece imovelData com campos completos do imóvel (endereço, bairro, área, quartos…)
+  // O snapshot guardado no laudo só tem campos mínimos da Caixa.
+  if (laudo.imovelId && ObjectId.isValid(laudo.imovelId)) {
+    try {
+      const client = await clientPromise;
+      const imovel = await client
+        .db(process.env.MONGODB_DB)
+        .collection(process.env.MONGODB_COLLECTION!)
+        .findOne({ _id: new ObjectId(laudo.imovelId) });
+      if (imovel) {
+        const campos = ["endereco","bairro","estado","areaUtil","areaTotal","quartos",
+                        "descricao","precoAval","empreendimento","condominio","nomeCondominio"] as const;
+        for (const c of campos) {
+          if (imovel[c] !== undefined && imovel[c] !== null) {
+            (laudo.imovelData as Record<string, unknown>)[c] = imovel[c];
+          }
+        }
+      }
+    } catch { /* não bloqueia a renderização se falhar */ }
+  }
 
   // Serializa o laudo para o Client Component (JSON.parse remove ObjectId e tipos não serializáveis)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
