@@ -33,12 +33,17 @@ function extraiRua(endereco: string): string {
   return endereco.split(",")[0].trim();
 }
 
-function parsePreco(text: string): number | undefined {
+// areaRef: se fornecida, valida preço/m² entre R$1.500 e R$45.000
+function parsePreco(text: string, areaRef?: number): number | undefined {
   const m = text.match(/R\$\s*([\d.]+)(?:,(\d+))?/);
   if (!m) return undefined;
   const intPart = parseInt(m[1].replace(/\./g, ""), 10);
-  if (intPart >= 50000 && intPart <= 15000000) return intPart;
-  return undefined;
+  if (intPart < 50000 || intPart > 15000000) return undefined;
+  if (areaRef && areaRef > 0) {
+    const precoM2 = intPart / areaRef;
+    if (precoM2 < 1500 || precoM2 > 45000) return undefined;
+  }
+  return intPart;
 }
 
 function parseArea(text: string): number | undefined {
@@ -99,6 +104,23 @@ const FONTE_MAP: Record<string, string> = {
 function fonteFromLink(displayLink: string): string {
   const host = displayLink.replace(/^www\./, "");
   return FONTE_MAP[host] ?? displayLink;
+}
+
+// Detecta páginas de categoria/busca dos portais (não são anúncios individuais)
+function isCategoryPage(item: SearchResult): boolean {
+  const text = `${item.title} ${item.snippet ?? ""}`;
+  if (/\b\d{3,}[\.\d]*\s+(?:im[oó]veis|aparta|casas|lotes|terrenos)\b/i.test(text)) return true;
+  if (/encontre (?:o|a|seu|sua)\s+(?:im[oó]vel|apartamento|casa)/i.test(text)) return true;
+  if (/(?:busque|pesquise|filtre)\s+entre/i.test(text)) return true;
+  if (/imóveis à venda em\s+\w+/i.test(text) && !/R\$\s*[\d\.]+/.test(text)) return true;
+  try {
+    const path = new URL(item.url).pathname;
+    if (/^\/imoveis\//i.test(path)) return true;
+    if (/^\/(?:venda|aluguel)\/(?:apartamentos|casas|terrenos|imoveis)\//i.test(path)) return true;
+    if (/^\/(?:region|comprar|alugar)\//i.test(path)) return true;
+    if (/^\/(?:apartamentos|casas)\//i.test(path)) return true;
+  } catch { /* URL inválida */ }
+  return false;
 }
 
 // ── Tipos de resultado de busca ───────────────────────────────────────────────
@@ -224,27 +246,41 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   const rua = endereco ? extraiRua(endereco) : "";
 
-  // 3 queries progressivas
   const queries: { q: string; relevancia: AnuncioComparavel["relevancia"] }[] = [];
 
+  // Query 1: rua exata — máxima relevância
   if (rua && cidade) {
     queries.push({
       q: `"${rua}" ${tipo} venda ${cidade} ${estado}`,
       relevancia: "endereco",
     });
   }
+
+  // Query 2: bairro com características do imóvel
   if (bairro && cidade) {
-    const partes = [`${tipo}`, `"${bairro}"`];
+    const partes = [tipo, `"${bairro}"`];
     if (quartos) partes.push(`${quartos} quartos`);
     if (area)    partes.push(`${Math.round(area)}m²`);
     partes.push("venda", cidade);
     queries.push({ q: partes.join(" "), relevancia: "bairro" });
   }
+
+  // Query 3: portais específicos — OLX + ZAP + VivaReal na bairro/cidade
+  // Busca diretamente nos portais para trazer anúncios individuais
   if (cidade) {
-    queries.push({
-      q: `${tipo} ${bairro || cidade} ${cidade} venda`,
-      relevancia: "regiao",
-    });
+    const localidade = bairro ? `"${bairro}" ${cidade}` : cidade;
+    const portais = "site:olx.com.br OR site:zapimoveis.com.br OR site:vivareal.com.br";
+    const partes = [tipo, localidade, "venda", portais];
+    if (quartos) partes.splice(2, 0, `${quartos} quartos`);
+    queries.push({ q: partes.join(" "), relevancia: "bairro" });
+  }
+
+  // Query 4: região ampla como fallback
+  if (cidade) {
+    const partes = [tipo, bairro || cidade, cidade, "venda"];
+    if (quartos) partes.push(`${quartos} quartos`);
+    if (area)    partes.push(`${Math.round(area)}m²`);
+    queries.push({ q: partes.join(" "), relevancia: "regiao" });
   }
 
   // Executa queries e deduplica por URL
@@ -257,6 +293,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     if (error && !apiError) apiError = error;
     for (const item of results) {
       if (seenUrls.has(item.url)) continue;
+      if (isCategoryPage(item)) continue;
       seenUrls.add(item.url);
 
       const texto = `${item.title} ${item.snippet ?? ""}`;
@@ -264,7 +301,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         titulo:          item.title.split(" - ")[0].trim(),
         url:             item.url,
         fonte:           fonteFromLink(item.displayLink),
-        preco:           parsePreco(texto),
+        preco:           parsePreco(texto, area),
         area:            parseArea(texto) ?? area,
         quartos:         parseQuartos(texto) ?? quartos,
         dataPublicacao:  item.publishedDate ? parseDataStr(item.publishedDate) : parseDataFromText(texto),
@@ -278,6 +315,17 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   if (apiError && anuncios.length === 0) {
     return NextResponse.json({ error: `Google CSE: ${apiError}` }, { status: 502 });
+  }
+
+  // Remove outliers de preço: descarta valores > 3.5x ou < 1/3.5 da mediana
+  const precosParaOutlier = anuncios.map(a => a.preco).filter((p): p is number => p != null);
+  if (precosParaOutlier.length >= 3) {
+    const med = calcMediana(precosParaOutlier);
+    for (const a of anuncios) {
+      if (a.preco != null && (a.preco > med * 3.5 || a.preco < med / 3.5)) {
+        a.preco = undefined;
+      }
+    }
   }
 
   // Calcula estatísticas com base nos anúncios que têm preço
