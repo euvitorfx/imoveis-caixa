@@ -3,8 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
-import { getLaudoById, STATUS_LABEL } from "@/lib/laudos";
-import type { LaudoStatus } from "@/lib/laudos";
+import { getLaudoById, updateLaudo, STATUS_LABEL } from "@/lib/laudos";
+import type { LaudoStatus, Laudo } from "@/lib/laudos";
 import ExcluirLaudoBtn from "@/components/ExcluirLaudoBtn";
 import LaudoViewer from "./LaudoViewer";
 
@@ -45,22 +45,29 @@ export default async function LaudoPage({ params }: Params) {
   // Verifica se há algum bloco com conteúdo para mostrar o viewer
   const temConteudo = Object.values(laudo.blocos).some(b => b?.conteudo);
 
-  // Enriquece imovelData com campos completos do imóvel (endereço, bairro, área, quartos…)
-  // O snapshot guardado no laudo só tem campos mínimos da Caixa.
-  if (laudo.imovelId && ObjectId.isValid(laudo.imovelId)) {
+  // Enriquece imovelData com campos completos do imóvel se ainda não estiver salvo
+  if (laudo.imovelId && ObjectId.isValid(laudo.imovelId) && !laudo.imovelData.bairro) {
     try {
       const client = await clientPromise;
       const imovel = await client
         .db(process.env.MONGODB_DB)
-        .collection(process.env.MONGODB_COLLECTION!)
+        .collection(process.env.MONGODB_COLLECTION ?? "imoveis")
         .findOne({ _id: new ObjectId(laudo.imovelId) });
       if (imovel) {
         const campos = ["endereco","bairro","estado","areaUtil","areaTotal","quartos",
                         "descricao","precoAval","empreendimento","condominio","nomeCondominio"] as const;
+        let enriqueceu = false;
         for (const c of campos) {
           if (imovel[c] !== undefined && imovel[c] !== null) {
             (laudo.imovelData as Record<string, unknown>)[c] = imovel[c];
+            enriqueceu = true;
           }
+        }
+        // Persiste de volta no MongoDB — próximas cargas leem direto sem lookup extra
+        if (enriqueceu) {
+          updateLaudo(id, { imovelData: laudo.imovelData } as Partial<Laudo>).catch(
+            (e) => console.error("[laudo page] falha ao persistir imovelData:", e)
+          );
         }
       }
     } catch (e) { console.error("[laudo page] falha ao enriquecer imovelData:", e); }
